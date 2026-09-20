@@ -1,0 +1,90 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joljak · 음악 격자 검토</title>
+<style>
+:root{color-scheme:dark;--bg:#111722;--panel:#1a2331;--line:#344158;--ink:#e5ecf7;--muted:#adbacd;--accent:#70ddbc}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,sans-serif}main{max-width:1240px;margin:30px auto;padding:0 22px}header{display:flex;align-items:center;justify-content:space-between;gap:20px}h1{margin:0;font-size:25px}p{color:var(--muted);margin:8px 0 18px}.tag{color:var(--accent);font-weight:700;font-size:12px;letter-spacing:2px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin:16px 0}.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}.row>*{min-width:0}label{display:block;color:var(--muted);font-size:13px}input,select,button{font:inherit;color:var(--ink);background:#111b2a;border:1px solid #46536a;border-radius:7px;padding:8px 11px}select{max-width:100%}button{cursor:pointer}button:hover{border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}.primary{color:#10251e;background:var(--accent);border:0;font-weight:700}input[type=number]{width:112px}input[type=range]{width:100%;padding:0}canvas{width:100%;height:230px;display:block;background:#111b2a;border-radius:7px;cursor:crosshair}#time{font:24px ui-monospace,monospace;color:var(--accent)}.columns{display:grid;grid-template-columns:1fr 1fr;gap:16px}.columns .panel{margin:0}h2{font-size:16px;margin:0 0 12px}ul{padding-left:20px;color:var(--muted)}.status{padding:10px 14px;background:#243443;border-radius:6px;min-height:44px;white-space:pre-wrap}#status[data-error=true]{color:#ffc2bb;background:#4a282d}.small{font-size:12px;color:var(--muted)}#log{max-height:150px;overflow:auto;white-space:pre-wrap}#file{max-width:240px}.stretch{flex:1}.notice{border-left:3px solid #e6b45a;padding-left:12px}.listline{display:flex;justify-content:space-between;gap:12px;margin:5px 0}.listline button{padding:2px 8px}a{color:var(--accent)}@media(max-width:780px){.columns{grid-template-columns:1fr}header{align-items:start;flex-direction:column}.row{gap:8px}main{padding:0 12px}}
+</style>
+<main><header><div><div class="tag">JOLJAK / GRID REVIEW</div><h1>음악 격자 검토</h1></div><div class="small">분석 후보 → 들어보기 → 기준점 수정 → 저장</div></header>
+<p>원곡 위에 클릭을 겹쳐 듣고 필요한 곳만 수정합니다. 격자를 바꾸어도 원본 오디오는 늘어나거나 이동하지 않습니다.</p>
+<div class="panel"><div class="row"><label class="stretch">곡<select id="track"></select></label><label class="stretch">지도 후보<select id="candidate"></select></label><button id="choose">후보 적용 · 잠금 유지</button></div><p class="small" id="qualification"></p><div class="status" id="status">음원을 준비하고 있습니다.</div><label class="small">음원 자동 로딩이 안 되면 같은 원본 파일을 선택하세요.<input type="file" id="file" accept="audio/*"></label></div>
+<div class="panel"><div class="row"><button id="play" class="primary" disabled>재생</button><button id="pause">일시정지</button><span id="time">0:00.000</span><label>원곡<input id="musicVolume" type="range" min="0" max="1" step="0.01" value="0.8"></label><label>클릭<input id="clickVolume" type="range" min="0" max="1" step="0.01" value="0.7"></label></div>
+<input id="seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="재생 위치"><label>파형 범위<select id="zoom"><option value="12">재생 위치 주변 12초</option><option value="30" selected>재생 위치 주변 30초</option><option value="60">재생 위치 주변 60초</option><option value="0">전체 곡</option></select></label><canvas id="timeline" width="1160" height="230" aria-label="원곡 파형과 박 격자"></canvas>
+<div class="row"><label>반복 시작 (초)<input id="loopStart" type="number" min="0" step="0.001" value="0"></label><label>반복 끝 (초)<input id="loopEnd" type="number" min="0" step="0.001" value="10"></label><label><input type="checkbox" id="loop">구간 반복</label><button id="toSupport">클릭 구간으로 이동</button><button id="here">현재 위치를 기준점 입력에 넣기</button><span id="bpm" class="small"></span></div><p id="mapScope" class="small"></p></div>
+<div class="columns"><section class="panel"><h2>박 단위와 기준점</h2><div class="row"><button id="half">½배</button><button id="double">2배</button><label>첫 박 이동 (ms)<input id="shift" type="number" step="1" value="0"></label><button id="shiftApply">이동 적용</button></div><p class="small">박 위치는 파형 위에 표시한 번호이며, 원래 악보의 마디 번호와는 별개입니다. 잠금이 있으면 배수·전체 이동 전에 해제해야 합니다.</p><div class="row"><label>박 위치<input id="anchorQ" type="number" step="0.25" value="0"></label><label>원곡 시각 (초)<input id="anchorT" type="number" min="0" step="0.001" value="0"></label><button id="anchor">기준점 잠금</button></div><div id="anchors"></div></section>
+<section class="panel"><h2>마디와 변박</h2><p class="small">마디 해석은 별도로 확인합니다. 첫 마디 또는 변박이 시작하는 박 위치와 박자표를 지정하세요.</p><div class="row"><label>시작 박 위치<input id="meterQ" type="number" step="1" value="0"></label><label>박자표<select id="meterN"><option value="4">4/4</option><option value="3">3/4</option><option value="2">2/4</option><option value="6">6/4</option></select></label><button id="meter">변박 지정 · 잠금</button></div><div id="meters"></div><p class="small">짧은 변박 뒤에는 복귀 위치도 지정합니다. 2/4·3/4·4/4·6/4 모두 4분음표 클릭에 마디 첫 박을 강조하며, 세부 강세 묶음은 아직 다루지 않습니다.</p></section></div>
+<section class="panel"><div class="row"><button id="undo">되돌리기</button><button id="save">작업 저장</button><label>저장 파일 복원<input id="restore" type="file" accept="application/json"></label><button id="accept" class="primary">검토 완료 · 지도 저장</button><button id="exportClick">현재 클릭 WAV 저장</button></div><p class="notice small">검토 완료는 사용자의 확인 기록입니다. 정답과의 일치가 자동 인증되는 것은 아닙니다. 클릭 WAV는 원곡과 같은 시작점·샘플 수로 저장되며, 음악은 포함하지 않습니다.</p><div id="summary" class="small"></div><details><summary class="small">이번 수정 기록</summary><div id="log" class="small"></div></details></section>
+<p class="small">정답 지도와 모델 이름은 이 화면에 표시하지 않습니다. 처음 듣는 곡의 검토와 같은 곡의 반복 검토 시간은 따로 비교해야 합니다.</p>
+</main>
+<script id="review-data" type="application/json">__REVIEW_DATA__</script>
+<script>
+__REVIEW_STATE__
+const bundle=JSON.parse(document.getElementById('review-data').textContent),$=id=>document.getElementById(id);
+let session,track,ctx,decoded,sourceNode,clickNode,musicGain,clickGain,playing=false,offset=0,startTime=0,loadId=0,transportId=0,raf;
+const sessions=new Map();
+function status(message,error=false){$('status').textContent=message;$('status').dataset.error=String(error);}
+function attempt(fn){try{fn();refresh();status('수정 내용을 적용했습니다. 원곡은 그대로 유지됩니다.');}catch(e){status(e.message,true);}}
+function fmt(t){return Math.floor(t/60)+':'+(t%60).toFixed(3).padStart(6,'0');}
+function position(){return playing?Math.max(0,Math.min(track.source.duration_seconds,offset+ctx.currentTime-startTime)):offset;}
+function stop(){transportId++;if(playing)offset=position();playing=false;for(const node of [sourceNode,clickNode]){if(node){node.onended=null;try{node.stop();}catch{}}}sourceNode=clickNode=null;}
+function edit(fn){const wasPlaying=playing;stop();attempt(fn);if(wasPlaying)start().catch(e=>status(e.message,true));}
+function prepareClick(){const buffer=ctx.createBuffer(1,decoded.length,decoded.sampleRate),data=buffer.getChannelData(0),sr=buffer.sampleRate;
+ for(const e of clickEvents(session.state.map,track.source.duration_seconds)){const at=Math.round(e.source_seconds*sr),n=Math.round(.02*sr);for(let i=0;i<n&&at+i<data.length;i++)data[at+i]+=.5*Math.sin(2*Math.PI*(e.accent?1500:1000)*i/sr)*Math.exp(-i/(sr*.004));}return buffer;}
+async function start(){if(!decoded)throw Error('음원을 먼저 불러오세요.');stop();const request=transportId;await ctx.resume();if(request!==transportId)return;
+ if(offset>=track.source.duration_seconds)offset=0;
+ const loop=$('loop').checked,lo=Number($('loopStart').value),hi=Number($('loopEnd').value);
+ if(loop&&(!(hi>lo)||lo<0||hi>track.source.duration_seconds))throw Error('반복 구간을 음원 범위 안에 지정하세요.');
+ if(loop&&(offset<lo||offset>=hi))offset=lo;
+ sourceNode=ctx.createBufferSource();sourceNode.buffer=decoded;sourceNode.connect(musicGain);
+ clickNode=ctx.createBufferSource();clickNode.buffer=prepareClick();clickNode.connect(clickGain);
+ const when=ctx.currentTime+.035,duration=loop?hi-offset:decoded.duration-offset;startTime=when;playing=true;session.begin();
+ sourceNode.start(when,offset,duration);clickNode.start(when,offset,duration);
+ sourceNode.onended=()=>{if(!playing)return;playing=false;offset=loop?lo:track.source.duration_seconds;if(loop)start().catch(e=>status(e.message,true));};
+}
+async function decode(bytes,id){const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).map(x=>x.toString(16).padStart(2,'0')).join('');
+ if(id!==loadId)return;if(digest!==track.source.sha256)throw Error('선택한 음원이 분석에 사용한 원본과 다릅니다.');
+ ctx=ctx||new AudioContext();musicGain=musicGain||ctx.createGain();clickGain=clickGain||ctx.createGain();musicGain.connect(ctx.destination);clickGain.connect(ctx.destination);
+ musicGain.gain.value=Number($('musicVolume').value);clickGain.gain.value=Number($('clickVolume').value);
+ const audio=await ctx.decodeAudioData(bytes);if(id!==loadId)return;
+ if(Math.abs(audio.duration-track.source.duration_seconds)>2/audio.sampleRate)throw Error('디코딩 길이가 원본과 다릅니다.');
+ decoded=audio;$('play').disabled=false;status('준비되었습니다. 후보를 비교하고 필요한 기준점만 수정하세요.');draw();}
+async function selectTrack(id){stop();track=bundle.tracks.find(t=>t.id===id);session=sessions.get(id)||new ReviewSession(track);sessions.set(id,session);offset=0;decoded=null;loadId++;const current=loadId;
+ $('play').disabled=true;$('candidate').replaceChildren();for(const m of track.maps){const o=new Option(m.label,m.id);$('candidate').append(o);}
+ $('seek').max=track.source.duration_seconds;$('loopEnd').value=Math.min(10,track.source.duration_seconds);$('qualification').textContent=track.qualification;
+ refresh();status('원본 음원을 확인하고 있습니다.');try{const response=await fetch(track.audio_url);if(!response.ok)throw Error('음원 파일을 열지 못했습니다.');await decode(await response.arrayBuffer(),current);}catch(e){if(current===loadId)status(e.message+' 자동 로딩이 안 되면 원본 파일을 직접 선택하세요.',true);}}
+function refresh(){if(!session)return;$('candidate').value=session.state.selected_map_id;
+ for(const [id,values,describe,remove] of [['anchors',session.state.anchors,a=>`박 ${a.quarter_position} → ${a.source_seconds.toFixed(3)}초 · 잠금`,a=>session.removeAnchor(a.quarter_position)],['meters',session.state.map.meter_events||[],m=>`박 ${m.quarter_position}부터 ${m.numerator}/4${m.source_seconds===undefined?'':` · ${m.source_seconds.toFixed(3)}초`} · ${m.locked?'잠금':'후보'}`,m=>session.removeMeter(m.quarter_position)]]){
+  $(id).replaceChildren();for(const v of values){const div=document.createElement('div');div.className='listline small';const span=document.createElement('span');span.textContent=describe(v);const button=document.createElement('button');button.textContent='해제';button.onclick=()=>edit(()=>remove(v));div.append(span,button);$(id).append(div);}}
+ const counters=session.export(),grid=session.state.map.grid;$('undo').disabled=!session.history.length;$('summary').textContent=`클릭 범위 ${fmt(grid[0].source_seconds)}–${fmt(grid.at(-1).source_seconds)} / 음원 ${fmt(track.source.duration_seconds)} · 수정 버전 ${session.state.revision} · 수동 수정 ${counters.correction_action_count}회 · 후보 적용 ${counters.candidate_application_count}회 · 되돌리기 ${counters.undo_count}회`;
+ $('mapScope').textContent=session.state.map.full_song_map===false?`부분 지도입니다. ${fmt(grid[0].source_seconds)}–${fmt(grid.at(-1).source_seconds)} 구간만 클릭이 있으며, 나머지 구간과 연결되는 박 수는 미확정입니다.`:'표시된 클릭 범위 밖에는 클릭을 생성하지 않습니다. 곡 전체와 변박을 확인한 뒤 저장하세요.';
+ $('log').textContent=session.actions.map(a=>`${(a.elapsed_ms/1000).toFixed(1)}초 · ${a.kind}`).join('\n');draw();}
+function viewBounds(){const duration=track.source.duration_seconds,span=Number($('zoom').value)||duration,start=Math.max(0,Math.min(position()-span*.25,duration-span));return [start,Math.min(duration,start+span)];}
+function draw(){if(!session)return;const c=$('timeline'),g=c.getContext('2d'),duration=track.source.duration_seconds,w=c.width,h=c.height,[lo,hi]=viewBounds(),xAt=t=>(t-lo)/(hi-lo)*w;g.clearRect(0,0,w,h);
+ if(track.waveform){g.strokeStyle='#556881';g.beginPath();track.waveform.forEach((v,i)=>{const x=xAt(i/track.waveform.length*duration);if(x<0||x>w)return;g.moveTo(x,h*.54-v*h*.3);g.lineTo(x,h*.54+v*h*.3);});g.stroke();}
+ for(const e of clickEvents(session.state.map,duration)){const x=xAt(e.source_seconds);if(x<0||x>w)continue;g.strokeStyle=e.accent?'#e5b44d':'#458978';g.lineWidth=e.accent?2:1;g.beginPath();g.moveTo(x,e.accent?20:55);g.lineTo(x,h-28);g.stroke();if(hi-lo<=30){g.fillStyle='#adbacd';g.font='10px system-ui';g.fillText(String(e.quarter_position),x+2,40);}}
+ for(const a of session.state.anchors){const x=xAt(a.source_seconds);g.fillStyle='#e5b44d';g.fillRect(x-3,5,6,12);}
+ g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(xAt(position()),0);g.lineTo(xAt(position()),h);g.stroke();
+ g.fillStyle='#adbacd';g.font='12px system-ui';for(let i=0;i<=8;i++)g.fillText(fmt(lo+(hi-lo)*i/8),Math.min(w-70,w*i/8+3),h-8);
+ const grid=session.state.map.grid,t=position();let index=grid.findIndex(p=>p.source_seconds>t);if(index<0)index=grid.length-1;else if(index===0)index=1;const a=grid[index-1],b=grid[index];$('bpm').textContent=t<grid[0].source_seconds||t>grid.at(-1).source_seconds?'현재 위치에는 클릭이 없습니다.':`현재 약 ${(60*(b.quarter_position-a.quarter_position)/(b.source_seconds-a.source_seconds)).toFixed(3)} BPM · 4분음표 해석`;
+}
+function download(name,data,type){const url=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function save(accepted){download(track.id+(accepted?'-reviewed':'-draft')+'.json',JSON.stringify(session.export(accepted),null,2),'application/json');status(accepted?'검토 완료 지도를 저장했습니다. 정답 일치 여부는 별도 검증 대상입니다.':'수정 내역과 잠금 기준점을 저장했습니다.');}
+for(const t of bundle.tracks)$('track').append(new Option(t.label,t.id));
+$('track').onchange=()=>selectTrack($('track').value).catch(e=>status(e.message,true));
+$('candidate').onchange=()=>status('후보 적용 버튼을 누르면 현재 잠금 기준점을 유지하며 지도를 바꿉니다.');
+$('choose').onclick=()=>edit(()=>session.choose($('candidate').value));$('half').onclick=()=>edit(()=>session.scale(.5));$('double').onclick=()=>edit(()=>session.scale(2));
+$('shiftApply').onclick=()=>edit(()=>session.shift(Number($('shift').value)/1000));
+$('anchor').onclick=()=>edit(()=>session.anchor(Number($('anchorQ').value),Number($('anchorT').value)));
+$('meter').onclick=()=>edit(()=>session.meter(Number($('meterQ').value),Number($('meterN').value)));
+$('undo').onclick=()=>edit(()=>session.undo());$('save').onclick=()=>save(false);$('accept').onclick=()=>save(true);
+$('exportClick').onclick=()=>attempt(()=>download(track.id+'-click.wav',clickWav(session.state.map,track.source),'audio/wav'));
+$('play').onclick=()=>start().catch(e=>status(e.message,true));$('pause').onclick=()=>stop();
+$('seek').oninput=()=>{const running=playing;stop();offset=Number($('seek').value);draw();if(running)start().catch(e=>status(e.message,true));};
+$('timeline').onclick=e=>{const [lo,hi]=viewBounds();stop();offset=Math.max(0,Math.min(track.source.duration_seconds,lo+(e.clientX-$('timeline').getBoundingClientRect().left)/$('timeline').clientWidth*(hi-lo)));draw();};$('zoom').onchange=()=>draw();
+$('here').onclick=()=>{$('anchorT').value=position().toFixed(3);};
+$('toSupport').onclick=()=>{stop();offset=session.state.map.grid[0].source_seconds;draw();};
+$('musicVolume').oninput=()=>{if(musicGain)musicGain.gain.value=Number($('musicVolume').value);};$('clickVolume').oninput=()=>{if(clickGain)clickGain.gain.value=Number($('clickVolume').value);};
+$('file').onchange=async()=>{stop();try{await decode(await $('file').files[0].arrayBuffer(),loadId);}catch(e){status(e.message,true);}};
+$('restore').onchange=async()=>{stop();try{const saved=JSON.parse(await $('restore').files[0].text());attempt(()=>session.restore(saved));}catch(e){status(e.message,true);}};
+function animate(){if(session){$('time').textContent=fmt(Math.max(0,position()));$('seek').value=Math.max(0,position());if(playing)draw();}raf=requestAnimationFrame(animate);}animate();
+window.reviewDebug={get session(){return session;},get decoded(){return decoded;},get playing(){return playing;},clickEvents,clickWav,position};
+selectTrack(bundle.tracks[0].id).catch(e=>status(e.message,true));
+</script></html>
