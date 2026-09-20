@@ -1,0 +1,39 @@
+# Private project notes and local preserved material
+/_local
+/archive/legacy/
+/data/
+
+# Agent instructions and internal implementation guidance
+AGENTS.md
+agents.md
+/.agents/
+/.codex/
+/apps/desktop/README.md
+/services/analysis/README.md
+/packages/contracts/README.md
+/experiments/analysis/README.md
+/experiments/audio-engine/README.md
+/tests/fixtures/README.md
+
+# JavaScript and desktop build artifacts
+node_modules/
+dist/
+out/
+coverage/
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Native build artifacts
+target/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+*.log
