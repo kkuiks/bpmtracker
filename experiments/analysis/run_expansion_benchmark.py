@@ -62,12 +62,16 @@ def main():
     parser.add_argument('--calibration', required=True, type=Path)
     parser.add_argument('--output-dir', required=True, type=Path)
     parser.add_argument('--device', choices=('cpu', 'cuda'), default='cuda')
+    parser.add_argument('--predict-only', action='store_true',
+                        help='Freeze source-only outputs without opening any reference or reporting accuracy')
     args = parser.parse_args()
     if args.output_dir.exists():
         parser.error('output directory must be new')
     records = [r for path in args.catalogs for r in json.loads(path.read_text())['tracks']]
     if len({r['id'] for r in records}) != len(records):
         parser.error('duplicate recording IDs')
+    if not args.predict_only and any(r.get('absolute_timing_verified') is False for r in records):
+        parser.error('catalog explicitly lacks verified timing; use --predict-only')
     calibration = json.loads(args.calibration.read_text())
     if calibration['source_hashes']['phase_alignment.py'] != sha256(Path(__file__).with_name('phase_alignment.py')):
         parser.error('calibration feature version mismatch')
@@ -86,6 +90,7 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     configuration = {'reference_used_for_prediction': False, 'default_promoted': False,
+        'prediction_only': args.predict_only,
         'new_to_local_experiments': True, 'pretrained_model_holdout_status': 'training overlap not audited',
         'device': args.device, 'precision': 'float32', 'versions': installed_versions(),
         'checkpoint_sha256': sha256(args.checkpoint), 'prior': asdict(prior_config),
@@ -148,6 +153,14 @@ def main():
         rows.append(row)
         print('PREDICT', record['id'], round(row['elapsed_seconds'], 2), phase['status'], shift, flush=True)
     save(output/'prediction-manifest.json', [{'id': r['id'], 'path': r['prediction_path'], 'sha256': r['prediction_sha256']} for r in rows])
+    if args.predict_only:
+        if any(sha256(Path(__file__).with_name(n)) != h for n, h in configuration['source_hashes'].items()):
+            raise ValueError('source modules changed during prediction')
+        save(output/'predictions-report.json', {'configuration': configuration, 'rows': rows,
+             'complete': True, 'scoring_performed': False,
+             'reason': 'Source predictions preserved independently of reference admission.'})
+        print('PREDICTION ONLY: no reference opened, no accuracy score produced', flush=True)
+        return
     # All inference is complete and immutable before the first label is opened.
     for row, record in zip(rows, records):
         if sha256(record['reference']['path']) != record['reference']['sha256']:
