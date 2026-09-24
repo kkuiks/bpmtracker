@@ -70,6 +70,8 @@ def main():
     records = [r for path in args.catalogs for r in json.loads(path.read_text())['tracks']]
     if len({r['id'] for r in records}) != len(records):
         parser.error('duplicate recording IDs')
+    if not args.predict_only and any(r.get('target_evaluation_eligible') is False or r.get('benchmark_role') == 'diagnostic_only' for r in records):
+        parser.error('diagnostic-only or ineligible input cannot enter target benchmark scoring; use --predict-only')
     if not args.predict_only and any(r.get('absolute_timing_verified') is False for r in records):
         parser.error('catalog explicitly lacks verified timing; use --predict-only')
     calibration = json.loads(args.calibration.read_text())

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master · 클릭 정렬 비교</title>
+<link rel="icon" href="data:,">
+<style>
+:root{color-scheme:dark;--bg:#10151d;--card:#1a2330;--line:#344459;--text:#edf3fa;--muted:#b0c0d2;--mint:#74ddc1;--gold:#ffc575}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,'Malgun Gothic',sans-serif}main{max-width:1080px;margin:36px auto;padding:0 24px 56px}h1{font-size:30px;line-height:1.3;margin:8px 0 12px}h2{font-size:19px;margin:0 0 12px}p{margin:8px 0}.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--mint)}.muted,small{color:var(--muted)}.tag{display:inline-block;background:#3c3120;color:var(--gold);padding:4px 10px;border-radius:20px;font-size:12px}.card{background:var(--card);border:1px solid var(--line);padding:22px;border-radius:16px;margin-top:18px}.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}button,a.button{font:inherit;background:#27364a;border:1px solid #49607a;border-radius:8px;color:var(--text);padding:9px 14px;cursor:pointer;text-decoration:none}button:hover,a.button:hover{background:#364c66}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--gold)}button[aria-pressed=true],.primary{background:#225b51;border-color:var(--mint)}button:disabled{opacity:.5;cursor:wait}.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.presets button{display:flex;flex-direction:column;text-align:left}.presets strong{font-size:21px}.presets span{font-size:13px}input[type=range]{accent-color:var(--mint);cursor:pointer}#seek,#offsetSlider{width:100%}input[type=number],textarea{font:inherit;color:var(--text);background:#101923;border:1px solid #49607a;border-radius:8px;padding:8px}input[type=number]{width:140px}textarea{width:100%;min-height:75px}#time{font:22px ui-monospace,monospace}#wave{width:100%;height:210px;background:#111b27;border-radius:8px;display:block;margin-top:12px}.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}.columns .card{margin-top:18px}label{cursor:pointer}.status{min-height:26px;font-size:14px;color:var(--mint)}.error{color:#ffaaaa}.small{font-size:13px}a{color:var(--mint)}.steps{padding-left:22px}.steps li{margin:6px 0}#offsetLabel{color:var(--gold);font-weight:600}.volume{flex:1;min-width:200px}.volume input{width:130px}footer{margin-top:24px;color:var(--muted);font-size:13px}@media(max-width:750px){.columns,.presets{grid-template-columns:1fr}main{padding:0 16px}.presets button{flex-direction:row;align-items:center;justify-content:space-between}h1{font-size:24px}}
+</style>
+<main>
+<div class="row" style="justify-content:space-between"><span class="eyebrow">ONE SONG / ALIGNMENT REVIEW</span><span class="tag">청취 검토 대기 · 정답 인증 전</span></div>
+<h1 id="title">Master · 클릭 정렬 비교</h1>
+<p class="muted">음원은 고정하고, 제공된 템포 지도의 클릭 위치만 바꿉니다. 원본 → 후보 → 반대 방향을 같은 구간에서 비교하세요.</p>
+<section class="card">
+<div class="presets" id="presets"></div>
+<p class="small muted">175 BPM · 첫 2/4 이후 4/4. 보정 후보는 킥 파형 비교에서 얻었습니다. 원래 녹음 클릭의 정확한 위치는 아직 확인하지 못했습니다.</p>
+<div class="row" style="margin-top:18px"><button id="play" class="primary" disabled>재생 준비 중</button><span id="time">0:00.000</span><span class="muted" id="duration"></span></div>
+<input id="seek" aria-label="재생 위치" type="range" min="0" step="0.01" value="0">
+<div class="row" id="jumps"></div>
+<div class="row" style="margin-top:16px"><label class="volume">음원 <input id="masterVolume" aria-label="음원 음량" type="range" min="0" max="0.55" step="0.01" value="0.4"></label><label class="volume">클릭 <input id="clickVolume" aria-label="클릭 음량" type="range" min="0" max="1" step="0.01" value="0.8"></label></div>
+<p id="status" class="status" role="status">검토 자료를 불러오고 있습니다.</p>
+<canvas id="wave" aria-label="Master와 킥 파형, 선택한 클릭의 시간 위치"></canvas>
+<p class="small muted">위: Master · 아래: 선택한 오프셋만큼 옮겨 표시한 원본 킥. 민트선: 박 / 금색선: 마디 첫 박. 파형 크기는 각각 따로 조정되어 있습니다.</p>
+</section>
+<div class="columns">
+<section class="card"><h2>클릭 위치 미세 조정</h2>
+<div class="row"><input id="offset" aria-label="클릭 오프셋 밀리초" type="number" min="-500" max="500" step="0.1"><span>ms</span><button id="earlier">−1 ms</button><button id="later">+1 ms</button></div>
+<input id="offsetSlider" aria-label="클릭 위치 이동" type="range" min="-500" max="500" step="0.1">
+<p id="offsetLabel"></p><p class="small muted">− : 클릭을 앞당김 / + : 클릭을 늦춤. BPM과 박자 사이 간격은 유지합니다. 키보드 1 / 2 / 3으로 후보를 전환할 수 있습니다.</p>
+<button id="saveClick">현재 위치의 클릭 WAV 저장</button>
+</section>
+<section class="card"><h2>직접 확인한 결과 저장</h2>
+<p class="small muted">확인한 구간을 표시하세요. 위치를 바꾸면 구간 표시가 초기화됩니다.</p>
+<div class="row" style="margin-bottom:12px"><label><input type="checkbox" id="checkedIntro"> 초반</label><label><input type="checkbox" id="checkedMiddle"> 중반</label><label><input type="checkbox" id="checkedEnd"> 후반</label></div>
+<textarea id="notes" aria-label="청취 메모" placeholder="예: 초반과 후반 모두 맞음 / 뒤로 갈수록 어긋남 / 첫 박 악센트가 다름"></textarea>
+<button id="saveReview" style="margin-top:10px">선택값과 메모 JSON 저장</button><p id="saved" class="small muted"></p>
+</section>
+</div>
+<section class="card"><h2>Cubase에서 비교하기</h2>
+<ol class="steps"><li><a href="master.wav" download>Master WAV</a>와 아래의 클릭 WAV들을 별도 트랙에 놓고, 모두 <strong>같은 절대 0초</strong>에서 시작하게 하세요.</li><li>Musical Mode / 자동 템포 맞춤과 Cubase 자체 클릭을 끄고, Master + 클릭 하나만 켜서 비교하세요. Master 음량은 낮춰 주세요.</li><li>원본 프로젝트는 보존하고, 초반·중반·후반이 하나의 이동값으로 맞는지 확인하세요.</li></ol>
+<div id="downloads" class="row"></div>
+<p class="small muted">브라우저가 재생되지 않으면 아래 합본 WAV를 그대로 들어도 됩니다. 합본의 음량은 세 후보가 같습니다.</p><div id="listens" class="row"></div>
+<p class="small"><a href="읽어주세요.txt" download>사용 안내</a> · <a href="supplied-tempo-map.mid" download>변경하지 않은 원본 MIDI</a></p>
+</section>
+<footer>이 화면에서 바꾼 값은 원본 음원·프로젝트·평가 정답에 반영되지 않습니다. 단순 파일 위치 보정과 연주/믹싱에 따른 악기별 차이를 구별하기 위한 검토입니다. 마지막 소스 범위 밖의 꼬리 구간은 검증 대상이 아닙니다.</footer>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let data, context, masterBuffer, clickBuffer, masterNode, clickNode, masterGain, clickGain;
+let playing=false, position=0, startedAt=0, basePosition=0, offset=0, loading=false;
+const checks=['checkedIntro','checkedMiddle','checkedEnd'];
+function setStatus(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error);}
+function formatTime(s){const m=Math.floor(s/60);return `${m}:${(s-m*60).toFixed(3).padStart(6,'0')}`;}
+function currentPosition(){return playing?Math.min(data.duration_seconds,basePosition+Math.max(0,context.currentTime-startedAt)):position;}
+function makeClicks(rate,frames){
+  const out=new Float32Array(frames),length=Math.floor(rate*.025+.5);
+  const regular=new Float32Array(length),accent=new Float32Array(length);
+  for(let i=0;i<length;i++){const t=i/rate;regular[i]=.18*Math.exp(-220*t)*Math.cos(2*Math.PI*1500*t);accent[i]=.30*Math.exp(-220*t)*Math.cos(2*Math.PI*2200*t);}
+  for(const e of data.events){const start=Math.floor((e.source_seconds+offset)*rate+.5),pulse=e.accent?accent:regular;
+    for(let j=Math.max(0,-start);j<length&&start+j<frames;j++)out[start+j]+=pulse[j];
+  }
+  return out;
+}
+function rebuildClicks(){if(!context)return;clickBuffer=context.createBuffer(1,data.sample_frames,data.sample_rate);clickBuffer.copyToChannel(makeClicks(data.sample_rate,data.sample_frames),0);}
+async function ensureAudio(){
+  if(context&&masterBuffer)return;
+  loading=true;$('play').disabled=true;setStatus('Master WAV를 불러오는 중입니다. 첫 재생에 잠시 걸릴 수 있습니다.');
+  try{
+    context ||= new AudioContext({sampleRate:data.sample_rate});
+    await context.resume();
+    const response=await fetch(data.master_file);if(!response.ok)throw Error(`WAV HTTP ${response.status}`);
+    masterBuffer=await context.decodeAudioData(await response.arrayBuffer());
+    if(masterBuffer.sampleRate!==data.sample_rate||masterBuffer.length!==data.sample_frames)throw Error('브라우저 디코딩 길이가 다릅니다. 아래 합본 WAV로 비교해 주세요.');
+    masterGain=context.createGain();clickGain=context.createGain();
+    masterGain.gain.value=Number($('masterVolume').value);clickGain.gain.value=Number($('clickVolume').value);
+    masterGain.connect(context.destination);clickGain.connect(context.destination);rebuildClicks();
+  }catch(error){masterBuffer=null;throw error;}finally{loading=false;$('play').disabled=false;}
+}
+function stop(){position=currentPosition();playing=false;for(const n of [masterNode,clickNode]){if(n){try{n.stop();}catch{}n.disconnect();}}masterNode=null;clickNode=null;$('play').textContent='재생';}
+function start(){
+  if(!masterBuffer||!clickBuffer)return;
+  if(position>=data.duration_seconds-.001)position=0;
+  masterNode=context.createBufferSource();clickNode=context.createBufferSource();
+  masterNode.buffer=masterBuffer;clickNode.buffer=clickBuffer;masterNode.connect(masterGain);clickNode.connect(clickGain);
+  basePosition=position;startedAt=context.currentTime+.05;playing=true;
+  masterNode.start(startedAt,position);clickNode.start(startedAt,position);$('play').textContent='일시 정지';setStatus('Master와 클릭을 같은 오디오 시간축으로 재생 중입니다.');
+}
+function seek(value){const resume=playing;stop();position=Math.max(0,Math.min(data.duration_seconds,value));if(resume)start();}
+function setOffset(value){
+  if(!Number.isFinite(value)||value < -.5||value > .5)return;
+  const resume=playing;stop();offset=value;
+  $('offset').value=(offset*1000).toFixed(4);$('offsetSlider').value=offset*1000;
+  $('offsetLabel').textContent=`${offset>=0?'+':''}${(offset*1000).toFixed(4)} ms · ${offset===0?'원본 위치':offset<0?'클릭을 앞당김':'클릭을 늦춤'}`;
+  for(const button of $('presets').children)button.setAttribute('aria-pressed',Math.abs(Number(button.dataset.offset)-offset)<1e-10?'true':'false');
+  checks.forEach(id=>$(id).checked=false);$('saved').textContent='';rebuildClicks();if(resume)start();
+}
+function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
+function saveClick(){
+  const samples=makeClicks(data.sample_rate,data.sample_frames),bytes=new ArrayBuffer(44+samples.length*2),view=new DataView(bytes);
+  const string=(at,s)=>{for(let i=0;i<s.length;i++)view.setUint8(at+i,s.charCodeAt(i));};
+  string(0,'RIFF');view.setUint32(4,36+samples.length*2,true);string(8,'WAVE');string(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,data.sample_rate,true);view.setUint32(28,data.sample_rate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);string(36,'data');view.setUint32(40,samples.length*2,true);
+  for(let i=0;i<samples.length;i++)view.setInt16(44+i*2,Math.max(-32768,Math.min(32767,Math.round(samples[i]*32768))),true);
+  download(new Blob([bytes],{type:'audio/wav'}),`click-user-${(offset*1000).toFixed(4)}ms.wav`);
+}
+function saveReview(){
+  const review={schema_version:1,kind:'human_listening_selection_not_certified_ground_truth',created_at:new Date().toISOString(),title:data.title,
+    master_sha256:data.master_sha256,midi_sha256:data.midi_sha256,sample_rate:data.sample_rate,sample_frames:data.sample_frames,
+    transform:data.transform,offset_seconds:offset,tempo_and_meter_unchanged:true,source_audio_unchanged:true,
+    reviewed_regions:{intro:$('checkedIntro').checked,middle:$('checkedMiddle').checked,end:$('checkedEnd').checked},
+    notes:$('notes').value,absolute_timing_verified:false,target_evaluation_eligible:false,
+    quarter_events:data.events.map(e=>({...e,master_seconds:e.source_seconds+offset,master_start_frame:Math.floor((e.source_seconds+offset)*data.sample_rate+.5)}))};
+  download(new Blob([JSON.stringify(review,null,2)+'\n'],{type:'application/json'}),'alignment-listening-review.json');$('saved').textContent='JSON 다운로드를 요청했습니다. 원본과 정답 카탈로그는 변경되지 않았습니다.';
+}
+function draw(){
+  if(!data){requestAnimationFrame(draw);return;}
+  const pos=currentPosition();if(playing&&pos>=data.duration_seconds){stop();position=data.duration_seconds;}
+  $('time').textContent=formatTime(pos);if(document.activeElement!==$('seek'))$('seek').value=pos;
+  const canvas=$('wave'),dpr=window.devicePixelRatio||1,w=canvas.clientWidth,h=210;
+  if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+  const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+  const left=Math.max(0,Math.min(pos-2,data.duration_seconds-6)),span=6;
+  for(const [name,y,shift,color] of [['master',65,0,'#72a6dd'],['kick',145,offset,'#987fc8']]){
+    const wave=data.waveforms[name];c.strokeStyle=color;c.beginPath();
+    for(let x=0;x<w;x++){const time=left+x/w*span-shift,bin=Math.floor(time/wave.seconds_per_bin);let value=0;
+      const stop=Math.ceil((time+span/w)/wave.seconds_per_bin);for(let b=Math.max(0,bin);b<=stop&&b<wave.peaks.length;b++)value=Math.max(value,wave.peaks[b]);
+      c.moveTo(x,y-value*30);c.lineTo(x,y+value*30);
+    }c.stroke();c.fillStyle='#b0c0d2';c.font='11px system-ui';c.fillText(name==='master'?'MASTER':'SOURCE KICK',8,y-35);
+  }
+  for(const e of data.events){const t=e.source_seconds+offset;if(t<left||t>left+span)continue;const x=(t-left)/span*w;
+    c.strokeStyle=e.accent?'#ffc575':'#74ddc15c';c.beginPath();c.moveTo(x,26);c.lineTo(x,184);c.stroke();c.fillStyle=e.accent?'#ffc575':'#74ddc1';c.fillText(`${e.beat_in_bar}`,x+3,24);
+  }
+  c.strokeStyle='white';c.beginPath();const px=(pos-left)/span*w;c.moveTo(px,0);c.lineTo(px,190);c.stroke();
+  c.fillStyle='#b0c0d2';for(let second=Math.ceil(left);second<left+span;second++)c.fillText(`${second}s`,(second-left)/span*w,202);
+  requestAnimationFrame(draw);
+}
+async function init(){
+  try{
+    const response=await fetch('review.json');if(!response.ok)throw Error(`review HTTP ${response.status}`);data=await response.json();
+    $('title').textContent=data.title;$('duration').textContent=`/ ${formatTime(data.duration_seconds)}`;$('seek').max=data.duration_seconds;
+    for(const [i,v] of data.variants.entries()){
+      const button=document.createElement('button');button.dataset.offset=v.offset_seconds;button.id='preset-'+v.id;button.innerHTML=`<span>${i+1}. ${v.label}</span><strong>${(v.offset_seconds*1000).toFixed(2)} ms</strong>`;button.onclick=()=>setOffset(v.offset_seconds);$('presets').append(button);
+      for(const [holder,file,label] of [['downloads',v.click_file,`${i+1}. 클릭 WAV`],['listens',v.listen_file,`${i+1}. Master + 클릭`]]){const a=document.createElement('a');a.className='button';a.textContent=label;a.href=file;a.download=file;$(holder).append(a);}
+    }
+    for(const [label,time] of [['인트로',0],['첫 드럼',12],['중반 A',60],['중반 B',120],['후반',190]]){const b=document.createElement('button');b.textContent=label;b.dataset.time=time;b.onclick=()=>seek(time);$('jumps').append(b);}
+    setOffset(data.variants.find(v=>v.id==='candidate').offset_seconds);
+    $('play').disabled=false;$('play').textContent='재생';setStatus('파형 보정 후보가 선택되어 있습니다. 재생을 누른 뒤 원본과 비교하세요.');
+    $('play').onclick=async()=>{try{if(playing){stop();setStatus('일시 정지');return;}if(loading)return;await ensureAudio();await context.resume();start();}catch(e){setStatus(e.message,true);}};
+    $('seek').oninput=()=>seek(Number($('seek').value));
+    $('offset').onchange=()=>setOffset(Number($('offset').value)/1000);$('offsetSlider').onchange=()=>setOffset(Number($('offsetSlider').value)/1000);
+    $('earlier').onclick=()=>setOffset(Math.max(-.5,offset-.001));$('later').onclick=()=>setOffset(Math.min(.5,offset+.001));
+    $('masterVolume').oninput=()=>{if(masterGain)masterGain.gain.setTargetAtTime(Number($('masterVolume').value),context.currentTime,.01);};
+    $('clickVolume').oninput=()=>{if(clickGain)clickGain.gain.setTargetAtTime(Number($('clickVolume').value),context.currentTime,.01);};
+    $('saveClick').onclick=saveClick;$('saveReview').onclick=saveReview;
+    document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;const index=Number(e.key)-1;if(index>=0&&index<3)setOffset(data.variants[index].offset_seconds);});
+    requestAnimationFrame(draw);
+  }catch(e){setStatus(`자료를 열 수 없습니다: ${e.message}. start-review.cmd를 실행하고 localhost 주소로 접속하세요.`,true);}
+}
+init();
+</script>
+</html>
