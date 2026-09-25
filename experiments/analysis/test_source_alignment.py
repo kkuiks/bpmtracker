@@ -2,10 +2,25 @@ import unittest
 
 import numpy as np
 
-from audit_source_alignment import audit
+from audit_source_alignment import audit, correlations
 
 
 class SourceAlignmentTests(unittest.TestCase):
+    def test_silent_search_windows_cannot_become_correlation_peaks(self):
+        rng=np.random.default_rng(91);target=rng.normal(size=127)
+        source=np.r_[rng.normal(size=500),np.zeros(2000),target,np.zeros(1000)]
+        scores=correlations(source,target)
+        self.assertTrue(np.isfinite(scores).all())
+        self.assertLessEqual(float(np.max(np.abs(scores))),1)
+        np.testing.assert_array_equal(scores[500:2500-len(target)+1],0)
+        self.assertEqual(int(np.argmax(scores)),2500)
+        self.assertAlmostEqual(float(scores[2500]),1,places=9)
+        np.testing.assert_array_equal(correlations(source,np.zeros(127)),0)
+        np.testing.assert_array_equal(correlations(np.zeros(500),target),0)
+        quiet=correlations(source*1e-8,target*1e-8)
+        self.assertEqual(int(np.argmax(quiet)),2500)
+        self.assertAlmostEqual(float(quiet[2500]),1,places=9)
+
     def test_known_trim_survives_unrelated_mix_component(self):
         rng = np.random.default_rng(43)
         stem = rng.normal(size=70_000)

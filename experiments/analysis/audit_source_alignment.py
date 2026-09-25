@@ -37,8 +37,17 @@ def correlations(longer, shorter):
     sums = np.r_[0., np.cumsum(longer)]
     squares = np.r_[0., np.cumsum(longer*longer)]
     energy = squares[len(shorter):]-squares[:-len(shorter)]-(sums[len(shorter):]-sums[:-len(shorter)])**2/len(shorter)
-    denominator = np.sqrt(np.maximum(energy, 0)*np.sum(shorter*shorter))
-    return cross/np.maximum(denominator, 1e-20)
+    target_energy = np.sum(shorter*shorter)
+    # Prefix-sum cancellation and FFT residue are not evidence in silent windows.
+    # Scale the floor with input energy, so uniformly quiet nonzero audio still works.
+    floor = 64*np.finfo(float).eps*squares[-1]
+    valid = (energy > floor) & (target_energy > 0)
+    denominator = np.sqrt(np.maximum(energy, 0)*target_energy)
+    result = np.zeros_like(cross)
+    np.divide(cross, denominator, out=result, where=valid & (denominator > 0))
+    # Gross violations of normalized-correlation bounds are invalid, not strong matches.
+    result[~np.isfinite(result) | (np.abs(result) > 1+1e-7)] = 0
+    return np.clip(result, -1, 1)
 
 
 def audit(mix, stem, rate, config=None):
