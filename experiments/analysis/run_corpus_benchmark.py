@@ -34,7 +34,8 @@ def score_events(reference, prediction, skip_seconds):
         estimated = validate_events(prediction[key])
         truth = truth[(truth >= lower)&(truth <= upper)]
         estimated = estimated[(estimated >= lower)&(estimated <= upper)]
-        scores[key] = {str(tolerance):event_metrics(truth,estimated,tolerance) for tolerance in (.02,.07)}
+        scores[key] = {str(tolerance):event_metrics(truth,estimated,tolerance)
+                       for tolerance in (.01,.02,.03,.07)}
     return scores
 
 
@@ -76,7 +77,8 @@ def summarize(results):
                 for key in ('beats_seconds','downbeats_seconds'):
                     scores=[r['scores'][variant][scope][key] for r in subset if r['scores'][variant][scope][key] is not None]
                     entry[scope][key]={'track_count':len(scores), 'macro_f1':{
-                        str(t):float(np.mean([s[str(t)]['f1'] for s in scores])) if scores else None for t in (.02,.07)}}
+                        str(t):float(np.mean([s[str(t)]['f1'] for s in scores])) if scores else None
+                        for t in (.01,.02,.03,.07)}}
             variants[variant]=entry
         summary[dataset]={'track_count':len(subset),'variants':variants,
                           'clock_fallback_count':sum(r['clock_status'].startswith('fallback') for r in subset)}

@@ -8,8 +8,11 @@ def score_bar_changes(reference, bars, tolerance=.5):
         return None
     if any(e['denominator']!=4 for e in reference['meter_events']):return None
     low,high=reference['evaluation_support_seconds']
-    truth=[e for e in reference['meter_events'][1:] if low<e['time_seconds']<high]
-    predicted=[e for e in bars['meter_events'][1:] if low<e['time_seconds']<high]
+    truth=[b for a,b in zip(reference['meter_events'],reference['meter_events'][1:])
+           if low<b['time_seconds']<high
+           and (a['numerator'],a['denominator'])!=(b['numerator'],b['denominator'])]
+    predicted=[b for a,b in zip(bars['meter_events'],bars['meter_events'][1:])
+               if low<b['time_seconds']<high and a['pulses_per_bar']!=b['pulses_per_bar']]
     matched=0
     by_meter={}
     for length in sorted({e['numerator'] for e in truth}|{e['pulses_per_bar'] for e in predicted}):

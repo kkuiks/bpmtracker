@@ -61,6 +61,26 @@ class ClockFittingTests(unittest.TestCase):
             with self.subTest(penalty=penalty), self.assertRaises(ValueError):
                 fit_clock(np.arange(50)*.5, split_penalty=penalty)
 
+    def test_grid_span_does_not_require_legacy_event_count(self):
+        proposal = {'pulse_index_span': [0., 3.], 'knot_pulse_indices': [], 'coefficients': [1., .5]}
+        np.testing.assert_array_equal(grid_events(proposal), [1., 1.5, 2., 2.5])
+
+    def test_grid_respects_nonzero_support_without_rebasing_lattice(self):
+        proposal = {'pulse_index_span': [10., 13.], 'input_event_count': 4,
+                    'knot_pulse_indices': [], 'coefficients': [-4., .5]}
+        np.testing.assert_array_equal(grid_events(proposal), [1., 1.5, 2., 2.5])
+        proposal['pulse_index_span'] = [10.25, 13.75]
+        np.testing.assert_array_equal(grid_events(proposal), [1.5, 2., 2.5])
+        np.testing.assert_array_equal(grid_events(proposal, 2), [1.25, 1.5, 1.75, 2., 2.25, 2.5, 2.75])
+        np.testing.assert_array_equal(grid_events(proposal, .5), [2.])
+
+    def test_legacy_grid_fallback_and_malformed_spans(self):
+        proposal = {'input_event_count': 4, 'knot_pulse_indices': [], 'coefficients': [1., .5]}
+        np.testing.assert_array_equal(grid_events(proposal), [1., 1.5, 2., 2.5])
+        for span in ([3., 1.], [0., float('nan')], [0.], [[0., 3.]]):
+            with self.subTest(span=span), self.assertRaises(ValueError):
+                grid_events({**proposal, 'pulse_index_span': span})
+
 
 if __name__ == "__main__":
     unittest.main()

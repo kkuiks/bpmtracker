@@ -39,19 +39,34 @@ def validate_events(times):
 
 
 def render_clicks(beats, downbeats, sample_rate, frame_count):
-    """Render at absolute sample positions without shifting the source audio."""
+    """Render the union of explicit events at absolute source sample positions.
+
+    Independent downbeats (for example alternate bars in 5/8 on a quarter
+    grid) remain audible. Sample-frame collisions produce one click, with
+    downbeat accent priority. Rounding stays NumPy's nearest-even convention.
+    The skipped count describes distinct event times outside the renderable
+    source samples, including events rounded onto the exclusive final frame.
+    """
     beats, downbeats = validate_events(beats), validate_events(downbeats)
+    if (not np.isfinite(sample_rate) or sample_rate <= 0 or
+            not isinstance(frame_count, (int, np.integer)) or frame_count < 0):
+        raise ValueError("positive sample rate and nonnegative integer frame count required")
     clicks = np.zeros(frame_count, dtype=np.float32)
-    downbeat_frames = set(np.rint(downbeats * sample_rate).astype(np.int64))
+    duration = frame_count / sample_rate
+    events = np.union1d(beats, downbeats)
+    # Reject times beyond physical support before multiplying/casting. Very
+    # large finite timestamps must not overflow int64 into negative frames.
+    frames = np.full(len(events), frame_count, dtype=np.int64)
+    in_time = events < duration
+    frames[in_time] = np.rint(events[in_time] * sample_rate).astype(np.int64)
+    inside = frames < frame_count
+    skipped = int(np.count_nonzero(~inside))
+    downbeat_frames = set(np.rint(downbeats[downbeats < duration] * sample_rate).astype(np.int64))
     pulse_time = np.arange(max(1, round(sample_rate * 0.025))) / sample_rate
     envelope = np.exp(-pulse_time * 220)
     regular = (0.18 * envelope * np.cos(2 * np.pi * 1500 * pulse_time)).astype(np.float32)
     accent = (0.30 * envelope * np.cos(2 * np.pi * 2200 * pulse_time)).astype(np.float32)
-    skipped = 0
-    for frame in np.rint(beats * sample_rate).astype(np.int64):
-        if frame >= frame_count:
-            skipped += 1
-            continue
+    for frame in np.unique(frames[inside]):
         pulse = accent if frame in downbeat_frames else regular
         length = min(len(pulse), frame_count - frame)
         clicks[frame:frame + length] += pulse[:length]

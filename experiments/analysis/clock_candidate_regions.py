@@ -6,7 +6,8 @@ multiple regions never imply that their quarter-zero coordinates are aligned.
 from dataclasses import asdict, dataclass
 import numpy as np
 
-from clock_candidates import CandidateConfig, generate_clock_candidates
+from clock_candidates import (CandidateConfig, generate_clock_candidates, validate_candidate_inputs,
+                              _positive_integer)
 from run_beat_this import validate_events
 
 
@@ -20,8 +21,23 @@ class RegionConfig:
     max_candidates: int = 8
 
 
+
+def validate_region_config(config):
+    _positive_integer(config.minimum_stable_events, 'minimum_stable_events', 2)
+    _positive_integer(config.max_regions, 'max_regions')
+    _positive_integer(config.max_candidates, 'max_candidates')
+    if (not np.isfinite(config.stable_fractional_period_tolerance) or
+            config.stable_fractional_period_tolerance < 0):
+        raise ValueError('stable_fractional_period_tolerance must be finite and nonnegative')
+    for name in ('gap_floor_seconds', 'gap_period_multiple'):
+        value = getattr(config, name)
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f'{name} must be finite and positive')
+
+
 def evidence_regions(events, config=None):
     config = config or RegionConfig()
+    validate_region_config(config)
     events = validate_events(events)
     if len(events) < config.minimum_stable_events:
         return [], [], []
@@ -64,13 +80,18 @@ def evidence_regions(events, config=None):
 
 
 def generate_region_candidates(beat_logits, downbeat_logits, fps, official_beats_seconds,
-                               config=None):
+                               config=None, *, source_duration_seconds=None, ranking_policy='legacy'):
     config = config or RegionConfig()
-    events = validate_events(official_beats_seconds)
+    validate_region_config(config)
+    beat_logits, downbeat_logits, events, fps, duration = validate_candidate_inputs(
+        beat_logits, downbeat_logits, fps, official_beats_seconds, source_duration_seconds)
+    if ranking_policy != 'legacy':
+        raise ValueError('experimental ranking is limited to full-source candidates; region candidates require legacy ranking')
     regions, bridges, rejected = evidence_regions(events, config)
     output = {'schema_version': 'clock-candidate-regions-v2', 'accepted': False,
               'reference_used_for_prediction': False, 'source_origin_seconds': 0,
               'configuration': {'regions': asdict(config), 'frozen_predictor': asdict(CandidateConfig())},
+              'ranking_policy': ranking_policy, 'source_window_seconds': [0., duration],
               'scope': 'one observable region per candidate; source origin preserved; unknown quarter bridges',
               'full_song_map': False, 'regions': regions, 'unknown_bridges': bridges,
               'rejected_regions': rejected, 'rejected_candidates': [], 'candidates': [],
@@ -81,10 +102,14 @@ def generate_region_candidates(beat_logits, downbeat_logits, fps, official_beats
     budget = max(1, config.max_candidates // len(regions))
     for number, region in enumerate(regions):
         subset = events[region['input_start_index']:region['input_end_index_exclusive']]
-        generated = generate_clock_candidates(beat_logits, downbeat_logits, fps, subset)
+        generated = generate_clock_candidates(beat_logits, downbeat_logits, fps, subset,
+            source_duration_seconds=duration, ranking_policy=ranking_policy)
         # Retain different period paths before alternate phases; never rank or
         # prune with reference scores. Total emitted candidates remains <= 8.
-        candidates = sorted(generated['candidates'], key=lambda c: (c['phase_offset_quarters'], c['id']))[:budget]
+        remaining = max(0, config.max_candidates - len(output['candidates']))
+        candidates = sorted(generated['candidates'], key=lambda c: (c['phase_offset_quarters'], c['id']))[:min(budget, remaining)]
+        if generated['candidates'] and not remaining:
+            output['rejected_regions'].append({**region, 'reason': 'global_candidate_budget'})
         region['v1_selection_status'] = generated['selection_status']
         region['v1_candidate_count'] = len(generated['candidates'])
         output['rejected_candidates'].extend({'region': number, **r} for r in generated['rejected_candidates'])

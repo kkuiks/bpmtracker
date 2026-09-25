@@ -1,4 +1,6 @@
 import unittest
+import json
+from dataclasses import replace
 import numpy as np
 
 from fit_clock import clock_time
@@ -54,6 +56,28 @@ class ContinuousClockV2Tests(unittest.TestCase):
         result=fit_clock_v2(truth)
         self.assertEqual(len(result['knot_pulse_indices']),1)
         self.assertLess(abs(result['knot_pulse_indices'][0]-knot),.002)
+
+    def test_invalid_configuration_is_rejected_before_fitting(self):
+        truth = events([120], [12])
+        invalid = [('max_events', 3), ('max_events', True), ('max_knots', -1), ('max_knots', 2.0),
+                   ('candidate_limit', 0), ('candidate_limit', float('nan')), ('refinement_passes', -1),
+                   ('refinement_passes', 1.0), ('pair_pool_size', False), ('pair_pool_size', -1),
+                   ('noise_floor_seconds', 0), ('noise_floor_seconds', -1),
+                   ('noise_floor_seconds', float('inf')), ('observation_quantization_seconds', -.02),
+                   ('complexity_factor', float('nan')), ('complexity_factor', -1)]
+        for key, value in invalid:
+            with self.subTest(key=key, value=value), self.assertRaises(ValueError):
+                fit_clock_v2(truth, config=replace(FitConfig(), **{key: value}))
+
+    def test_numpy_integer_configuration_matches_python_integer_control(self):
+        truth = events([120], [12])
+        config = FitConfig(max_events=np.int64(20), max_knots=np.int64(0), candidate_limit=np.int64(8),
+                           refinement_passes=np.int64(0), pair_pool_size=np.int64(0))
+        control = FitConfig(max_events=20, max_knots=0, candidate_limit=8, refinement_passes=0, pair_pool_size=0)
+        result = fit_clock_v2(truth, config=config)
+        self.assertEqual(result, fit_clock_v2(truth, config=control))
+        json.dumps(result, allow_nan=False)
+        self.assertIsInstance(config.max_events, np.integer)
 
 
 if __name__=='__main__':unittest.main()

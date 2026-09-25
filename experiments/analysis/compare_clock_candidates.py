@@ -29,30 +29,65 @@ def reference_tempo_changes(reference):
             and abs(a['bpm_quarter'] - b['bpm_quarter']) > 1e-8]
 
 
-def evaluate_times(reference, predicted_times, changes=None, candidate=None):
+def evaluate_tempo_map(reference, changes=None, *, tempo_map_supported=None):
+    """Score map-capable failures without conflating unsupported functionality.
+
+    None preserves the historical caller contract. New comparison callers must
+    explicitly declare capability: a capable path that returns no map misses
+    every qualified reference change, even if its fallback still returns beats.
+    Missing reference labels remain unscored. An empty constant reference does
+    not make a missing map successful; tempo_map_status retains the failure.
+    """
+    if tempo_map_supported not in (None, True, False):
+        raise ValueError('tempo_map_supported must be True, False, or None')
+    if tempo_map_supported is False and changes is not None:
+        raise ValueError('unsupported tempo-map path cannot supply map changes')
+    lo, hi = reference['evaluation_support_seconds']
+    scored = None if changes is None else [e for e in changes if lo < e['source_seconds'] < hi]
+    outside = [] if changes is None else [e for e in changes if not lo < e['source_seconds'] < hi]
+    if tempo_map_supported is False:
+        status = 'unsupported_tempo_map'
+    elif changes is None:
+        status = 'failed_no_tempo_map' if tempo_map_supported else 'no_tempo_map'
+    else:
+        status = 'tempo_map_produced'
+    result = {'tempo_map_status': status,
+              'tempo_change_evaluation_support': {
+                  'seconds': [lo, hi], 'rule': 'strict lower < time < upper for both reference and prediction',
+                  'outside_prediction_count': len(outside), 'outside_prediction_events': outside,
+                  'full_prediction_map_modified': False}}
+    for label, tolerance in (('100ms', .1), ('500ms', .5)):
+        if status in ('unsupported_tempo_map', 'no_tempo_map'):
+            score = {'status': status}
+        else:
+            score = tempo_change_metrics(reference_tempo_changes(reference), scored or [],
+                                         time_tolerance_seconds=tolerance, rate_tolerance_bpm=.1)
+            score['prediction_status'] = status
+            if status == 'failed_no_tempo_map' and score['status'] == 'scored':
+                score['status'] = 'failed_no_tempo_map'
+                if not (score['full_change_scores']['true_positives'] +
+                        score['full_change_scores']['false_negatives']):
+                    # No change event exists to miss, but no map was delivered.
+                    # Avoid presenting a vacuous F1=1 as successful map output.
+                    for key in ('precision', 'recall', 'f1'):
+                        score['full_change_scores'][key] = None
+        result['tempo_changes_' + label] = score
+    return result
+
+
+def evaluate_times(reference, predicted_times, changes=None, candidate=None, *, tempo_map_supported=None):
     lo, hi = reference['evaluation_support_seconds']
     truth = np.asarray(reference['beats_seconds'], dtype=float)
     truth = truth[(truth >= lo) & (truth <= hi)]
     predicted = np.asarray(predicted_times, dtype=float)
     predicted = predicted[(predicted >= lo) & (predicted <= hi)]
-    # A declared reference span cannot label extrapolated intro/outro changes.
-    # Apply the identical open interval to both event lists, while retaining
-    # all excluded predictions as diagnostics and leaving the full map intact.
-    scored_changes = None if changes is None else [e for e in changes if lo < e['source_seconds'] < hi]
-    outside_changes = [] if changes is None else [e for e in changes if not lo < e['source_seconds'] < hi]
-    result = {'event_20ms': nearest_event_diagnostics(truth, predicted, .02),
+    result = {'event_10ms': nearest_event_diagnostics(truth, predicted, .01),
+              'event_20ms': nearest_event_diagnostics(truth, predicted, .02),
+              'event_30ms': nearest_event_diagnostics(truth, predicted, .03),
               'event_70ms': nearest_event_diagnostics(truth, predicted, .07),
               'pulse_density_diagnostic': pulse_level_diagnostics(truth, predicted),
               'source_span_coverage': temporal_span_coverage(truth, predicted[0], predicted[-1]) if len(predicted) else None,
-              'tempo_changes_100ms': tempo_change_metrics(reference_tempo_changes(reference), scored_changes or [],
-                                                         time_tolerance_seconds=.1, rate_tolerance_bpm=.1)
-                                      if changes is not None else {'status': 'no_tempo_map'},
-              'tempo_changes_500ms': tempo_change_metrics(reference_tempo_changes(reference), scored_changes or [],
-                                                         time_tolerance_seconds=.5, rate_tolerance_bpm=.1)
-                                      if changes is not None else {'status': 'no_tempo_map'},
-              'tempo_change_evaluation_support': {'seconds': [lo, hi], 'rule': 'strict lower < time < upper for both reference and prediction',
-                    'outside_prediction_count': len(outside_changes), 'outside_prediction_events': outside_changes,
-                    'full_prediction_map_modified': False}}
+              **evaluate_tempo_map(reference, changes, tempo_map_supported=tempo_map_supported)}
     candidate_events = [{'index': e['quarter_position'], 'time_seconds': e['source_seconds']}
                         for e in candidate['indexed_grid']] if candidate else []
     result['indexed_grid'] = indexed_grid_metrics(
@@ -127,7 +162,9 @@ def main():
                 'source_frame_offset' in logits and int(logits['source_frame_offset']) != 0):
             raise ValueError('nonzero model frame origin requires an explicit input adapter')
         candidates = generate_clock_candidates(logits['beat'], logits['downbeat'],
-                                                float(logits['fps']), official['beats_seconds'])
+                                                float(logits['fps']),
+                                                [v for v in official['beats_seconds'] if 0 <= v < catalogs[track['id']]['duration_seconds']],
+                                                source_duration_seconds=catalogs[track['id']]['duration_seconds'])
         prediction_finished = time.perf_counter()
         target = args.output_dir / track['id']
         target.mkdir()

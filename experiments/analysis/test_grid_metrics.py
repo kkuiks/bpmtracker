@@ -50,6 +50,13 @@ class GridMetricsTests(unittest.TestCase):
         self.assertEqual(nearest_event_diagnostics(ref,pred)['true_positives'],3)
         self.assertEqual(pulse_level_diagnostics(ref,pred)['empty_interval_fraction'],.5)
 
+    def test_multiple_declared_tolerances_do_not_shift_predictions(self):
+        ref=[0.,1.,2.]; pred=[.015,1.015,2.015]
+        self.assertEqual(nearest_event_diagnostics(ref,pred,.01)['true_positives'],0)
+        self.assertEqual(nearest_event_diagnostics(ref,pred,.02)['true_positives'],3)
+        self.assertEqual(nearest_event_diagnostics(ref,pred,.03)['true_positives'],3)
+        self.assertEqual(nearest_event_diagnostics(ref,pred,.07)['true_positives'],3)
+
     def test_invalid_indices_are_rejected(self):
         with self.assertRaises(ValueError):
             indexed_grid_metrics([{'index':0,'time_seconds':0},{'index':0,'time_seconds':1}],[])

@@ -3,7 +3,8 @@
 Input pulse indices must already have a consistent musical interpretation. This
 does not infer missing beat counts, meter, or a source-to-project time offset.
 """
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+from numbers import Integral, Real
 from itertools import combinations
 import numpy as np
 
@@ -21,6 +22,28 @@ class FitConfig:
     complexity_factor: float = 4.
     refinement_passes: int = 2
     pair_pool_size: int = 12
+
+
+def _validated_config(config):
+    """Reject invalid numerical controls before they reach the bounded search."""
+    if not isinstance(config, FitConfig):
+        raise ValueError('config must be a FitConfig')
+    lower_bounds = {'max_events': 4, 'max_knots': 0, 'candidate_limit': 1,
+                    'refinement_passes': 0, 'pair_pool_size': 0}
+    counts = {}
+    for name, minimum in lower_bounds.items():
+        value = getattr(config, name)
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral) or value < minimum:
+            raise ValueError(f'{name} must be an integer >= {minimum}')
+        counts[name] = int(value)
+    for name in ('noise_floor_seconds', 'observation_quantization_seconds', 'complexity_factor'):
+        value = getattr(config, name)
+        if (isinstance(value, (bool, np.bool_)) or not isinstance(value, Real) or
+                not np.isfinite(value) or value < 0 or (name == 'noise_floor_seconds' and value == 0)):
+            raise ValueError(f'invalid finite nonnegative configuration value: {name}')
+    # NumPy integer controls are valid, but saved configuration must remain
+    # JSON serializable and range() must receive integer objects.
+    return replace(config, **counts)
 
 
 def _solve(x, y, knots, anchors):
@@ -50,7 +73,7 @@ def _noise_and_curvature(x, y, floor):
 
 
 def fit_clock_v2(times, pulse_indices=None, anchors=None, locked_knots=None, config=None):
-    config = config or FitConfig()
+    config = _validated_config(FitConfig() if config is None else config)
     times = validate_events(times)
     if not 4 <= len(times) <= config.max_events:
         raise ValueError('v2 requires 4 to max_events correctly indexed observations')

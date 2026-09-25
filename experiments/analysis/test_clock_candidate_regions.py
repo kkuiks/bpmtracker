@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from clock_candidate_regions import generate_region_candidates
+from clock_candidate_regions import RegionConfig, generate_region_candidates
 from test_clock_candidates import evidence
 
 
@@ -40,6 +40,36 @@ class RegionCandidateTests(unittest.TestCase):
         result = generate_region_candidates(beat, down, 50., events)
         rates = [[s['pulse_rate_per_minute'] for s in c['clock']['segments']] for c in result['candidates']]
         self.assertTrue(any(len(r) == 3 and np.max(abs(np.array(r) - [120, 123, 126])) < .15 for r in rates))
+
+
+class RegionInvariantTests(unittest.TestCase):
+    def test_global_cap_smaller_than_region_count_is_still_hard(self):
+        events = np.r_[np.arange(1., 13., .5), np.arange(50., 66., .5)]
+        beat, down = evidence(events, 70.)
+        result = generate_region_candidates(beat, down, 50., events, config=RegionConfig(max_candidates=1))
+        self.assertEqual(len(result['regions']), 2)
+        self.assertEqual(len(result['candidates']), 1)
+        self.assertTrue(any(r['reason'] == 'global_candidate_budget' for r in result['rejected_regions']))
+
+    def test_bad_evidence_cannot_escape_validation_via_empty_events(self):
+        for beat, down, fps in [(np.array([np.nan]), np.zeros(1), 50.),
+                                (np.zeros(10), np.zeros(5), 50.),
+                                (np.zeros(10), np.zeros(10), 0.)]:
+            with self.subTest(fps=fps), self.assertRaises(ValueError):
+                generate_region_candidates(beat, down, fps, [])
+
+    def test_unvalidated_balanced_ranking_is_rejected_for_regions(self):
+        events = np.arange(1., 10., .5)
+        beat, down = evidence(events, 12.)
+        with self.assertRaisesRegex(ValueError, 'limited to full-source candidates'):
+            generate_region_candidates(beat, down, 50., events, ranking_policy='balanced_evidence')
+
+    def test_invalid_region_budgets_rejected(self):
+        for configuration in [RegionConfig(max_candidates=0), RegionConfig(max_regions=0),
+                RegionConfig(max_candidates=1.5), RegionConfig(minimum_stable_events=1),
+                RegionConfig(gap_floor_seconds=np.nan)]:
+            with self.subTest(configuration=configuration), self.assertRaises(ValueError):
+                generate_region_candidates([], [], 50., [], config=configuration)
 
 
 if __name__ == '__main__':

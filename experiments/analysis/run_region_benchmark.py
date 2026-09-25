@@ -45,7 +45,7 @@ def main():
                 raise ValueError('saved acoustic evidence changed')
             beat, downbeat, fps = load_logits(path, source['duration_seconds'])
             raw = original['methods'][model + '__common_minimal']['prediction']['beats_seconds']
-            candidates = generate_region_candidates(beat, downbeat, fps, raw)
+            candidates = generate_region_candidates(beat, downbeat, fps, raw, source_duration_seconds=source['duration_seconds'])
             candidates['input_provenance'] = {'audio': source, **provenance}
             target = args.output_dir / track_id / model
             target.mkdir(parents=True)

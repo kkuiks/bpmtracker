@@ -20,6 +20,7 @@ from ablate_clock_inputs import fit_prediction
 from clock_candidates import generate_clock_candidates, tempo_events
 from compare_clock_candidates import evaluate_times
 from decode_pulses import decode_pulses, retain_nearby_downbeats
+from grid_metrics import nearest_event_diagnostics
 from inspect_inputs import sha256
 from run_beat_this import validate_events
 
@@ -84,7 +85,7 @@ def common_minimal(beat_logits, downbeat_logits, fps, duration):
     return clip_prediction({'beats_seconds': beats.tolist(), 'downbeats_seconds': downbeats.tolist()}, duration)[0]
 
 
-def reconstruct_model(beat_logits, downbeat_logits, fps, official, duration):
+def reconstruct_model(beat_logits, downbeat_logits, fps, official, duration, *, candidate_ranking_policy='legacy'):
     """Pure prediction stage: no references, reference paths, or score inputs."""
     official, official_clipped = clip_prediction(official, duration)
     minimal = common_minimal(beat_logits, downbeat_logits, fps, duration)
@@ -93,7 +94,8 @@ def reconstruct_model(beat_logits, downbeat_logits, fps, official, duration):
     downbeats = retain_nearby_downbeats(pulses, minimal['downbeats_seconds'])
     proposal, fitted, status = fit_prediction({'beats_seconds': pulses.tolist(), 'downbeats_seconds': downbeats.tolist()})
     fitted, current_clipped = clip_prediction(fitted, duration)
-    candidates = generate_clock_candidates(beat_logits, downbeat_logits, fps, minimal['beats_seconds'])
+    candidates = generate_clock_candidates(beat_logits, downbeat_logits, fps, minimal['beats_seconds'],
+        source_duration_seconds=duration, ranking_policy=candidate_ranking_policy)
     by_id = {c['id']: c for c in candidates['candidates']}
     selected = by_id.get(candidates['selected_candidate_id'])
     chosen = {'beats_seconds': [e['source_seconds'] for e in selected['indexed_grid']],
@@ -113,7 +115,8 @@ def reconstruct_model(beat_logits, downbeat_logits, fps, official, duration):
                 'current_pulse_range_per_minute': [55, 215],
                 'native_frame_period_discretization_retained': True,
                 'source_time_offset_seconds': 0,
-                'candidate_seed': 'same minimal decoder for both models; own official DBN not used as seed'}}
+                'candidate_seed': 'same minimal decoder for both models; own official DBN not used as seed',
+                'candidate_ranking_policy': candidate_ranking_policy}}
 
 
 def score_model(reference, predictions):
@@ -122,7 +125,17 @@ def score_model(reference, predictions):
     for name in ('official', 'common_minimal', 'clock_current', 'clock_candidates_selected'):
         method = predictions[name]
         metrics[name] = evaluate_times(reference, method['prediction']['beats_seconds'],
-                                        tempo_events(method['clock']) if method['clock'] else None)
+                                        tempo_events(method['clock']) if method['clock'] else None,
+                                        tempo_map_supported=name in ('clock_current', 'clock_candidates_selected'))
+        downbeats=reference.get('downbeats_seconds')
+        metrics[name]['downbeat_capability'] = ('unsupported' if name == 'clock_candidates_selected' else 'supported')
+        if downbeats is None or name == 'clock_candidates_selected':
+            for label in ('10ms','20ms','30ms','70ms'):metrics[name]['downbeat_'+label]=None
+        else:
+            lo,hi=reference['evaluation_support_seconds'];truth=np.asarray([v for v in downbeats if lo<=v<=hi])
+            predicted=np.asarray([v for v in method['prediction']['downbeats_seconds'] if lo<=v<=hi])
+            for label,tolerance in zip(('10ms','20ms','30ms','70ms'),(.01,.02,.03,.07)):
+                metrics[name]['downbeat_'+label]=nearest_event_diagnostics(truth,predicted,tolerance)
     candidate_metrics = {}
     for candidate in predictions['candidate_set']['candidates']:
         candidate_metrics[candidate['id']] = evaluate_times(reference,
@@ -145,7 +158,11 @@ def summarize(rows):
         for name in subset[0]['methods']:
             methods[name] = {'count': len(subset), 'macro_event_f1': {
                 threshold: float(np.mean([r['methods'][name]['metrics'][threshold]['f1'] for r in subset]))
-                for threshold in ('event_20ms', 'event_70ms')}}
+                for threshold in ('event_10ms', 'event_20ms', 'event_30ms', 'event_70ms')}}
+            eligible=[r['methods'][name]['metrics']['downbeat_'+label] for r in subset
+                      for label in ['20ms'] if r['methods'][name]['metrics']['downbeat_'+label] is not None]
+            methods[name]['downbeat_count']=len(eligible)
+            methods[name]['macro_downbeat_f1_20ms']=float(np.mean([v['f1'] for v in eligible])) if eligible else None
         result[cohort] = {'track_count': len(subset), 'methods': methods,
                          'scope': 'event metrics, not exact authored-map success; oracle results kept outside this table'}
     return result
@@ -161,7 +178,7 @@ def main():
     args = parser.parse_args()
     if args.output_dir.exists():
         parser.error('output must be a new directory')
-    catalog_entries = {t['id']: (t, p.parent.name) for p in args.catalogs for t in json.loads(p.read_text())['tracks']}
+    catalog_entries = {t['id']: (t, t.get('cohort', p.parent.name)) for p in args.catalogs for t in json.loads(p.read_text())['tracks']}
     baseline = {}
     for path in args.beat_this_reports:
         report = json.loads(path.read_text())

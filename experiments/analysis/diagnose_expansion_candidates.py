@@ -49,7 +49,8 @@ def main():
             raise ValueError('frozen logits changed')
         logits = np.load(directory/'logits.npz')
         candidates = generate_clock_candidates(logits['beat'], logits['downbeat'], float(logits['fps']),
-                                               row['methods']['official_minimal']['prediction'])
+                                               [v for v in row['methods']['official_minimal']['prediction'] if 0 <= v < records[row['id']]['duration_seconds']],
+                                               source_duration_seconds=records[row['id']]['duration_seconds'])
         destination = output/(row['id']+'.json')
         save(destination, candidates)
         predictions.append({'id': row['id'], 'path': str(destination), 'sha256': sha256(destination)})

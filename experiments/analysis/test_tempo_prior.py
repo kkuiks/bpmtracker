@@ -1,5 +1,7 @@
 """Synthetic evidence checks for constrained rates, phase and topology."""
 from copy import deepcopy
+from dataclasses import replace
+import json
 import unittest
 import numpy as np
 
@@ -85,6 +87,22 @@ class TempoPriorTests(unittest.TestCase):
         self.assertIn('tempo_prior',result);self.assertNotIn('tempo_prior',baseline)
         self.assertEqual(regions,original)
         self.assertEqual(baseline,assemble_clock(regions,observations,logits,55.))
+
+    def test_iteration_counts_require_actual_integers(self):
+        x = np.arange(12, dtype=float); times = 1 + x * .5; initial = seed(times, x)
+        for name in ('max_iterations', 'coordinate_passes'):
+            for value in (2.0, True, np.bool_(True), float('nan')):
+                with self.subTest(name=name, value=value), self.assertRaises(ValueError):
+                    refine_tempo_clock(times, x, initial, replace(PriorConfig(), **{name: value}))
+
+    def test_numpy_integer_counts_preserve_valid_result_and_serialization(self):
+        x = np.arange(12, dtype=float); times = 1 + x * .5; initial = seed(times, x)
+        config = PriorConfig(max_iterations=np.int64(2), coordinate_passes=np.int64(1))
+        result = refine_tempo_clock(times, x, initial, config)
+        self.assertEqual(result, refine_tempo_clock(times, x, initial,
+                                                   PriorConfig(max_iterations=2, coordinate_passes=1)))
+        json.dumps(result, allow_nan=False)
+        self.assertIsInstance(config.max_iterations, np.integer)
 
 
 if __name__=='__main__':unittest.main()

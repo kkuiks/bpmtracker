@@ -182,8 +182,18 @@ def fit_clock(times, min_events=8, split_penalty=0.01, continuous_selection=Fals
 def grid_events(proposal, pulses_per_input_pulse=1):
     if pulses_per_input_pulse not in (.5, 1, 2):
         raise ValueError("supported explicit pulse interpretations are 0.5, 1 and 2")
-    last = proposal.get('pulse_index_span', [0, proposal['input_event_count']-1])[1]
-    x = np.arange(0, last + 1e-9, 1 / pulses_per_input_pulse)
+    if 'pulse_index_span' in proposal:
+        span = np.asarray(proposal['pulse_index_span'], dtype=float)
+        if span.shape != (2,) or not np.isfinite(span).all() or span[1] < span[0]:
+            raise ValueError('pulse index span must contain finite ordered bounds')
+        first, last = span
+    else:
+        first, last = 0., proposal['input_event_count'] - 1
+    # Preserve the original index-zero lattice: a partial span does not rebase
+    # its musical phase, including when its first supported index is fractional.
+    first_grid = np.ceil(first * pulses_per_input_pulse) / pulses_per_input_pulse
+    x = np.arange(first_grid, last + 1e-9, 1 / pulses_per_input_pulse)
+    x = x[(x >= first) & (x <= last)]
     events = clock_time(x, proposal["knot_pulse_indices"], proposal["coefficients"])
     # Fitting can move the first event slightly across zero. Never wrap a click.
     return events[events >= 0]

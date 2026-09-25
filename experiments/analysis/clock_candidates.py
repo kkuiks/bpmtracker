@@ -33,6 +33,59 @@ class CandidateConfig:
     split_penalty_seconds_squared: float = 0.01
 
 
+
+def _positive_integer(value, name, minimum=1):
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, (int, np.integer)) or value < minimum:
+        raise ValueError(f'{name} must be an integer >= {minimum}')
+
+
+def validate_candidate_config(config):
+    for name in ('max_period_paths', 'max_gap_pulses', 'max_events', 'max_segments'):
+        _positive_integer(getattr(config, name), name)
+    _positive_integer(config.min_events, 'min_events', 3)
+    if config.max_events < config.min_events:
+        raise ValueError('max_events must be >= min_events')
+    for name in ('window_seconds', 'hop_seconds', 'min_period_seconds', 'max_period_seconds',
+                 'split_penalty_seconds_squared'):
+        value = getattr(config, name)
+        if not np.isfinite(value) or value <= 0:
+            raise ValueError(f'{name} must be finite and positive')
+    if config.min_period_seconds > config.max_period_seconds:
+        raise ValueError('period bounds must be ordered')
+    for name in ('transition_cost', 'indexing_tolerance_period'):
+        value = getattr(config, name)
+        if not np.isfinite(value) or value < 0:
+            raise ValueError(f'{name} must be finite and nonnegative')
+    if not np.isfinite(config.seed_band_ratio) or config.seed_band_ratio < 1:
+        raise ValueError('seed_band_ratio must be finite and >= 1')
+    phases = np.asarray(config.phases, dtype=float)
+    if phases.ndim != 1 or not len(phases) or not np.isfinite(phases).all() or np.any((phases < 0) | (phases >= 1)):
+        raise ValueError('phases must be finite fractional offsets in [0, 1)')
+    if len(np.unique(phases)) != len(phases):
+        raise ValueError('phases must be unique')
+
+
+def validate_candidate_inputs(beat_logits, downbeat_logits, fps, events, source_duration_seconds=None):
+    beat = np.asarray(beat_logits, dtype=float)
+    downbeat = np.asarray(downbeat_logits, dtype=float)
+    events = validate_events(events)
+    if (beat.ndim != 1 or downbeat.shape != beat.shape or not np.isfinite(beat).all() or
+            not np.isfinite(downbeat).all() or not np.isfinite(fps) or fps <= 0):
+        raise ValueError('finite equal-length logits and positive frame rate required')
+    frame_duration = len(beat) / fps
+    if source_duration_seconds is None:
+        duration = frame_duration
+    else:
+        duration = float(source_duration_seconds)
+        if not np.isfinite(duration) or duration <= 0:
+            raise ValueError('source duration must be finite and positive')
+        if duration > frame_duration + 1 / fps:
+            raise ValueError('logits do not cover the declared source duration')
+    if len(events) and events[-1] >= duration:
+        raise ValueError('input events must lie inside the physical source [0, duration)')
+    return beat, downbeat, events, float(fps), duration
+
+
 def _probability(logits):
     return 1 / (1 + np.exp(-np.clip(logits, -60, 60)))
 
@@ -209,10 +262,11 @@ def apply_time_anchors(proposal, anchors):
     return result, checks
 
 
-def indexed_grid(proposal):
+def indexed_grid(proposal, source_duration_seconds=None):
     indices = np.arange(int(np.floor(proposal['pulse_index_span'][1])) + 1, dtype=float)
     times = clock_time(indices, proposal['knot_pulse_indices'], proposal['coefficients'])
-    return [{'quarter_position': int(q), 'source_seconds': float(t)} for q, t in zip(indices, times) if t >= 0]
+    return [{'quarter_position': int(q), 'source_seconds': float(t)} for q, t in zip(indices, times)
+            if t >= 0 and (source_duration_seconds is None or t < source_duration_seconds)]
 
 
 def tempo_events(proposal):
@@ -245,21 +299,84 @@ def _rank(grid, logits, fps, events, proposal):
         'warning': 'uncalibrated ranking; sparse half-time grids may rank above intended quarters'}
 
 
+
+def rank_candidate_evidence(grid, logits, fps, events, proposal, *, ranking_policy='legacy'):
+    """Source-only ranking; balanced_evidence is a fixed opt-in hypothesis.
+
+    Both policies use the same complete seed-event list, never a reference or
+    candidate-specific crop. Balanced evidence credits each observation once.
+    It cannot determine musical quarter meaning when acoustic evidence itself
+    supports subdivisions or omissions. The legacy score remains a control.
+    """
+    if ranking_policy not in ('legacy', 'balanced_evidence'):
+        raise ValueError('unknown candidate ranking policy')
+    events = validate_events(events)
+    times = validate_events([p['source_seconds'] for p in grid])
+    logits = np.asarray(logits, dtype=float)
+    if logits.ndim != 1 or not np.isfinite(logits).all() or not np.isfinite(fps) or fps <= 0:
+        raise ValueError('ranking requires finite one-dimensional logits and positive fps')
+    legacy_score, legacy_components = _rank(grid, logits, fps, events, proposal)
+    if ranking_policy == 'legacy':
+        return legacy_score, {**legacy_components, 'ranking_policy': 'legacy'}
+    if not len(times):
+        return -1e9, {'ranking_policy': 'balanced_evidence', 'experimental_hypothesis': True,
+            'status': 'no_emitted_grid_events', 'legacy_score_not_confidence': legacy_score}
+    probability = _probability(logits)
+    radius = max(1, round(.04 * fps))
+    weights = []
+    for event in events:
+        center = round(event * fps)
+        left, right = max(0, center - radius), min(len(probability), center + radius + 1)
+        weights.append(float(np.max(probability[left:right])) if right > left else 0.)
+    # Chronological one-to-one matching, the same 70 ms evidence radius used
+    # by the legacy coverage term. A source peak cannot support two grid points.
+    grid_index = event_index = 0
+    matched = []
+    while grid_index < len(times) and event_index < len(events):
+        delta = times[grid_index] - events[event_index]
+        if abs(delta) <= .07:
+            matched.append(event_index)
+            grid_index += 1
+            event_index += 1
+        elif delta < 0:
+            grid_index += 1
+        else:
+            event_index += 1
+    matched_weight = float(sum(weights[i] for i in matched))
+    total_weight = float(sum(weights))
+    denominator = len(times) + total_weight
+    balanced = 2 * matched_weight / denominator if denominator else 0.
+    density_cost = float(legacy_components.get('change_density_cost', 0.))
+    return balanced - density_cost, {
+        'ranking_policy': 'balanced_evidence', 'experimental_hypothesis': True,
+        'score_formula': '2 * matched_source_probability_mass / (grid_event_count + all_source_probability_mass) - legacy_change_density_cost',
+        'source_event_count': len(events), 'grid_event_count': len(times),
+        'matched_event_count': len(matched), 'matched_source_probability_mass': matched_weight,
+        'all_source_probability_mass': total_weight,
+        'soft_precision': matched_weight / len(times) if len(times) else 0.,
+        'weighted_recall': matched_weight / total_weight if total_weight else 0.,
+        'balanced_evidence_f1': balanced, 'change_density_cost': density_cost,
+        'legacy_score_not_confidence': legacy_score, 'legacy_components': legacy_components,
+        'source_event_scope': 'entire caller-supplied physical-source event list; no candidate support crop',
+        'matching': 'chronological one-to-one within70ms; source weights peak probability within40ms',
+        'warning': 'Uncalibrated source-only ranking hypothesis; acoustically strong subdivisions may still win.'}
+
+
 def generate_clock_candidates(beat_logits, downbeat_logits, fps, official_beats_seconds,
-                              anchors=None, config=None):
+                              anchors=None, config=None, *, source_duration_seconds=None,
+                              ranking_policy='legacy'):
     config = config or CandidateConfig()
-    beat = np.asarray(beat_logits, dtype=float)
-    downbeat = np.asarray(downbeat_logits, dtype=float)
-    events = validate_events(official_beats_seconds)
-    if (beat.ndim != 1 or downbeat.shape != beat.shape or not np.isfinite(beat).all() or
-            not np.isfinite(downbeat).all() or not np.isfinite(fps) or fps <= 0):
-        raise ValueError('finite equal-length logits and positive frame rate required')
-    if config.max_period_paths < 1 or not config.phases or config.hop_seconds <= 0:
-        raise ValueError('positive candidate budget, phases and hop required')
+    validate_candidate_config(config)
+    beat, downbeat, events, fps, duration = validate_candidate_inputs(
+        beat_logits, downbeat_logits, fps, official_beats_seconds, source_duration_seconds)
+    if ranking_policy not in ('legacy', 'balanced_evidence'):
+        raise ValueError('unknown candidate ranking policy')
     anchors = list(anchors or [])
     output = {'schema_version': 'clock-candidates-v1', 'source_origin_seconds': 0,
               'reference_used_for_prediction': False, 'accepted': False,
-              'configuration': asdict(config), 'candidates': [], 'rejected_candidates': [],
+              'configuration': asdict(config), 'ranking_policy': ranking_policy,
+              'source_duration_seconds': duration, 'source_window_seconds': [0., duration],
+              'candidates': [], 'rejected_candidates': [],
               'selected_candidate_id': None, 'selection_status': 'insufficient_evidence',
               'scope': 'candidate quarter clocks; meter and original musical index origin unresolved',
               'anchor_input': anchors}
@@ -283,11 +400,15 @@ def generate_clock_candidates(beat_logits, downbeat_logits, fps, official_beats_
             candidate_id = f'path{path_index}-phase{phase:g}'
             try:
                 proposal = phase_clock(base, phase)
+                if any(a.get('locked', True) and float(a['source_seconds']) >= duration for a in anchors):
+                    raise ValueError('locked anchor lies outside the physical source [0, duration)')
                 proposal, checks = apply_time_anchors(proposal, anchors)
-                grid = indexed_grid(proposal)
-                if grid and grid[-1]['source_seconds'] > len(beat) / fps + 1 / fps:
-                    raise ValueError('clock extends beyond observed source duration')
-                score, components = _rank(grid, beat, fps, events, proposal)
+                raw_grid = indexed_grid(proposal)
+                grid = indexed_grid(proposal, duration)
+                if not grid:
+                    raise ValueError('clock has no grid events inside the physical source')
+                score, components = rank_candidate_evidence(grid, beat, fps, events, proposal,
+                                                             ranking_policy=ranking_policy)
             except ValueError as error:
                 output['rejected_candidates'].append({'id': candidate_id, 'reason': str(error)})
                 continue
@@ -295,6 +416,12 @@ def generate_clock_candidates(beat_logits, downbeat_logits, fps, official_beats_
                 'accepted': False, 'quarter_unit': 'hypothesis',
                 'musical_index_origin': 'user_anchor_candidate_coordinates' if checks else 'candidate_relative_unanchored',
                 'indexed_grid': grid, 'clock': proposal, 'tempo_events': tempo_events(proposal),
+                'source_window_seconds': [0., duration],
+                'fitted_clock_support_seconds': list(proposal['support_seconds']),
+                'emitted_grid_support_seconds': [grid[0]['source_seconds'], grid[-1]['source_seconds']],
+                'grid_events_clipped_after_source': len(raw_grid) - len(grid),
+                'clock_curve_clipped_or_shifted': False,
+                'support_warning': 'Fitted clock support may extrapolate outside the source; only emitted grid events are physically bounded.',
                 'meter': {'status': 'unresolved', 'events': [], 'downbeat_logits_used': False},
                 'evidence_score_not_confidence': float(score), 'ranking_components': components,
                 'anchor_checks': checks, 'local_period_path': path,

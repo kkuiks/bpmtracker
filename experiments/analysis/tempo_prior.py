@@ -5,7 +5,8 @@ quarter meaning nor adds tempo changes. References never enter selection. Fixed
 integer/half rates compete with unrestricted rates while phase and existing
 boundaries are refitted together. Scores are experimental, not probabilities.
 """
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+from numbers import Integral
 import numpy as np
 
 from fit_clock import clock_time, design_matrix
@@ -80,9 +81,12 @@ def _optimize(x,y,seed_knots,rates,delta,bounds,iterations):
 
 def refine_tempo_clock(times,pulse_indices,baseline,config=None):
     config=config or PriorConfig()
+    for name, minimum in (('max_iterations', 1), ('coordinate_passes', 0)):
+        value=getattr(config,name)
+        if isinstance(value,(bool,np.bool_)) or not isinstance(value,Integral) or value<minimum:
+            raise ValueError(f'{name} must be an integer >= {minimum}')
+    config=replace(config,max_iterations=int(config.max_iterations),coordinate_passes=int(config.coordinate_passes))
     if (not all(np.isfinite(value) for value in asdict(config).values()) or
-            config.max_iterations<1 or config.max_iterations!=int(config.max_iterations) or
-            config.coordinate_passes<0 or config.coordinate_passes!=int(config.coordinate_passes) or
             config.strength<0 or config.correlation_seconds<=0 or config.noise_floor_seconds<=0 or
             config.quantization_seconds<0 or not 0<=config.half_rate_cost<=1 or
             config.candidate_radius_bpm<=0 or config.boundary_shift_pulses<=0):

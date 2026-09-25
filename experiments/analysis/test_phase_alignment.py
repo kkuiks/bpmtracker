@@ -71,6 +71,24 @@ class PhaseAlignmentTests(unittest.TestCase):
         self.assertFalse(result['source_audio_modified']);self.assertEqual(result['source_origin_seconds'],0)
         self.assertEqual(original,before)
 
+    def test_embedded_downbeats_share_shift_and_source_boundary_clipping(self):
+        clock=rebuild_clock([],[.02,.5],2.)
+        clock['downbeats_seconds']=[.02,1.02]
+        before=deepcopy(clock)
+        shifted=shifted_clock(clock,-.02,2.)
+        np.testing.assert_allclose(shifted['downbeats_seconds'],[0.,1.])
+        self.assertTrue(set(shifted['downbeats_seconds']).issubset(shifted['beats_seconds']))
+        self.assertEqual(shifted['coefficients'][1:],clock['coefficients'][1:])
+        self.assertEqual(clock,before)
+        cutoff=1.02+.02
+        clipped=shifted_clock(clock,.02,cutoff)
+        np.testing.assert_allclose(clipped['downbeats_seconds'],[.04])
+        self.assertTrue(all(0<=v<cutoff for v in clipped['downbeats_seconds']))
+
+    def test_unavailable_embedded_downbeats_stay_unavailable(self):
+        clock=rebuild_clock([],[.02,.5],2.);clock['downbeats_seconds']=None
+        self.assertIsNone(shifted_clock(clock,.02,2.)['downbeats_seconds'])
+
     def test_anchored_maps_and_reference_derived_calibration_are_rejected(self):
         clock=rebuild_clock([],[0.,.5],9.)
         for key,value in [('accepted',True),('anchor_checks',[{}]),('assistance',{'anchors':[]})]:

@@ -7,6 +7,28 @@ from bar_metrics import score_bar_changes
 
 
 class BarStructureTests(unittest.TestCase):
+    def test_repeated_signature_declaration_is_not_a_meter_change(self):
+        reference={'evaluation_support_seconds':[1,20], 'downbeats_seconds':[1,3,5],
+                   'meter_events':[{'time_seconds':0,'numerator':4,'denominator':4},
+                                   {'time_seconds':3,'numerator':4,'denominator':4},
+                                   {'time_seconds':10,'numerator':3,'denominator':4}]}
+        bars={'meter_events':[{'time_seconds':1,'pulses_per_bar':4},
+                              {'time_seconds':3,'pulses_per_bar':4},
+                              {'time_seconds':10,'pulses_per_bar':3}]}
+        score=score_bar_changes(reference,bars)
+        self.assertEqual(score['reference_change_count'],1)
+        self.assertEqual(score['predicted_change_count'],1)
+        self.assertEqual(score['matched_count'],1)
+
+    def test_change_outside_support_does_not_inflate_misses(self):
+        reference={'evaluation_support_seconds':[2,20], 'downbeats_seconds':[2,4],
+                   'meter_events':[{'time_seconds':0,'numerator':3,'denominator':4},
+                                   {'time_seconds':1,'numerator':4,'denominator':4}]}
+        bars={'meter_events':[{'time_seconds':2,'pulses_per_bar':4}]}
+        score=score_bar_changes(reference,bars)
+        self.assertEqual(score['reference_change_count'],0)
+        self.assertEqual(score['false_changes_on_constant_meter'],0)
+
     def test_late_phase_adjustment_does_not_count_as_correct_meter_change(self):
         reference={'evaluation_support_seconds':[0,30], 'downbeats_seconds':[0,2,4],
                    'meter_events':[{'time_seconds':0,'numerator':4,'denominator':4},

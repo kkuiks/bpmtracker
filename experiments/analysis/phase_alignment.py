@@ -184,7 +184,9 @@ def shifted_clock(clock,shift,duration):
     for segment in result['segments']:
         segment['start_seconds']+=shift;segment['end_seconds']+=shift
     if 'support_seconds' in result:result['support_seconds']=[v+shift for v in result['support_seconds']]
-    if 'beats_seconds' in result:result['beats_seconds']=[v+shift for v in result['beats_seconds'] if 0<=v+shift<duration]
+    for key in ('beats_seconds','downbeats_seconds'):
+        if key in result and result[key] is not None:
+            result[key]=[v+shift for v in result[key] if 0<=v+shift<duration]
     if 'indexed_grid' in result:
         result['indexed_grid']=[{**v,'source_seconds':v['source_seconds']+shift} for v in result['indexed_grid'] if 0<=v['source_seconds']+shift<duration]
     result.update(accepted=False,source_audio_modified=False,source_origin_seconds=0,
