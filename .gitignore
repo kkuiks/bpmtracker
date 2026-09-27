@@ -12,6 +12,8 @@ agents.md
 /services/analysis/README.md
 /packages/contracts/README.md
 /experiments/analysis/README.md
+/experiments/analysis_legacy/README.md
+/experiments/tempo_meter_v2/README.md
 /experiments/audio-engine/README.md
 /tests/fixtures/README.md
 
@@ -23,6 +25,7 @@ coverage/
 
 # Python environments and caches
 .venv/
+.venv*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -37,3 +40,43 @@ target/
 .env.*
 !.env.example
 *.log
+
+# Local documents, credentials, recordings and pretrained model files
+*.hwp
+*.hwpx
+*.docx
+*.pdf
+*.wav
+*.mp3
+*.flac
+*.aiff
+*.aif
+*.m4a
+*.ogg
+*.mid
+*.midi
+*.rpp
+*.cpr
+*.song
+*.zip
+*.7z
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.h5
+*.safetensors
+auth-state*.json
+auth_state*.json
+storage-state*.json
+storage_state*.json
+cookies*.json
+credentials*.json
+private-transport*.json
+
+# Editor and operating-system state
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_only": true,
+  "reference_read": false,
+  "rows": [
+    {
+      "id": "example_song",
+      "audio": {
+        "path": "data/input/source.wav",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "logits": {
+        "path": "data/runs/observations/logits.npz",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "official_result": {
+        "path": "data/runs/observations/result.json",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ]
+}

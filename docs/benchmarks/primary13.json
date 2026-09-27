@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "baseline": "generic-map13-20260927-v2-selected",
+  "as_of": "2026-09-27",
+  "scope": "known development recordings; rules designed after inspecting these cases",
+  "unseen_generalization_established": false,
+  "product_default": false,
+  "reference_scope": {
+    "recordings": 13,
+    "full_song_maps": 12,
+    "scoped_grid_with_free_ending": 1,
+    "independent_millisecond_timing_certified": false
+  },
+  "score_unit": "fraction",
+  "per_metric_threshold": 0.9,
+  "metrics": [
+    "bpm_time_within_1",
+    "reviewed_meter",
+    "quarter_f1_70ms",
+    "bar_f1_70ms",
+    "tempo_change_score",
+    "meter_change_score"
+  ],
+  "event_tolerance_seconds": 0.07,
+  "change_tolerance_seconds": 0.5,
+  "change_bpm_match_tolerance": 0.1,
+  "bpm_time_tolerance": 1.0,
+  "constant_reference_change_policy": "Any false change fails that change metric.",
+  "source_start_policy": "A declaration is optional only when its preceding bar starts before source support and omitting it preserves every in-source bar time.",
+  "implementation_sha256": {
+    "experiments/tempo_meter_v2/run_generic_map.py": "30b9d04d3156118df5b4307867afdae919e9dc8f64267df97edb0d9d6328dcdd",
+    "experiments/tempo_meter_v2/constant_grid.py": "f1f46d1af78af6f86dbf3e515cceebf28282feb1c236736a1cca7a22f72852a6",
+    "experiments/tempo_meter_v2/tempo_segments.py": "749285f54790fe1756b6c4ba62ab6893547a54910e8e7b8591edc4618ef65707",
+    "experiments/tempo_meter_v2/barwise_tempo.py": "f73bf816eb738b77a579af42b3e07b85cafa4d33d0c8c8b9d567e0b266bb7382",
+    "experiments/tempo_meter_v2/compound_meter.py": "cb3cf7234e73ee60c63dfa2f2a4af4d8ad23432a7e37d19892c6191977af3f40",
+    "experiments/tempo_meter_v2/tail_support.py": "96285d094c3fcb5ec4be90644d115478ee255c9331f972460ebc158c1330568a",
+    "experiments/tempo_meter_v2/plausible_bpm.py": "97f58b3830a73fde8968b9d3c7ad264f360192da3daa8446f3b83aa4078172e8"
+  },
+  "scorer": {
+    "path": "experiments/tempo_meter_v2/score_generic13.py",
+    "sha256": "0ca2dc9eeb02582031d522df5c246874243c60b8489a1ac0de8fd2db7edd7ca0"
+  },
+  "source_score_summary_sha256": "531f62291fb6e27d9a401cdcc52be7be0cb47c552cf7fcab8fc16bd4c3fd68fd",
+  "source_reference_catalog_sha256": "c55ea493b333089d54299d77e49aa38cd7332ef61cb21c4de82dab5e6141b9fa",
+  "source_prediction_manifest_sha256": "bcded460249003c937a594e6d487c99cdc8dec0b1fa7390187ef13e6b275926f",
+  "model_checkpoint_sha256": "8c328b45f59d8dd3dff219253ff6a8d6482be57d0133a29140e2febbf8eb8331",
+  "passed_count": 10,
+  "song_count": 13,
+  "rows": [
+    {
+      "id": "daybreak_equilibrium",
+      "name": "Equilibrium",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9999553857674229,
+        "reviewed_meter": 0.9953488372093023,
+        "quarter_f1_70ms": 0.999418942475305,
+        "bar_f1_70ms": 0.9976798143851509,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 860,
+          "false_positives": 0,
+          "false_negatives": 1
+        },
+        "bar_starts": {
+          "true_positives": 215,
+          "false_positives": 0,
+          "false_negatives": 1
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "620e346a345fa706f8f86fa2e1e1736e8e352a66ff22e2598bf465cc9d319139",
+      "selected_prediction_sha256": "d98ba19476333ada31e818c8e851b8fcc63d8cb7d7d57d8cb1fd712d7c310a2b"
+    },
+    {
+      "id": "daybreak_nocturne",
+      "name": "Nocturne",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9998989943505403,
+        "reviewed_meter": 0.10582010582010581,
+        "quarter_f1_70ms": 0.999344262295082,
+        "bar_f1_70ms": 0.647985989492119,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 0.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 762,
+          "false_positives": 0,
+          "false_negatives": 1
+        },
+        "bar_starts": {
+          "true_positives": 185,
+          "false_positives": 196,
+          "false_negatives": 5
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 43
+        }
+      },
+      "all_gates_pass": false,
+      "source_audio_sha256": "fe8dbe23fdf058b1c04ea9644473507b5fbf93fa6cc4ab172c378fe918306015",
+      "selected_prediction_sha256": "2940b6d63506b713d1d868b710c88498685c2fd4abcbb0f34e087d1e3b803b6d"
+    },
+    {
+      "id": "daybreak_naysayer",
+      "name": "Naysayer",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9998688609236568,
+        "reviewed_meter": 0.0,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 0.6311475409836066,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 0.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 650,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 77,
+          "false_positives": 4,
+          "false_negatives": 86
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 4
+        }
+      },
+      "all_gates_pass": false,
+      "source_audio_sha256": "53dc46a29f06caf1c68f031583f25ac01bed6d065520597f5d1f0abc6b232741",
+      "selected_prediction_sha256": "94017e683ef5ea598e2bf87de7410d8e81f29cf1f4dbd56b2ea2b1abfc64d75d"
+    },
+    {
+      "id": "legacy_circle",
+      "name": "Spiritbox — Circle With Me",
+      "reference_scope": "full_song",
+      "selected_branch": "bounded_tempo",
+      "scores": {
+        "bpm_time_within_1": 0.9996059073047256,
+        "reviewed_meter": 0.9900990099009901,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 805,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 101,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 3,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "cca31341ce17cc2b650f1a008d4e195c137157958ae935d387179d293b64ea11",
+      "selected_prediction_sha256": "4e0f57dcba4a7c221bd32189b9fb31c7fda92a0caa3045f2e6d175e9ea7d54fa"
+    },
+    {
+      "id": "ntm_archspire_liminal-cypher",
+      "name": "Archspire — Liminal Cypher",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9567041668852952,
+        "reviewed_meter": 0.0,
+        "quarter_f1_70ms": 0.9774661992989483,
+        "bar_f1_70ms": 0.6436170212765957,
+        "tempo_change_score": 0.0,
+        "meter_change_score": 0.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 976,
+          "false_positives": 27,
+          "false_negatives": 18
+        },
+        "bar_starts": {
+          "true_positives": 242,
+          "false_positives": 260,
+          "false_negatives": 8
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 2
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 5
+        }
+      },
+      "all_gates_pass": false,
+      "source_audio_sha256": "bfba5042c799d441128407745c244e37d48954887d16fc6f284dde7618620847",
+      "selected_prediction_sha256": "0c85a42f92a4e5ef9beb9c805049527feec6764c62162125164f24965da7ecdb"
+    },
+    {
+      "id": "ntm_state-champs_common-sense",
+      "name": "State Champs — Common Sense",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9999958271561376,
+        "reviewed_meter": 0.9926470588235294,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 543,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 136,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "9a9afeee9dbfe664adff033f8e51fed3ab563be82824e8fad0ddc9d371a46dae",
+      "selected_prediction_sha256": "be7cd1f23ce7739e23a103e1cd170566b3677e51fedd9385c6a7ace35488760b"
+    },
+    {
+      "id": "ntm_kami-kehoe_die-4-u",
+      "name": "Kami Kehoe — DIE 4 U",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9999941179372562,
+        "reviewed_meter": 0.9928057553956835,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 555,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 139,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "6a05cc57ccb421333c19de1883e4f60c9cdcc706bf3830d48f556145b3ae5c24",
+      "selected_prediction_sha256": "dfb100d7c2ff68a9c419447123308199b825f288ef81344d869876fc48955cec"
+    },
+    {
+      "id": "ntm_sleeping-with-sirens_an-ending-in-itself",
+      "name": "Sleeping With Sirens — An Ending in Itself",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9988212630358674,
+        "reviewed_meter": 0.9936708860759493,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 633,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 158,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "accc1807d200e8ba912db1f88f8449e6cce27c990b32d5f5cb3e489aa988fba6",
+      "selected_prediction_sha256": "7f7bbec84dfd2faf2b691a31f3f0fe18d8bbae8eedece8a60392f2d4fe2308d6"
+    },
+    {
+      "id": "ntm_periphery_prayer-position",
+      "name": "Periphery — Prayer Position",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9994007996196953,
+        "reviewed_meter": 0.9939393939393939,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 659,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 165,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "e994b19f8ff42b04e53a0c06b3d1fd80d7a697f0ba16fdf0fd7a6b5fa3c0910f",
+      "selected_prediction_sha256": "211be0496b1639a7a2b72d5abfc3cf067cda9ee790e3df438708342e3c2b9f6c"
+    },
+    {
+      "id": "ntm_nickelback_san-quentin",
+      "name": "Nickelback — San Quentin",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.9988787835353615,
+        "reviewed_meter": 0.9908256880733946,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 436,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 109,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "cb73761ef887d3a2a28f33b84b492a1968476106e8fec1da42722d4d82d1c9fc",
+      "selected_prediction_sha256": "c9bafc43cf9ebe63aae49c10db4613ce42a1f8e7a5f21c9e63dcb5c8c1fc5899"
+    },
+    {
+      "id": "ntm_neck-deep_cant-kick-up-the-roots",
+      "name": "Neck Deep — Can’t Kick Up The Roots",
+      "reference_scope": "full_song",
+      "selected_branch": "constant",
+      "scores": {
+        "bpm_time_within_1": 0.999353986447634,
+        "reviewed_meter": 0.9876543209876543,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 325,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 81,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "0003848af34cba27a0a7b964df06f9c0b56262caf07cd8f52bbe5151976162e0",
+      "selected_prediction_sha256": "ccd825caa04bd960fdaf5a3663b612d7ba781ab77f420217c291981233466279"
+    },
+    {
+      "id": "walker_he-will-hold-me-fast",
+      "name": "Tommy Walker — He Will Hold Me Fast",
+      "reference_scope": "scoped",
+      "selected_branch": "compound_6_8",
+      "scores": {
+        "bpm_time_within_1": 0.9999450653533758,
+        "reviewed_meter": 1.0,
+        "quarter_f1_70ms": 0.9988439306358381,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 432,
+          "false_positives": 1,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 144,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "1189299c3944166866e9a33f1672ad08f7e67dce73bee64ed09ce0b9c1522185",
+      "selected_prediction_sha256": "10949023ed1ae003ef5eeef7a7441359e9c427455835a1409c52c217b0b4253d",
+      "ending": {
+        "fixed_grid_seconds": [
+          0.6467500000000029,
+          270.64675
+        ],
+        "free_ending_seconds": [
+          270.64675,
+          299.064
+        ],
+        "grid_end_error_seconds": -0.014832354588520502,
+        "extra_quarter_beats": 0,
+        "extra_bar_starts": 0,
+        "no_grid_in_free_ending": true,
+        "grid_end_within_500ms": true
+      }
+    },
+    {
+      "id": "state_shirt_hospital_hill",
+      "name": "State Shirt — Hospital Hill",
+      "reference_scope": "full_song",
+      "selected_branch": "barwise_tempo",
+      "scores": {
+        "bpm_time_within_1": 0.9995305720342214,
+        "reviewed_meter": 1.0,
+        "quarter_f1_70ms": 1.0,
+        "bar_f1_70ms": 1.0,
+        "tempo_change_score": 1.0,
+        "meter_change_score": 1.0
+      },
+      "counts": {
+        "quarter_beats": {
+          "true_positives": 510,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "bar_starts": {
+          "true_positives": 128,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "tempo_changes": {
+          "true_positives": 4,
+          "false_positives": 0,
+          "false_negatives": 0
+        },
+        "meter_changes": {
+          "true_positives": 0,
+          "false_positives": 0,
+          "false_negatives": 0
+        }
+      },
+      "all_gates_pass": true,
+      "source_audio_sha256": "b333727172b74f46aefe23d26eb3438d6352ea98cf044cb18c441b4c2338c726",
+      "selected_prediction_sha256": "0fef1abd0f39d146bf685068e4cde2a2b0a0f33e7caca7518f3a911d584a5291"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+# CPU-only synthetic tests and map reconstruction; no model inference runtime.
+# Validated with Python 3.12 on Linux/WSL. Not a Windows product dependency lock.
+numpy==2.5.3
+soundfile==0.14.0
+soxr==1.1.0
+cffi==2.1.1
+pycparser==3.0
+typing-extensions==4.16.0
