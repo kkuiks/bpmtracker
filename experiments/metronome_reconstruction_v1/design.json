@@ -1,0 +1,65 @@
+{
+  "purpose": "The owner's first independent experiment: recover one constant quarter BPM, one constant time signature, and one global audio-relative offset.",
+  "authorization": "Owner approved execution and treating every previously non-excluded sample as equally valid on 2026-10-05.",
+  "membership": {
+    "valid_samples": 26,
+    "excluded_samples": 12,
+    "single_common_result_denominator": true,
+    "source_roles_are_provenance_only": true,
+    "failed_predictions_remain_in_denominator": true,
+    "source_only_manifest": "samples/selections/fixed-metronome-v1/all-valid-inference.json",
+    "evaluation_only_manifest": "samples/selections/fixed-metronome-v1/all-valid-evaluation.json"
+  },
+  "sensor": {
+    "implementation": "Official beat-this 1.1.0, newly downloaded final0 checkpoint",
+    "output": "50 Hz beat and downbeat logits; official minimal-postprocessor events retained as baseline",
+    "precision": "CPU float32, no float16",
+    "source_geometry": "Original recording and source-time origin preserved; resampling occurs only inside the official sensor preprocessing",
+    "legacy_modules_weights_observations_used": false
+  },
+  "candidate_search": {
+    "quarter_bpm_domain": [30, 400],
+    "reduced_rational_denominator_max": 4,
+    "time_signatures": ["3/4", "4/4"],
+    "broad_search": "Beat periodic spectrum and bar periodic spectrum propose neighborhoods in the fixed rational pool; half/double relatives remain actual competitors.",
+    "phase_search": "Whole-input activation folding supplies phase regions. All possible beat positions within each candidate 3- or 4-beat bar are compared, then leading phases are refined at 2 ms steps.",
+    "guaranteed_exhaustive_global_optimum": false,
+    "search_limit": "This is a spectral-seeded coarse-to-fine search; it does not exhaust every continuous phase for every rational BPM.",
+    "offset_definition": "One canonical downbeat position modulo a bar, relative to unchanged input audio zero. No separate anchor or original DAW bar number is estimated."
+  },
+  "objective": {
+    "basis": "Whole-input agreement in both grid-to-evidence and evidence-to-grid directions, with one source event per click and one click per source event.",
+    "formula": "0.5 beat weighted smooth F1 + 0.4 downbeat weighted smooth F1 + 0.1 mean beat-grid activation - 0.015 timing-residual penalty - 0.015 long-term-drift penalty",
+    "timing_kernel_sigma_ms": 25,
+    "matching_window_ms": 80,
+    "matching_window_period_fraction_cap": 0.4,
+    "parameters_frozen_before_music_reference_evaluation": true,
+    "per_track_hints_or_rules": false,
+    "confidence": "Uncalibrated sensor-agreement diagnostics; absence of a flag is not a correctness certificate."
+  },
+  "evaluation": {
+    "reference": "Existing owner-accepted audio-relative quarter/downbeat events as stored, restricted to catalog support. No additional offset, source-clock rebuilding or reference extrapolation.",
+    "nominal_bpm": "Nearest allowed rational representation is display-only; exact stored reference BPM is retained for numerical error.",
+    "events": "One-to-one matching at 10, 20, 30 and 70 ms; common 26-sample macro mean.",
+    "clock_errors": "Pair by the same quarter/bar index to retain accumulated drift; also report matched-event timing conditional on event matching.",
+    "statistics": ["absolute/relative BPM error", "stored time-signature match", "median/P95/maximum timing error", "initial/final phase error", "accumulated drift", "residual slope"],
+    "formal_pass_threshold_selected": false,
+    "reference_limit": "Practical owner approval is not independent millisecond original-click certification. No unseen generalization claim."
+  },
+  "comparisons": {
+    "automatic": ["Raw official Beat This events", "Simple consecutive-event linear clock regression", "New symmetric whole-input fit"],
+    "scoring_ablation": "One separately frozen grid-only score removes reverse evidence coverage; original predictions remain unchanged.",
+    "oracle": "After source-only predictions are saved, known reference BPM and meter isolate offset fitting. These results are diagnostic only.",
+    "historical_constant_grid": "No common 26-sample frozen output is available. No old implementation is resumed to create one."
+  },
+  "scope": {
+    "tempo_changes_or_ramps": false,
+    "meter_changes": false,
+    "tail_stopping": false,
+    "training": false,
+    "automatic_owner_acceptance": false,
+    "publication": false,
+    "future_unrequested_tests_or_verification_authorized": false
+  },
+  "run": "samples/experiments/metronome_reconstruction_v1/20261005-first26-v1"
+}

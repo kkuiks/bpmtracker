@@ -1,47 +1,49 @@
-# Private project notes and local preserved material
+# Private source data and project notes
 /_local
-/archive/legacy/
-/data/
+/samples/
+/legacy/_local
+/legacy/FAILURE_STUDY.md
+/legacy/migration-20261002/
 
-# Agent instructions and internal implementation guidance
+# Owner planning attachments and historical internal notes stay local.
+# Keep the original versioned human documentation in the source archive.
+/*[Pp]roposal*.md
+/legacy/**/*.md
+!/legacy/README.md
+!/legacy/docs/analysis.md
+!/legacy/docs/benchmark.md
+
+# Local agent instructions and tool administration
 AGENTS.md
-agents.md
+AGENTS.historical.md
 /.agents/
 /.codex/
-/apps/desktop/README.md
-/services/analysis/README.md
-/packages/contracts/README.md
-/experiments/analysis/README.md
-/experiments/analysis_legacy/README.md
-/experiments/tempo_meter_v2/README.md
-/experiments/audio-engine/README.md
-/tests/fixtures/README.md
+/.aws/
 
-# JavaScript and desktop build artifacts
-node_modules/
-dist/
-out/
-coverage/
-
-# Python environments and caches
+# Local configuration and generated environments
+.env
+.env.*
+!.env.example
 .venv/
 .venv*/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+node_modules/
+dist/
+out/
 .mypy_cache/
 .ruff_cache/
-
-# Native build artifacts
+coverage/
 target/
-
-# Local configuration
-.env
-.env.*
-!.env.example
 *.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
 
-# Local documents, credentials, recordings and pretrained model files
+# Recordings, clocks, local documents and pretrained weights
 *.hwp
 *.hwpx
 *.docx
@@ -58,6 +60,7 @@ target/
 *.rpp
 *.cpr
 *.song
+*.logicx/
 *.zip
 *.7z
 *.ckpt
@@ -66,6 +69,7 @@ target/
 *.onnx
 *.h5
 *.safetensors
+/*proposal*.json
 auth-state*.json
 auth_state*.json
 storage-state*.json
@@ -74,9 +78,4 @@ cookies*.json
 credentials*.json
 private-transport*.json
 
-# Editor and operating-system state
-.DS_Store
-Thumbs.db
-desktop.ini
-.idea/
-.vscode/
+# Original ignore rules remain at legacy/.gitignore and apply within that tree.

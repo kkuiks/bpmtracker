@@ -1,0 +1,34 @@
+# Recorded first-run environment; copied from its preserved environment-lock.txt.
+# Install official torch/torchaudio CPU wheels before installing this lock.
+beat-this==1.1.0
+cffi==2.1.1
+contourpy==1.4.0
+cycler==0.12.1
+einops==0.8.2
+filelock==3.32.3
+fonttools==4.66.1
+fsspec==2026.7.0
+Jinja2==3.1.6
+kiwisolver==1.5.1
+MarkupSafe==3.0.3
+matplotlib==3.11.2
+mpmath==1.3.0
+networkx==3.6.1
+numpy==2.5.3
+packaging==26.3
+pillow==12.3.0
+pip==24.0
+pycparser==3.0
+pyparsing==3.3.3
+python-dateutil==2.9.0.post0
+rotary-embedding-torch==0.9.1
+scipy==1.18.1
+setuptools==78.1.0
+six==1.17.0
+soundfile==0.14.0
+soxr==1.1.0
+sympy==1.13.1
+torch==2.6.0+cpu
+torchaudio==2.6.0+cpu
+tqdm==4.70.1
+typing_extensions==4.16.0

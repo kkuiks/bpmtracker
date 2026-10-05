@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>하위 5곡 · 템포 맵 청취</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="page-header">
+      <div class="eyebrow"><span class="status-dot"></span> JOLJAK · LISTENING ROOM</div>
+      <h1>하위 5곡, 직접 들어보기</h1>
+      <p>원음 위에 저장된 템포 맵을 얹었습니다. 박의 간격과 마디 첫 박의 강조 위치를 들어보세요.</p>
+      <div class="context"><span>초기 BPM 탭 사용</span><span>박자표는 음원에서 추정</span><span id="run-label">최신 실험</span></div>
+    </header>
+
+    <div class="workspace">
+      <aside class="collection" aria-label="하위 5곡 목록">
+        <div class="collection-heading"><h2>청취할 곡</h2><span id="collection-count">5곡</span></div>
+        <p class="ranking-note">박·마디 중 더 큰 최대 정렬 오차 순입니다.<br>선정된 곡이 모두 실패를 뜻하지는 않습니다.</p>
+        <div id="track-list" class="track-list"></div>
+      </aside>
+
+      <section class="player" aria-label="템포 맵 비교 플레이어">
+        <div class="player-heading">
+          <div><span id="selected-rank" class="eyebrow">01 / 05</span><h2 id="track-title">결과 불러오는 중</h2></div>
+          <a id="map-download" class="text-link" download hidden>예측 맵 JSON ↗</a>
+        </div>
+        <div class="metrics">
+          <div><span>추정 BPM</span><strong id="bpm">—</strong></div>
+          <div><span>추정 박자표</span><strong id="meter">—</strong></div>
+          <div><span>박 최대 오차</span><strong id="quarter-error">—</strong></div>
+          <div><span>마디 최대 오차</span><strong id="bar-error">—</strong></div>
+        </div>
+        <p id="track-note" class="track-note"></p>
+
+        <div class="comparison">
+          <fieldset class="mode-control">
+            <legend>클릭 기준</legend>
+            <label class="mode-option prediction"><input type="radio" name="clock-mode" value="predicted" checked><span><b>모델 예측</b><small>이번 결과</small></span></label>
+            <label class="mode-option reference"><input type="radio" name="clock-mode" value="reference"><span><b>기존 승인 참조</b><small>비교해서 듣기</small></span></label>
+          </fieldset>
+          <div class="click-options">
+            <label><input id="click-enabled" type="checkbox" checked> 클릭 켜기</label>
+            <label><input id="accent-enabled" type="checkbox" checked> 마디 첫 박 강조</label>
+            <span>강조를 끄면 모든 박을 같은 소리로 듣습니다.</span>
+          </div>
+        </div>
+
+        <div class="timeline-legend"><span class="prediction-dot">예측 박 / 굵은 선은 마디 첫 박</span><span class="reference-dot">기존 참조</span></div>
+        <canvas id="timeline" height="180" aria-label="현재 위치 주변의 원음 파형과 예측·참조 클릭. 위치를 클릭하면 이동합니다." role="img"></canvas>
+        <div class="seek-row"><output id="current-time">0:00.0</output><input id="seek" type="range" min="0" max="1" step="0.01" value="0" aria-label="재생 위치"><span id="duration">—</span></div>
+        <div class="transport">
+          <button id="play" class="primary" type="button" disabled>불러와 재생</button>
+          <div class="transport-small">
+            <button id="back" type="button" title="10초 뒤로">−10초</button>
+            <button id="forward" type="button" title="10초 앞으로">+10초</button>
+            <button id="loop" type="button" aria-pressed="false">12초 반복</button>
+          </div>
+          <p id="status" role="status" aria-live="polite">결과 불러오는 중…</p>
+        </div>
+        <div class="jump-row"><span>바로 듣기</span><button id="jump-start" type="button">시작</button><button id="jump-middle" type="button">중간</button><button id="jump-end" type="button">끝부분</button><button id="jump-reference-end" type="button" hidden>참조 구간 끝</button></div>
+        <div class="volume-controls">
+          <label for="music-volume"><span>원음 <output id="music-volume-value">70%</output></span><input id="music-volume" type="range" min="0" max="100" value="70"></label>
+          <label for="click-volume"><span>클릭 <output id="click-volume-value">35%</output></span><input id="click-volume" type="range" min="0" max="100" value="35"></label>
+        </div>
+        <div class="player-footnote"><p id="support-note"></p><p id="offset-note"></p><p>재생·이동·반복·클릭 전환은 저장된 예측을 수정하지 않습니다. 음원은 곡을 선택해 재생할 때 한 곡씩 불러옵니다.</p></div>
+      </section>
+    </div>
+
+    <footer><p id="experiment-note"></p><p>비교 대상은 기존 승인 참조이며, 독립적인 원제작 클릭의 밀리초 정확도를 인증한 자료는 아닙니다.</p><span>음원과 결과는 로컬 청취용입니다.</span></footer>
+  </main>
+</body>
+</html>

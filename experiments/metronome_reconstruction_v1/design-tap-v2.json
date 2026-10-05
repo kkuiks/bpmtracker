@@ -1,0 +1,69 @@
+{
+  "purpose": "Owner-approved implementation and evaluation of an initial approximate quarter-BPM tap that selects only a metrical octave layer.",
+  "latest_owner_scope": {
+    "date_local": "2026-10-05",
+    "initial_tap_allowed": true,
+    "time_signature_input_allowed": false,
+    "tap_applies_to": "initial section only; current whole-input use relies on constant BPM and constant meter",
+    "same_discrete_unit_hints_must_produce_identical_model_outputs": true,
+    "tap_must_not_set_or_attract_fine_bpm": true,
+    "tap_must_not_generate_a_clock_without_audio_candidates": true,
+    "valid_samples": 26,
+    "all_source_roles_share_one_denominator": true
+  },
+  "dataflow": [
+    "Read source-only identity/geometry and the current clean-room experiment's fresh official Beat This logits.",
+    "Before opening hint inputs, generate the audio-only base rhythm family, all admissible octave layers, rational BPM neighbors, meter/phase proposals and their scores.",
+    "Convert the initial tap once to an integer power-of-two layer index relative to the audio-derived base. An exact geometric boundary is ambiguous; an unsupported layer does not produce a guessed map.",
+    "Discard the continuous tap number. Select only from the already prepared layer's candidates.",
+    "Emit the audio-derived precise BPM, inferred 3/4 or 4/4, and inferred global audio-relative downbeat offset.",
+    "Save every prediction before opening evaluation reference event files."
+  ],
+  "source_only_family_search": {
+    "base_search": "Unchanged first-experiment source-only optimizer and objective",
+    "bpm_domain": [30, 400],
+    "rational_denominator_max": 4,
+    "layers": "Powers of two around the audio base, with admissible candidates in the fixed rational pool",
+    "neighbor_radius": "max(0.25,120/input_duration_seconds) scaled by octave and capped at 10% of the audio-derived center; independent of any hint",
+    "phase_search": "Original whole-input folding seeds, all bar positions, source-only ranking and top-10 refinement at 2 ms steps",
+    "guaranteed_exhaustive_global_optimum": false,
+    "score_parameters": "Inherited unchanged from first experiment",
+    "meter": "Inferred from beat/downbeat evidence; no per-sample meter value enters inference"
+  },
+  "interface": {
+    "model": "prepare_audio_family(evidence, config), then select_from_family(family, initial_quarter_bpm_tap)",
+    "cli_example": ".venv-metronome-v1/bin/python -m experiments.metronome_reconstruction_v1.hinted --audio input.wav --tap-bpm 155 --output proposal.json",
+    "hint_row_fields": ["id", "initial_quarter_bpm_tap", "scope", "origin"],
+    "scope_value": "initial_section",
+    "unsupported_fields_rejected": "All other fields, including time signature, reference times and offsets",
+    "raw_hint_receipts": "Stored outside predictions for provenance, never consumed by numerical refinement or scoring"
+  },
+  "experiment": {
+    "run": "samples/experiments/metronome_reconstruction_v1/20261005-tap26-v2",
+    "input_manifest": "samples/selections/fixed-metronome-v1/all-valid-inference.json",
+    "hint_manifest": "samples/selections/fixed-metronome-v1/tap-only-diagnostic-inputs-v2.json",
+    "hint_origin": "Reference-derived correct-unit diagnostic, explicitly authorized by owner; no actual human taps were collected",
+    "conditions": ["Matched audio-family control without a hint", "Reference BPM used only as a unit hint", "Same hint minus 5 BPM", "Same hint plus 5 BPM"],
+    "invariance": "Compare the entire model prediction, including exact BPM, meter, offset, scores and flags; same layer must mean exact equality",
+    "evaluation": "Reuse the unchanged first-experiment accepted-event adapters and timing metrics on the same 26 samples",
+    "formal_pass_threshold_selected": false,
+    "timing_reference_limit": "Owner-approved practical maps are not independent original-click millisecond certificates",
+    "automatic_generalization_claim": false
+  },
+  "controls": {
+    "requested_contract_controls": 13,
+    "examples": ["155/160/165 give identical results", "79.75 sensor evidence with a 160 hint produces 159.5, not 160", "No evidence cannot produce a clock from a tap", "Unavailable layer and invalid inputs are handled", "Time-signature input is rejected", "3/4 is inferred from audio"],
+    "not_real_audio_accuracy_evidence": true
+  },
+  "scope_limits": {
+    "initial_time_signature_hint": false,
+    "manual_offset_or_downbeat_hint": false,
+    "per_track_rules": false,
+    "reference_event_times_used_in_inference": false,
+    "new_encoder_training": false,
+    "legacy_inference_or_weights_used": false,
+    "tempo_or_meter_changes_supported": false,
+    "automatic_reference_acceptance": false,
+    "future_unrequested_experiments_or_tests_authorized": false
+  }
+}
