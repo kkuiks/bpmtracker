@@ -70,7 +70,7 @@ def main():
         raise RuntimeError('owner_excluded_source')
     songs=[s for s in selection['songs'] if s.get('collection_enabled',True) and (args.slug is None or s['slug']==args.slug)]
     if not songs:raise RuntimeError('selection_missing')
-    # Completed owner-cleaned jobs are not a request to spend another paid slot.
+    # Skip completed transfers whose archives were intentionally removed.
     songs=[s for s in songs if not ((batch/s['slug']/'source.zip.transfer.json').exists() and
         json.loads((batch/s['slug']/'source.zip.transfer.json').read_text()).get('current_file_disposition')=='intentionally_removed_after_owner_approved_cleanup')]
     if not songs:

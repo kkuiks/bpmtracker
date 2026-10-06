@@ -604,6 +604,32 @@ kbd {
   flex-direction: column;
   overflow: hidden;
 }
+.audio-editor { flex: 0 0 auto; min-height: 180px; min-width: 0; display: flex; flex-direction: column; background: #161e29; border-top: 1px solid #53697e; outline: none; position: relative; }
+.editor-resize { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 30; }
+.editor-heading { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 4px 10px; flex-shrink: 0; border-bottom: 1px solid #354358; }
+.editor-heading strong { font-size: 10px; color: #adbed2; letter-spacing: 1px; }
+.editor-name { font-size: 11px; flex: 1; min-width: 30px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.editor-tools { display: flex; border: 1px solid #3b4b60; border-radius: 3px; }
+.editor-tools button { font-size: 10px; padding: 4px 8px; background: transparent; }
+.editor-tools button.active { background: #425d79; }
+.editor-heading .secondary-button { font-size: 10px; padding: 4px 7px; white-space: nowrap; }
+.editor-scroll { min-height: 0; flex: 1; overflow-x: auto; overflow-y: hidden; }
+.editor-source { height: 100%; min-height: 85px; position: relative; }
+.editor-scroll.mode-range { cursor: crosshair; }
+.editor-scroll.mode-split { cursor: crosshair; }
+.editor-audio { position: absolute; top: 26px; bottom: 0; pointer-events: none; opacity: .75; }
+.editor-audio .clip-waveform { top: 0; height: 100% !important; }
+.editor-grid { position: absolute; top: 0; bottom: 0; border-left: 1px solid #303b4b; pointer-events: none; }
+.editor-grid.bar { border-color: #546177; }
+.editor-grid small { position: absolute; top: 5px; left: 4px; font: 9px Consolas, monospace; color: #becadc; white-space: nowrap; }
+.editor-event-boundary { position: absolute; top: 26px; bottom: 0; border: 1px solid #a4b9d8; background: #7e9ecb12; pointer-events: none; }
+.editor-trim { position: absolute; top: 25px; bottom: 0; width: 9px; background: #b3cee577; border: 1px solid #c3d7e4; cursor: ew-resize; z-index: 5; }
+.editor-range { position: absolute; top: 25px; bottom: 0; border: 1px solid #a6c7f5; background: #79a8e74a; pointer-events: none; }
+.editor-cursor { position: absolute; top: 0; bottom: 0; width: 1px; background: #f5dfad; pointer-events: none; }
+.editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-shrink: 0; min-height: 24px; padding: 4px 10px; font-size: 10px; color: #adbdcf; }
+.copy-ghost .clip-waveform { top: 19px; }
+.copy-ghost { overflow: hidden; }
+.copy-ghost > span { position: relative; z-index: 1; font-size: 10px; }
 .arrangement {
   display: flex;
   flex: 1;
@@ -982,6 +1008,16 @@ kbd {
     monospace;
   white-space: nowrap;
 }
+.range-overlay.editable { pointer-events: auto; cursor: move; }
+.range-overlay > span { pointer-events: none; }
+.range-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; background: #a6c7fa44; }
+.range-handle.left { left: -1px; }
+.range-handle.right { right: -1px; }
+.range-handle:hover { background: #a6c7fa99; }
+.overlap-choices { max-height: 130px; overflow: auto; }
+.overlap-choices button > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overlap-choices button.active { background: #344960; }
+.context-menu { max-height: calc(100vh - 80px); overflow-y: auto; }
 .selection-rectangle {
   position: absolute;
   z-index: 20;
@@ -992,7 +1028,7 @@ kbd {
 .copy-ghost {
   position: absolute;
   height: 72px;
-  margin-top: 9px;
+  margin-top: 0;
   border: 1px dashed #c1d5e9;
   background: #8dabc434;
   z-index: 25;

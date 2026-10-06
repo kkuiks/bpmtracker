@@ -1,4 +1,4 @@
-"""Finalize only the three explicitly owner-approved offsets and owned cleanup."""
+"""Finalize aligned references and temporary-file cleanup for a fixed batch."""
 from datetime import datetime,timezone
 import argparse
 import copy
@@ -183,7 +183,7 @@ def prepare():
             audio=a['master'],reference=row['reference'],sample_rate=d['sample_rate'],sample_frames=d['sample_frames'],
             duration_seconds=d['duration_seconds'],reference_support_seconds=a['supplied_map_support_seconds'],
             qualification=dict(reference_tier='owner_reviewed_supplied_source_map',full_song_alignment_accepted=True,
-                scope_note='Owner-approved full Master alignment; supplied-map support and unknown margins remain explicit',
+                scope_note='Reviewed full Master alignment; supplied-map support and unknown margins remain explicit',
                 independent_millisecond_timing_certified=False),known_development_material=True,
             exposure_note='Known for acquisition and reference preparation; no analyzer prediction, model fitting or new evaluation policy',
             independent_original_click_millisecond_accuracy_certified=False,accepted_reference_is_already_audio_relative=True,

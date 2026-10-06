@@ -1,4 +1,4 @@
-"""Collect only the three owner-authorized NTM sample jobs; no analyzer code."""
+"""Download source materials for a fixed three-recording collection batch."""
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -221,7 +221,7 @@ def run(mode, authentication):
                 secret=json.loads(transport.read_text());assert secret['session_id']==ident
                 link=secret['url'];emit(reusing_existing_authorized_link=True,job=slug)
             else:
-                # One authorized official link request, immediately before transfer.
+                # Obtain an official download link immediately before transfer.
                 r=context.request.post(f'https://members.urm.academy/wp-json/urm/v1/sessions/{ident}/download-link',
                     headers=headers,data={'fileIndex':chosen['fileIndex']},timeout=45000)
                 if r.status!=200:raise ValueError('archive_link_http_'+str(r.status))

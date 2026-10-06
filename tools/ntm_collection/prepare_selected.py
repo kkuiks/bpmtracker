@@ -1,8 +1,7 @@
-"""Read acquired source clocks and produce owner offset-listening materials.
+"""Extract acquired clocks and prepare audio for interactive alignment review.
 
-The requested offset proposal uses one corresponding source-stem segment. No
-multi-window alignment verification, ZIP-wide integrity scan, playback test,
-historical analyzer, or automatic acceptance is run.
+An initial offset proposal uses one corresponding source-stem segment. Review
+assets retain the original Master geometry and the supplied source clock.
 """
 from pathlib import Path,PurePosixPath
 import argparse,hashlib,json,math,shlex,subprocess,zipfile

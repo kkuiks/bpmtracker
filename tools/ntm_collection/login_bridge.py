@@ -1,4 +1,4 @@
-"""Let the owner use the real member login through a loopback browser viewer."""
+"""Provide member login through a local browser viewer."""
 import argparse
 import json
 import os

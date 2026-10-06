@@ -104,6 +104,16 @@ export type Project = {
   timingPolicy?: "persistent";
 };
 export type TimeRange = { start: number; end: number; trackIds: string[] };
+export type AudioClipboard = {
+  kind: "events" | "range";
+  origin: number;
+  duration: number;
+  clips: Clip[];
+  clocks: Clock[];
+  assets: Asset[];
+  tracks: Track[];
+  analyses: Analysis[];
+};
 export type Tool = "object" | "range" | "split" | "erase";
 export type Snap =
   | "off"
@@ -240,12 +250,26 @@ export const getAsset = (p: Project, clip: Clip) =>
 export const clipSourceToProject = (clip: Clip, sourceTime: number) =>
   clip.start + sourceTime - clip.sourceStart;
 
+/** The receipt retains its full source scope; an edited event exposes only its intersection. */
+export function clockSourceScope(p: Project, clock: Clock) {
+  const clip = p.clips.find((c) => c.id === clock.clipId);
+  const start = Math.max(clock.sourceStart, clip?.sourceStart ?? clock.sourceStart);
+  const end = Math.min(clock.sourceEnd, clip ? clip.sourceStart + clip.duration : clock.sourceEnd);
+  return end > start ? { start, end } : null;
+}
+function inheritedClocks(clocks: Clock[], from: Clip, to: Clip): Clock[] {
+  return clocks.filter((clock) => clock.clipId === from.id &&
+    clock.sourceStart < to.sourceStart + to.duration && clock.sourceEnd > to.sourceStart)
+    .map((clock) => ({ ...structuredClone(clock), id: uid(), clipId: to.id,
+      projectOrigin: to.start - to.sourceStart }));
+}
 export function clockGeometry(p: Project, clock: Clock): AudioClock | null {
   const clip = p.clips.find((c) => c.id === clock.clipId);
   const origin = clip ? clip.start - clip.sourceStart : clock.projectOrigin;
-  if (origin === undefined) return null;
-  const start = Math.max(0, origin + clock.sourceStart),
-    end = origin + clock.sourceEnd;
+  const scope = clockSourceScope(p, clock);
+  if (origin === undefined || !scope) return null;
+  const start = Math.max(0, origin + scope.start),
+    end = origin + scope.end;
   if (end <= start) return null;
   return {
     ...clock.values,
@@ -400,145 +424,96 @@ export function duplicateTracks(p: Project, ids: string[]): Project {
     return { ...clip, id, trackId: trackIds.get(clip.trackId)!, groupId: clip.groupId ? groups.get(clip.groupId)! : null };
   });
   return { ...p, tracks, clips: [...p.clips, ...copies], clocks: [...p.clocks,
-    ...p.clocks.filter((clock) => clipIds.has(clock.clipId)).map((clock) => ({ ...structuredClone(clock), id: uid(), clipId: clipIds.get(clock.clipId)! }))] };
+    ...copies.flatMap((copy) => inheritedClocks(p.clocks, p.clips.find((clip) => clipIds.get(clip.id) === copy.id)!, copy))] };
 }
-export function moveClips(
-  p: Project,
-  ids: string[],
-  delta: number,
-  linked: boolean,
-  targetTrack?: string,
-  copy = false,
-): Project {
-  const next = structuredClone(p),
-    clips = relatedClips(p, ids, linked);
-  if (!clips.length) return p;
+/** Shared, side-effect-free geometry for both pointer previews and committed edits. */
+export function movePreview(p: Project, ids: string[], delta: number, linked: boolean, targetTrack?: string): Clip[] {
+  const clips = relatedClips(p, ids, linked);
+  if (!clips.length) return [];
   delta = Math.max(delta, -Math.min(...clips.map((c) => c.start)));
   const primary = p.clips.find((c) => c.id === ids[0]) ?? clips[0];
-  let trackDelta = targetTrack
-    ? p.tracks.findIndex((t) => t.id === targetTrack) -
-      p.tracks.findIndex((t) => t.id === primary.trackId)
-    : 0;
-  const indexes = clips.map((c) =>
-    p.tracks.findIndex((t) => t.id === c.trackId),
-  );
-  trackDelta = Math.max(
-    -Math.min(...indexes),
-    Math.min(trackDelta, p.tracks.length - 1 - Math.max(...indexes)),
-  );
-  const groups = new Map<string, string>();
-  for (const c of clips) {
-    const originalIndex = next.clips.findIndex((x) => x.id === c.id);
-    if (copy) {
-      const clone = { ...c, id: uid(), start: c.start + delta };
-      if (c.groupId) {
-        if (!groups.has(c.groupId)) groups.set(c.groupId, uid());
-        clone.groupId = groups.get(c.groupId)!;
-      }
-      if (targetTrack)
-        clone.trackId =
-          p.tracks[
-            p.tracks.findIndex((t) => t.id === c.trackId) + trackDelta
-          ].id;
-      next.clips.push(clone);
-      for (const clock of p.clocks.filter((x) => x.clipId === c.id))
-        next.clocks.push({
-          ...structuredClone(clock),
-          id: uid(),
-          clipId: clone.id,
-          projectOrigin: clone.start - clone.sourceStart,
-        });
-    } else {
-      next.clips[originalIndex].start = c.start + delta;
-      if (targetTrack)
-        next.clips[originalIndex].trackId =
-          p.tracks[
-            p.tracks.findIndex((t) => t.id === c.trackId) + trackDelta
-          ].id;
-      for (const clock of next.clocks.filter((x) => x.clipId === c.id))
-        clock.projectOrigin = c.start + delta - c.sourceStart;
-    }
-  }
-  return next;
+  const indexes = clips.map((c) => p.tracks.findIndex((t) => t.id === c.trackId));
+  const targetIndex = p.tracks.findIndex((t) => t.id === targetTrack);
+  const trackDelta = Math.max(-Math.min(...indexes), Math.min(
+    targetIndex < 0 ? 0 : targetIndex - p.tracks.findIndex((t) => t.id === primary.trackId),
+    p.tracks.length - 1 - Math.max(...indexes)));
+  return clips.map((c, i) => ({ ...c, start: c.start + delta, trackId: p.tracks[indexes[i] + trackDelta].id }));
 }
-export function trimClips(
-  p: Project,
-  ids: string[],
-  edge: "start" | "end",
-  delta: number,
-  linked: boolean,
-): Project {
-  const clips = relatedClips(p, ids, linked),
-    next = structuredClone(p);
-  if (!clips.length) return p;
+export function trimPreview(p: Project, ids: string[], edge: "start" | "end", delta: number, linked: boolean): Clip[] {
+  const clips = relatedClips(p, ids, linked);
+  if (!clips.length) return [];
   if (edge === "start") {
-    delta = Math.max(
-      delta,
-      ...clips.map((c) => Math.max(-c.start, -c.sourceStart)),
-    );
-    delta = Math.min(delta, ...clips.map((c) => c.duration - 0.001));
+    delta = Math.max(delta, ...clips.map((c) => Math.max(-c.start, -c.sourceStart)));
+    delta = Math.min(delta, ...clips.map((c) => c.duration - Math.min(.001, c.duration)));
   } else {
-    delta = Math.max(delta, ...clips.map((c) => 0.001 - c.duration));
-    delta = Math.min(
-      delta,
-      ...clips.map((c) => getAsset(p, c).duration - c.sourceStart - c.duration),
-    );
+    delta = Math.max(delta, ...clips.map((c) => Math.min(.001, c.duration) - c.duration));
+    delta = Math.min(delta, ...clips.map((c) => getAsset(p, c).duration - c.sourceStart - c.duration));
   }
-  for (const c of next.clips)
-    if (clips.some((x) => x.id === c.id)) {
-      if (edge === "start") {
-        c.start += delta;
-        c.sourceStart += delta;
-        c.duration -= delta;
-      } else c.duration += delta;
-    }
-  return next;
+  return clips.map((c) => edge === "start"
+    ? { ...c, start: c.start + delta, sourceStart: c.sourceStart + delta, duration: c.duration - delta }
+    : { ...c, duration: c.duration + delta });
 }
-export function splitClips(
-  p: Project,
-  ids: string[],
-  time: number,
-  linked: boolean,
-): Project {
-  const next = structuredClone(p),
-    groups = new Map<string, string>();
-  for (const c of relatedClips(p, ids, linked)) {
-    if (time <= c.start + 0.001 || time >= clipEnd(c) - 0.001) continue;
-    const left = next.clips.find((x) => x.id === c.id)!;
+export function moveClips(p: Project, ids: string[], delta: number, linked: boolean, targetTrack?: string, copy = false): Project {
+  const moved = movePreview(p, ids, delta, linked, targetTrack);
+  if (!moved.length || (!copy && moved.every((c) => {
+    const before = p.clips.find((x) => x.id === c.id)!;
+    return c.start === before.start && c.trackId === before.trackId;
+  }))) return p;
+  const groups = new Map<string, string>();
+  if (copy) {
+    const copies = moved.map((c) => {
+      if (c.groupId && !groups.has(c.groupId)) groups.set(c.groupId, uid());
+      return { ...c, id: uid(), groupId: c.groupId ? groups.get(c.groupId)! : null };
+    });
+    return { ...p, clips: [...p.clips, ...copies], clocks: [...p.clocks,
+      ...copies.flatMap((c, i) => inheritedClocks(p.clocks, moved[i], c))] };
+  }
+  const byId = new Map(moved.map((c) => [c.id, c]));
+  return { ...p, clips: p.clips.map((c) => byId.get(c.id) ?? c), clocks: p.clocks.map((clock) => {
+    const clip = byId.get(clock.clipId);
+    return clip ? { ...clock, projectOrigin: clip.start - clip.sourceStart } : clock;
+  }) };
+}
+export function trimClips(p: Project, ids: string[], edge: "start" | "end", delta: number, linked: boolean): Project {
+  const trimmed = trimPreview(p, ids, edge, delta, linked);
+  if (!trimmed.length || trimmed.every((c) => {
+    const before = p.clips.find((x) => x.id === c.id)!;
+    return before.start === c.start && before.sourceStart === c.sourceStart && before.duration === c.duration;
+  })) return p;
+  const byId = new Map(trimmed.map((c) => [c.id, c]));
+  return { ...p, clips: p.clips.map((c) => byId.get(c.id) ?? c) };
+}
+export function splitClips(p: Project, ids: string[], time: number, linked: boolean): Project {
+  const splitting = relatedClips(p, ids, linked).filter((c) => time > c.start + .001 && time < clipEnd(c) - .001);
+  if (!splitting.length) return p;
+  const next = { ...p, clips: [...p.clips], clocks: [...p.clocks] }, groups = new Map<string, string>();
+  for (const c of splitting) {
     const split = time - c.start;
-    const right = {
-      ...c,
-      id: uid(),
-      start: time,
-      sourceStart: c.sourceStart + split,
-      duration: c.duration - split,
-    };
+    const right = { ...c, id: uid(), start: time, sourceStart: c.sourceStart + split, duration: c.duration - split };
     if (c.groupId) {
       if (!groups.has(c.groupId)) groups.set(c.groupId, uid());
       right.groupId = groups.get(c.groupId)!;
     }
-    left.duration = split;
+    next.clips[next.clips.findIndex((x) => x.id === c.id)] = { ...c, duration: split };
     next.clips.push(right);
-    // Splitting an audio event leaves its musical clock intact.
+    next.clocks.push(...inheritedClocks(p.clocks, c, right));
   }
   return next;
 }
-export function removeClips(
-  p: Project,
-  ids: string[],
-  linked: boolean,
-): Project {
+export function removeClips(p: Project, ids: string[], linked: boolean): Project {
   const deleting = new Set(relatedClips(p, ids, linked).map((c) => c.id));
-  return {
-    ...p,
-    clips: p.clips.filter((c) => !deleting.has(c.id)),
-    clocks: p.clocks.map((clock) => {
-      const clip = p.clips.find((c) => c.id === clock.clipId);
-      return clip && deleting.has(clip.id)
-        ? { ...clock, projectOrigin: clip.start - clip.sourceStart }
-        : clock;
-    }),
-  };
+  if (!deleting.size) return p;
+  return { ...p, clips: p.clips.filter((c) => !deleting.has(c.id)), clocks: p.clocks.map((clock) => {
+    const clip = p.clips.find((c) => c.id === clock.clipId);
+    return clip && deleting.has(clip.id) ? { ...clock, projectOrigin: clip.start - clip.sourceStart } : clock;
+  }) };
+}
+/** Playback and drawing both use the last event as the front event on a track. */
+export function orderClips(p: Project, ids: string[], front: boolean, linked: boolean): Project {
+  const selected = new Set(relatedClips(p, ids, linked).map((c) => c.id));
+  const chosen = p.clips.filter((c) => selected.has(c.id)), other = p.clips.filter((c) => !selected.has(c.id));
+  const clips = front ? [...other, ...chosen] : [...chosen, ...other];
+  return clips.every((c, i) => c.id === p.clips[i].id) ? p : { ...p, clips };
 }
 export function applyAnalysis(p: Project, analysis: Analysis): Project {
   const result = analysis.result;
@@ -648,6 +623,71 @@ export function removeRange(
       .map((c) => c.id),
     false,
   );
+}
+
+export function copyAudio(p: Project, ids: string[], range: TimeRange | null, linked: boolean): AudioClipboard | null {
+  const usingRange = range && range.end > range.start && range.trackIds.length > 0;
+  const clips = usingRange ? rangeClips(p, range, linked) : relatedClips(p, ids, linked);
+  if (!usingRange && !clips.length) return null;
+  const origin = usingRange ? range.start : Math.min(...clips.map((c) => c.start));
+  const end = usingRange ? range.end : Math.max(...clips.map(clipEnd));
+  const selectedTracks = new Set([...(usingRange ? range.trackIds : []), ...clips.map((c) => c.trackId)]);
+  const rows = p.tracks.flatMap((t, i) => selectedTracks.has(t.id) ? [i] : []);
+  if (!rows.length) return null;
+  // Keep empty rows between selected tracks and silence at either range boundary.
+  const tracks = p.tracks.slice(Math.min(...rows), Math.max(...rows) + 1);
+  const clocks = p.clocks.filter((clock) => clips.some((c) => c.id === clock.clipId &&
+    clock.sourceStart < c.sourceStart + c.duration && clock.sourceEnd > c.sourceStart));
+  return structuredClone({ kind: usingRange ? "range" : "events", origin, duration: end - origin,
+    clips, clocks, tracks, assets: p.assets.filter((a) => clips.some((c) => c.assetId === a.id)),
+    analyses: p.analyses.filter((a) => clocks.some((clock) => clock.analysisId === a.id)) });
+}
+
+export function pasteAudio(p: Project, data: AudioClipboard, at: number, targetTrack?: string | null) {
+  const tracks = [...p.tracks], mapping = new Map<string, string>();
+  let firstRow = tracks.findIndex((t) => t.id === (targetTrack ?? data.tracks[0]?.id));
+  if (firstRow < 0) firstRow = tracks.length;
+  for (let i = 0; i < data.tracks.length; i++) {
+    if (!tracks[firstRow + i]) tracks.push({ ...data.tracks[i], id: uid() });
+    mapping.set(data.tracks[i].id, tracks[firstRow + i].id);
+  }
+  const groups = new Map<string, string>();
+  const start = Math.max(0, at);
+  const copies = data.clips.map((c) => {
+    if (c.groupId && !groups.has(c.groupId)) groups.set(c.groupId, uid());
+    return { ...c, id: uid(), start: start + c.start - data.origin, trackId: mapping.get(c.trackId)!,
+      groupId: c.groupId ? groups.get(c.groupId)! : null };
+  });
+  const next = copies.length || tracks.length !== p.tracks.length ? { ...p, tracks,
+    clips: [...p.clips, ...copies], clocks: [...p.clocks, ...copies.flatMap((c, i) => inheritedClocks(data.clocks, data.clips[i], c))],
+    assets: [...p.assets, ...data.assets.filter((a) => !p.assets.some((x) => x.id === a.id))],
+    analyses: [...p.analyses, ...data.analyses.filter((a) => !p.analyses.some((x) => x.id === a.id))] } : p;
+  return { project: next, ids: copies.map((c) => c.id), range: data.kind === "range"
+    ? { start, end: start + data.duration, trackIds: data.tracks.map((t) => mapping.get(t.id)!) } : null };
+}
+
+export function rangePreview(p: Project, range: TimeRange, delta: number, targetTrack?: string, linked = true) {
+  const data = copyAudio(p, [], range, linked);
+  if (!data) return { range, clips: [] as Clip[] };
+  const firstRow = p.tracks.findIndex((t) => t.id === data.tracks[0].id);
+  const clickedRow = p.tracks.findIndex((t) => t.id === range.trackIds[0]);
+  const targetRow = p.tracks.findIndex((t) => t.id === targetTrack);
+  const trackDelta = Math.max(-firstRow, Math.min(targetRow < 0 ? 0 : targetRow - clickedRow,
+    p.tracks.length - firstRow - data.tracks.length));
+  delta = Math.max(-range.start, delta);
+  const trackIds = data.tracks.map((t) => p.tracks[p.tracks.findIndex((row) => row.id === t.id) + trackDelta].id);
+  return { range: { start: range.start + delta, end: range.end + delta, trackIds },
+    clips: data.clips.map((c) => ({ ...c, start: c.start + delta,
+      trackId: p.tracks[p.tracks.findIndex((t) => t.id === c.trackId) + trackDelta].id })) };
+}
+
+export function moveRange(p: Project, range: TimeRange, delta: number, linked: boolean, targetTrack?: string, copy = false) {
+  const data = copyAudio(p, [], range, linked);
+  if (!data) return { project: p, range, ids: [] as string[] };
+  const preview = rangePreview(p, range, delta, targetTrack, linked);
+  if (!copy && preview.range.start === range.start && preview.range.trackIds.join() === data.tracks.map((t) => t.id).join())
+    return { project: p, range: preview.range, ids: [] as string[] };
+  return pasteAudio(copy ? p : removeRange(p, range, linked), data, preview.range.start, preview.range.trackIds[0]);
 }
 export function formatTime(t: number): string {
   const ms = Math.floor(Math.max(0, t) * 1000);

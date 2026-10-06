@@ -66,7 +66,7 @@ export default function Transport({ project, position, playing, buffering, loop,
       <button className="icon-button" title="Go to project start (Num .)" onClick={() => onSeek(0)}><SkipBack size={16}/></button>
       <button className={`icon-button ${loop.enabled ? "cycle-on" : ""}`} title="Cycle (Num /)" aria-pressed={loop.enabled} onClick={() => onLoop({ ...loop, enabled: !loop.enabled })}><Repeat2 size={18}/></button>
       <button className={`icon-button stop-button ${!playing && !buffering ? "active" : ""}`} title="Stop (Num 0) · Press again to return to playback start" onClick={onStop}><Square size={16} fill="currentColor"/></button>
-      <button className={`play-button ${playing && !buffering ? "playing" : ""}`} title="Start / Resume (Enter) · Space toggles playback" onClick={onStart} aria-pressed={playing}>
+      <button className={`play-button ${playing && !buffering ? "playing" : ""}`} title="Start / Resume (Num Enter) · Space toggles playback" onClick={onStart} aria-pressed={playing}>
         {buffering ? <LoaderCircle size={18} className="spin"/> : <Play size={18} fill="currentColor"/>}
       </button>
     </div>

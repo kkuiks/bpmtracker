@@ -7,7 +7,7 @@ from .grid import match_events, restrict, timestamps
 
 def reference_events(ref: dict, support: list[list[float]]):
     # Existing accepted audio-relative events are used, never re-rendered from
-    # original MIDI, nominal BPM, owner offset, or source project timestamps.
+    # original MIDI, nominal BPM, alignment offset, or source project timestamps.
     if "beats_seconds" in ref:
         beat = np.asarray(ref["beats_seconds"], dtype=np.float64)
     elif "beat_times_seconds" in ref:

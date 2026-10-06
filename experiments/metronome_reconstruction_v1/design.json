@@ -1,6 +1,5 @@
 {
-  "purpose": "The owner's first independent experiment: recover one constant quarter BPM, one constant time signature, and one global audio-relative offset.",
-  "authorization": "Owner approved execution and treating every previously non-excluded sample as equally valid on 2026-10-05.",
+  "purpose": "Recover one constant quarter BPM, one constant time signature, and one global audio-relative downbeat offset from audio.",
   "membership": {
     "valid_samples": 26,
     "excluded_samples": 12,
@@ -11,7 +10,7 @@
     "evaluation_only_manifest": "samples/selections/fixed-metronome-v1/all-valid-evaluation.json"
   },
   "sensor": {
-    "implementation": "Official beat-this 1.1.0, newly downloaded final0 checkpoint",
+    "implementation": "Official beat-this 1.1.0 with the final0 checkpoint",
     "output": "50 Hz beat and downbeat logits; official minimal-postprocessor events retained as baseline",
     "precision": "CPU float32, no float16",
     "source_geometry": "Original recording and source-time origin preserved; resampling occurs only inside the official sensor preprocessing",
@@ -38,28 +37,26 @@
     "confidence": "Uncalibrated sensor-agreement diagnostics; absence of a flag is not a correctness certificate."
   },
   "evaluation": {
-    "reference": "Existing owner-accepted audio-relative quarter/downbeat events as stored, restricted to catalog support. No additional offset, source-clock rebuilding or reference extrapolation.",
+    "reference": "Stored, reviewed audio-relative quarter/downbeat events within catalog support. Evaluation uses these events without another offset, source-clock rebuilding or reference extrapolation.",
     "nominal_bpm": "Nearest allowed rational representation is display-only; exact stored reference BPM is retained for numerical error.",
     "events": "One-to-one matching at 10, 20, 30 and 70 ms; common 26-sample macro mean.",
     "clock_errors": "Pair by the same quarter/bar index to retain accumulated drift; also report matched-event timing conditional on event matching.",
     "statistics": ["absolute/relative BPM error", "stored time-signature match", "median/P95/maximum timing error", "initial/final phase error", "accumulated drift", "residual slope"],
     "formal_pass_threshold_selected": false,
-    "reference_limit": "Practical owner approval is not independent millisecond original-click certification. No unseen generalization claim."
+    "reference_limit": "Listening-reviewed alignment does not independently certify original-click timing at millisecond precision. The cohort is known development material."
   },
   "comparisons": {
-    "automatic": ["Raw official Beat This events", "Simple consecutive-event linear clock regression", "New symmetric whole-input fit"],
+    "automatic": ["Raw official Beat This events", "Simple consecutive-event linear clock regression", "Symmetric whole-input grid fit"],
     "scoring_ablation": "One separately frozen grid-only score removes reverse evidence coverage; original predictions remain unchanged.",
     "oracle": "After source-only predictions are saved, known reference BPM and meter isolate offset fitting. These results are diagnostic only.",
-    "historical_constant_grid": "No common 26-sample frozen output is available. No old implementation is resumed to create one."
+    "historical_constant_grid": "Comparable frozen results on the same 26-sample cohort are unavailable."
   },
   "scope": {
     "tempo_changes_or_ramps": false,
     "meter_changes": false,
     "tail_stopping": false,
     "training": false,
-    "automatic_owner_acceptance": false,
-    "publication": false,
-    "future_unrequested_tests_or_verification_authorized": false
+    "automatic_reference_acceptance": false
   },
   "run": "samples/experiments/metronome_reconstruction_v1/20261005-first26-v1"
 }

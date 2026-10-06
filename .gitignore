@@ -1,4 +1,4 @@
-# Private source data and project notes
+# Local data and workspace files
 /_local
 /samples/
 /.daw-state/
@@ -9,7 +9,7 @@
 /legacy/FAILURE_STUDY.md
 /legacy/migration-20261002/
 
-# Owner planning attachments and historical internal notes stay local.
+# Local planning files and archived Markdown
 # Keep the original versioned human documentation in the source archive.
 /*[Pp]roposal*.md
 /legacy/**/*.md
@@ -17,7 +17,7 @@
 !/legacy/docs/analysis.md
 !/legacy/docs/benchmark.md
 
-# Local agent instructions and tool administration
+# Workspace configuration
 AGENTS.md
 AGENTS.historical.md
 /.agents/

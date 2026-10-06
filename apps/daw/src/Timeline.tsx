@@ -13,6 +13,9 @@ import {
   clipEnd,
   formatTime,
   getAsset,
+  movePreview,
+  trimPreview,
+  rangePreview,
   relatedClips,
   projectEnd,
   snapTime,
@@ -70,9 +73,12 @@ type Props = {
   onSplit: (ids: string[], time: number) => void;
   onDelete: (ids: string[]) => void;
   onFront: (ids: string[]) => void;
+  onBack: (ids: string[]) => void;
   onAddTrack: () => void;
   onTrack: (id: string, fields: Partial<Track>) => void;
   onAnalyze: (clip: Clip) => void;
+  onEdit: (clip: Clip) => void;
+  onRangeMove: (range: TimeRange, delta: number, targetTrack: string | undefined, copy: boolean) => void;
   onMapSelect: (selection: MapSelection) => void;
   onMapAdd: (kind: "tempo" | "signature", time: number) => void;
   onMapMove: (selection: MapSelection, time: number, bpm?: number) => void;
@@ -86,6 +92,9 @@ type Drag = {
     | "start"
     | "end"
     | "range"
+    | "range-move"
+    | "range-start"
+    | "range-end"
     | "marquee"
     | "locator-left"
     | "locator-right"
@@ -103,6 +112,11 @@ type Drag = {
   trackId?: string;
   copy?: boolean;
   ctrl?: boolean;
+  axis?: "horizontal" | "vertical";
+  additive?: boolean;
+  initialSelection?: string[];
+  contentY?: number;
+  originalRange?: TimeRange;
   original?: { start: number; end: number };
   moved?: boolean;
   delta?: number;
@@ -123,7 +137,7 @@ type Drag = {
 };
 type FileDrop = { destination: ImportDestination; row: number; count: number };
 
-const Waveform = memo(function Waveform({
+export const Waveform = memo(function Waveform({
   asset,
   clip,
   scale,
@@ -131,6 +145,7 @@ const Waveform = memo(function Waveform({
   viewport,
   samples,
   color,
+  height = 52,
 }: {
   asset: Asset;
   clip: Clip;
@@ -139,6 +154,7 @@ const Waveform = memo(function Waveform({
   viewport: number;
   samples?: Float32Array;
   color: string;
+  height?: number;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const visibleFrom = Math.max(0, left - clip.start * scale - 4);
@@ -151,10 +167,10 @@ const Waveform = memo(function Waveform({
     if (!node || !samples || width <= 0) return;
     const dpr = Math.min(2, devicePixelRatio || 1);
     node.width = Math.ceil(width * dpr);
-    node.height = Math.ceil(52 * dpr);
+    node.height = Math.ceil(height * dpr);
     const ctx = node.getContext("2d")!;
     ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, width, 52);
+    ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.83;
     for (let x = 0; x < width; x++) {
@@ -179,9 +195,9 @@ const Waveform = memo(function Waveform({
       }
       ctx.fillRect(
         x,
-        26 - maximum * 23,
+        height / 2 - maximum * height * .44,
         1,
-        Math.max(1, (maximum - minimum) * 23),
+        Math.max(1, (maximum - minimum) * height * .44),
       );
     }
   }, [
@@ -193,12 +209,13 @@ const Waveform = memo(function Waveform({
     width,
     asset.id,
     color,
+    height,
   ]);
   return (
     <canvas
       ref={canvas}
       className="clip-waveform"
-      style={{ left: visibleFrom, width, height: 52 }}
+      style={{ left: visibleFrom, width, height }}
     />
   );
 });
@@ -266,7 +283,7 @@ export default function Timeline(props: Props) {
   const seekFrame = useRef<number | null>(null), pendingSeek = useRef<number | null>(null);
   const seekCallback = useRef(props.onSeek);
   seekCallback.current = props.onSeek;
-  const [menu, setMenu] = useState<{ x: number; y: number; clip: Clip } | null>(
+  const [menu, setMenu] = useState<{ x: number; y: number; clip: Clip; time: number } | null>(
     null,
   );
   const totalEnd = Math.max(project.projectDuration, projectEnd(project));
@@ -385,6 +402,11 @@ export default function Timeline(props: Props) {
           ROW,
       )
     ];
+  const boundedTrackAt = (clientY: number) => {
+    const node = scroller.current!;
+    const row = Math.floor((clientY - node.getBoundingClientRect().top + node.scrollTop - HEADER) / ROW);
+    return project.tracks[Math.max(0, Math.min(project.tracks.length - 1, row))];
+  };
   const insertionAt = (clientY: number) => {
     const node = scroller.current!;
     return Math.max(0, Math.min(project.tracks.length, Math.round((clientY - node.getBoundingClientRect().top + node.scrollTop - HEADER) / ROW)));
@@ -508,6 +530,10 @@ export default function Timeline(props: Props) {
         return;
       }
       const mapGesture = state.mode === "tempo" || state.mode === "signature";
+      if (["move", "marquee", "range", "range-move"].includes(state.mode)) {
+        if (event.clientY < bounds.top + HEADER + 12) scroller.current.scrollTop = Math.max(0, scroller.current.scrollTop - 10);
+        else if (event.clientY > bounds.bottom - 20) scroller.current.scrollTop += 10;
+      }
       const edgeScroll = !mapGesture || (!state.mapFixed && (state.horizontalMoved || Math.abs(event.clientX - state.x) > 4));
       if (edgeScroll && event.clientX < bounds.left + 25)
         scroller.current.scrollLeft = Math.max(
@@ -540,15 +566,11 @@ export default function Timeline(props: Props) {
             snap,
             clip.start,
           ) - clip.start;
-        let target = trackAt(event.clientY)?.id;
-        if (state.ctrl) {
-          if (
-            Math.abs(event.clientX - state.x) >=
-            Math.abs(event.clientY - state.y)
-          )
-            target = clip.trackId;
-          else delta = 0;
-        }
+        let target = boundedTrackAt(event.clientY)?.id;
+        next.axis = event.ctrlKey && next.moved ? state.axis ?? (Math.abs(event.clientX - state.x) >= Math.abs(event.clientY - state.y) ? "horizontal" : "vertical") : undefined;
+        if (next.axis === "horizontal") target = clip.trackId;
+        if (next.axis === "vertical") delta = 0;
+        next.copy = event.altKey;
         next.delta = delta;
         next.targetTrack = target;
       } else if (state.mode === "start" || state.mode === "end") {
@@ -562,23 +584,38 @@ export default function Timeline(props: Props) {
             mode,
             original,
           ) - original;
+      } else if (state.mode === "range-move") {
+        const original = state.originalRange!;
+        next.delta = snapToProject(project, original.start + currentTime - state.time, mode) - original.start;
+        const clickedRow = project.tracks.findIndex((t) => t.id === state.trackId);
+        const row = project.tracks.findIndex((t) => t.id === boundedTrackAt(event.clientY)?.id);
+        const firstRow = project.tracks.findIndex((t) => t.id === original.trackIds[0]);
+        next.targetTrack = project.tracks[Math.max(0, Math.min(project.tracks.length - 1, firstRow + row - clickedRow))]?.id;
+        next.copy = event.altKey;
+      } else if (state.mode === "range-start" || state.mode === "range-end") {
+        const original = state.originalRange!;
+        const edge = state.mode === "range-start" ? original.start : original.end;
+        const time = snapToProject(project, edge + currentTime - state.time, mode);
+        props.onRange(state.mode === "range-start" ? { ...original, start: Math.min(time, original.end - .001) }
+          : { ...original, end: Math.max(time, original.start + .001) });
       } else if (state.mode === "range") {
         const time = snapTime(project, currentTime, mode, state.time);
         const firstTrack = project.tracks.findIndex(
           (t) => t.id === state.trackId,
         );
         const lastTrack = project.tracks.findIndex(
-          (t) => t.id === trackAt(event.clientY)?.id,
+          (t) => t.id === boundedTrackAt(event.clientY)?.id,
         );
         const indexes = [
           firstTrack,
           lastTrack < 0 ? firstTrack : lastTrack,
+          ...(state.originalRange?.trackIds ?? []).map((id) => project.tracks.findIndex((t) => t.id === id)),
         ].sort((a, b) => a - b);
         props.onRange({
-          start: Math.min(state.time, time),
-          end: Math.max(state.time, time),
+          start: Math.min(state.time, time, state.originalRange?.start ?? Infinity),
+          end: Math.max(state.time, time, state.originalRange?.end ?? -Infinity),
           trackIds: project.tracks
-            .slice(indexes[0], indexes[1] + 1)
+            .slice(indexes[0], indexes.at(-1)! + 1)
             .map((t) => t.id),
         });
       } else if (state.mode.startsWith("locator")) {
@@ -616,8 +653,11 @@ export default function Timeline(props: Props) {
       setDragging(next);
     };
     const onUp = (event: PointerEvent) => {
-      const state = dragRef.current;
+      let state = dragRef.current;
       if (!state) return;
+      if (state.moved && ["move", "start", "end", "range-move", "range-start", "range-end"].includes(state.mode)) {
+        onMove(event); state = dragRef.current!;
+      }
       if (state.mode === "track") {
         if (state.moved) props.onTrackReorder(state.ids!, project.tracks[insertionAt(event.clientY)]?.id ?? null);
         else props.onTrackSelect(state.trackId!);
@@ -639,7 +679,9 @@ export default function Timeline(props: Props) {
         if (Math.abs(time - originalTime) > 1e-8 || state.bpm !== state.originalBpm)
           props.onMapMove({ kind: state.mode, id: state.mapId! }, time, state.bpm);
       }
-      else if (state.mode === "move" && !state.moved && state.copy)
+      else if (state.mode === "range-move" && state.moved)
+        props.onRangeMove(state.originalRange!, state.delta ?? 0, state.targetTrack, event.altKey);
+      else if (state.mode === "move" && !state.moved && event.altKey)
         props.onSplit(
           state.ids!,
           snapTime(project, timeAt(event.clientX), snap),
@@ -648,24 +690,18 @@ export default function Timeline(props: Props) {
       else if (state.mode === "marquee" && state.moved) {
         const first = Math.min(state.time, timeAt(event.clientX)),
           last = Math.max(state.time, timeAt(event.clientX));
-        const a = trackAt(state.y),
-          b = trackAt(event.clientY);
-        const rows = [
-          project.tracks.findIndex((t) => t.id === a?.id),
-          project.tracks.findIndex((t) => t.id === b?.id),
-        ].sort((x, y) => x - y);
-        const trackIds = project.tracks
-          .slice(Math.max(0, rows[0]), Math.max(0, rows[1]) + 1)
-          .map((t) => t.id);
+        const a = project.tracks.find((t) => t.id === state.trackId) ?? boundedTrackAt(state.y);
+        const lastY = event.clientY - scroller.current!.getBoundingClientRect().top + scroller.current!.scrollTop;
+        const top = Math.min(state.contentY!, lastY), bottom = Math.max(state.contentY!, lastY);
         const selected = project.clips
           .filter(
-            (c) =>
-              c.start < last &&
-              clipEnd(c) > first &&
-              trackIds.includes(c.trackId),
+            (c) => {
+              const clipTop = HEADER + project.tracks.findIndex((t) => t.id === c.trackId) * ROW + 9;
+              return c.start < last && clipEnd(c) > first && clipTop < bottom && clipTop + 72 > top;
+            },
           )
           .map((c) => c.id);
-        props.onSelect(selected, a?.id ?? "");
+        props.onSelect(state.additive ? [...new Set([...state.initialSelection!, ...selected])] : selected, a?.id ?? "");
       } else if (state.mode.startsWith("locator") && !state.moved)
         props.onSeek(state.time);
       setDragging(null);
@@ -674,19 +710,27 @@ export default function Timeline(props: Props) {
       if (event.key === "Escape") {
         if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
         seekFrame.current = null; pendingSeek.current = null;
+        if (dragRef.current?.mode.startsWith("range")) props.onRange(dragRef.current.originalRange ?? null);
         setDragging(null);
         setFileDrop(null);
+      } else if (["Control", "Alt"].includes(event.key)) {
+        const state = dragRef.current;
+        if (state && ["move", "start", "end", "range-move"].includes(state.mode))
+          onMove(new PointerEvent("pointermove", { clientX: state.currentX ?? state.x, clientY: state.currentY ?? state.y,
+            ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey }));
       }
     };
     const cancelPointer = () => { if (dragRef.current?.mode === "cursor") flushSeek(); setDragging(null); };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("keydown", onCancel);
+    window.addEventListener("keyup", onCancel);
     window.addEventListener("pointercancel", cancelPointer);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("keydown", onCancel);
+      window.removeEventListener("keyup", onCancel);
       window.removeEventListener("pointercancel", cancelPointer);
     };
   }, [project, snap, props]);
@@ -708,13 +752,16 @@ export default function Timeline(props: Props) {
       props.onSeek(snapTime(project, at, snap));
       return;
     }
-    if (tool === "range" && !edge) {
+    if (tool === "range") {
+      if (!track) return;
       if (track) props.onSelect([], track.id);
       const time = snapTime(project, at, event.ctrlKey ? "off" : snap);
+      const previous = event.shiftKey ? props.range : null;
+      const rows = [...(previous?.trackIds ?? []), track.id].map((id) => project.tracks.findIndex((t) => t.id === id));
       props.onRange({
-        start: time,
-        end: time,
-        trackIds: track ? [track.id] : [],
+        start: Math.min(time, previous?.start ?? Infinity),
+        end: Math.max(time, previous?.end ?? -Infinity),
+        trackIds: project.tracks.slice(Math.min(...rows), Math.max(...rows) + 1).map((t) => t.id),
       });
       setDragging({
         mode: "range",
@@ -722,30 +769,32 @@ export default function Timeline(props: Props) {
         y: event.clientY,
         time,
         trackId: track?.id,
+        originalRange: previous ?? undefined,
       });
       return;
     }
     if (clip) {
-      if (tool === "split" && !edge) {
+      if (tool === "split") {
         props.onSplit(
           [clip.id],
           snapTime(project, at, event.ctrlKey ? "off" : snap),
         );
         return;
       }
-      if (tool === "erase" && !edge) {
+      if (tool === "erase") {
         props.onDelete([clip.id]);
         return;
       }
-      let ids = selection.includes(clip.id) ? selection : [clip.id];
-      if (event.shiftKey)
-        ids = selection.includes(clip.id)
-          ? selection.filter((id) => id !== clip.id)
-          : [...selection, clip.id];
-      if (!event.shiftKey && ids.includes(clip.id))
+      let ids = effectiveSelection.has(clip.id) ? selection : [clip.id];
+      if (event.shiftKey) {
+        const members = new Set(relatedClips(project, [clip.id], linked).map((c) => c.id));
+        ids = effectiveSelection.has(clip.id) ? selection.filter((id) => !members.has(id)) : [...selection, clip.id];
+      }
+      if (!event.shiftKey)
         ids = [clip.id, ...ids.filter((id) => id !== clip.id)];
       props.onSelect(ids, clip.trackId);
       props.onRange(null);
+      if (!ids.includes(clip.id)) return;
       setDragging({
         mode: edge ?? "move",
         x: event.clientX,
@@ -757,12 +806,17 @@ export default function Timeline(props: Props) {
         ctrl: !edge && event.ctrlKey,
       });
     } else {
+      props.onRange(null);
       if (!event.shiftKey) props.onSelect([], track?.id ?? "");
       setDragging({
         mode: "marquee",
         x: event.clientX,
         y: event.clientY,
         time: at,
+        additive: event.shiftKey,
+        initialSelection: selection,
+        trackId: boundedTrackAt(event.clientY)?.id,
+        contentY: event.clientY - scroller.current!.getBoundingClientRect().top + scroller.current!.scrollTop,
       });
     }
   };
@@ -801,9 +855,35 @@ export default function Timeline(props: Props) {
       mapTime, mapFixed: fixed, originalBpm: tempo?.bpm, bpm: tempo?.bpm,
       bpmPerPixel: (maxTempo - minTempo) / (TEMPO_ROW - 30) });
   };
-  const dragClips = drag?.ids
-    ? new Set(relatedClips(project, drag.ids, linked).map((c) => c.id))
-    : new Set<string>();
+  const eventPreview = !drag?.moved || !drag.ids ? [] : drag.mode === "move"
+    ? movePreview(project, drag.ids, drag.delta ?? 0, linked, drag.targetTrack)
+    : drag.mode === "start" || drag.mode === "end" ? trimPreview(project, drag.ids, drag.mode, drag.delta ?? 0, linked) : [];
+  const previewById = new Map(eventPreview.map((c) => [c.id, c]));
+  const displayedClips = drag?.copy ? project.clips : project.clips.map((c) => previewById.get(c.id) ?? c);
+  const movingRange = drag?.mode === "range-move" && drag.moved
+    ? rangePreview(project, drag.originalRange!, drag.delta ?? 0, drag.targetTrack, linked) : null;
+  const displayedRange = movingRange?.range ?? props.range;
+  const ghosts = drag?.copy && drag.mode === "move" && drag.moved ? eventPreview : movingRange?.clips ?? [];
+  const eventDoubleClick = (event: React.MouseEvent, clip: Clip) => {
+    event.stopPropagation();
+    if (tool === "object") props.onEdit(clip);
+    else if (tool === "range") {
+      const previous = event.shiftKey ? props.range : null;
+      const rows = [...(previous?.trackIds ?? []), clip.trackId].map((id) => project.tracks.findIndex((t) => t.id === id));
+      props.onSelect([], clip.trackId);
+      props.onRange({ start: Math.min(previous?.start ?? clip.start, clip.start),
+        end: Math.max(previous?.end ?? clipEnd(clip), clipEnd(clip)),
+        trackIds: project.tracks.slice(Math.min(...rows), Math.max(...rows) + 1).map((t) => t.id) });
+    }
+  };
+  const rangePointer = (event: React.PointerEvent, mode: "range-move" | "range-start" | "range-end") => {
+    if (event.button !== 0 || tool !== "range" || !props.range) return;
+    event.stopPropagation(); event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setMenu(null);
+    setDragging({ mode, x: event.clientX, y: event.clientY, time: timeAt(event.clientX),
+      originalRange: structuredClone(props.range), trackId: boundedTrackAt(event.clientY)?.id, copy: event.altKey });
+  };
   const cursorPosition = drag?.mode === "cursor" ? drag.delta ?? position : position;
 
   return (
@@ -923,6 +1003,13 @@ export default function Timeline(props: Props) {
       >
         <div
           className="timeline-content"
+          onPointerDown={(e) => { if (e.target === e.currentTarget) pointerDown(e); }}
+          onDoubleClick={(e) => {
+            if (tool !== "range") return;
+            const track = trackAt(e.clientY), time = timeAt(e.clientX);
+            const clip = [...project.clips].reverse().find((c) => c.trackId === track?.id && c.start <= time && clipEnd(c) > time);
+            if (clip) eventDoubleClick(e, clip);
+          }}
           style={{
             width: totalWidth,
             height: contentHeight,
@@ -1022,49 +1109,17 @@ export default function Timeline(props: Props) {
               style={{ top: HEADER + i * ROW, height: ROW }}
               onPointerDown={(e) => pointerDown(e)}
             >
-              {project.clips
+              {displayedClips
                 .filter((c) => c.trackId === track.id)
-                .map((original) => {
-                  const asset = getAsset(project, original);
+                .map((clip) => {
+                  const original = project.clips.find((c) => c.id === clip.id)!;
+                  const asset = getAsset(project, clip);
                   if (
                     !asset ||
-                    clipEnd(original) < startTime - 2 ||
-                    original.start > endTime + 2
+                    clipEnd(clip) < startTime - 2 ||
+                    clip.start > endTime + 2
                   )
                     return null;
-                  let clip = original;
-                  if (drag?.moved && dragClips.has(clip.id) && !drag.copy) {
-                    const delta = drag.delta ?? 0;
-                    if (drag.mode === "move")
-                      clip = {
-                        ...clip,
-                        start: Math.max(0, clip.start + delta),
-                      };
-                    if (drag.mode === "start") {
-                      const d = Math.max(
-                        -clip.sourceStart,
-                        -clip.start,
-                        Math.min(delta, clip.duration - 0.001),
-                      );
-                      clip = {
-                        ...clip,
-                        start: clip.start + d,
-                        sourceStart: clip.sourceStart + d,
-                        duration: clip.duration - d,
-                      };
-                    }
-                    if (drag.mode === "end")
-                      clip = {
-                        ...clip,
-                        duration: Math.max(
-                          0.001,
-                          Math.min(
-                            clip.duration + delta,
-                            asset.duration - clip.sourceStart,
-                          ),
-                        ),
-                      };
-                  }
                   const selected = effectiveSelection.has(clip.id);
                   return (
                     <div
@@ -1081,12 +1136,12 @@ export default function Timeline(props: Props) {
                         e.stopPropagation();
                         pointerDown(e, original);
                       }}
-                      onDoubleClick={() => props.onAnalyze(original)}
+                      onDoubleClick={(e) => eventDoubleClick(e, original)}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        props.onSelect([original.id], track.id);
-                        setMenu({ x: e.clientX, y: e.clientY, clip: original });
+                        props.onSelect(effectiveSelection.has(original.id) ? [original.id, ...selection.filter((id) => id !== original.id)] : [original.id], track.id);
+                        setMenu({ x: e.clientX, y: e.clientY, clip: original, time: timeAt(e.clientX) });
                       }}
                     >
                       <div className="clip-label">
@@ -1103,7 +1158,7 @@ export default function Timeline(props: Props) {
                         samples={peaks.get(asset.id)}
                         color={track.color}
                       />
-                      <div
+                      {tool === "object" && <><div
                         className="trim-handle left"
                         title="Normal sizing: reveal or hide audio"
                         onPointerDown={(e) => {
@@ -1118,7 +1173,7 @@ export default function Timeline(props: Props) {
                           e.stopPropagation();
                           pointerDown(e, original, "end");
                         }}
-                      />
+                      /></>}
                     </div>
                   );
                 })}
@@ -1128,28 +1183,22 @@ export default function Timeline(props: Props) {
             <strong>{fileDrop.destination.targetTrackId ? project.tracks.find((track) => track.id === fileDrop.destination.targetTrackId)?.name : "New audio track"}</strong>
             <span>{fileDrop.count} file{fileDrop.count === 1 ? "" : "s"} · {project.rulerFormat === "bars" ? musicalTime(project, fileDrop.destination.start) : formatTime(fileDrop.destination.start)}</span>
           </div>}
-          {props.range && (
-            <div
-              className="range-overlay"
-              style={{
-                left: props.range.start * scale,
-                width: Math.max(
-                  1,
-                  (props.range.end - props.range.start) * scale,
-                ),
-                top:
-                  HEADER +
-                  Math.max(
-                    0,
-                    project.tracks.findIndex(
-                      (t) => t.id === props.range!.trackIds[0],
-                    ),
-                  ) *
-                    ROW,
-                height: Math.max(1, props.range.trackIds.length) * ROW,
-              }}
-            >
-              <span>{formatTime(props.range.end - props.range.start)}</span>
+          {displayedRange && displayedRange.end > displayedRange.start && (
+            <div className={`range-overlay ${tool === "range" ? "editable" : ""} ${movingRange && !drag?.copy ? "moving" : ""}`}
+              style={{ left: displayedRange.start * scale, width: Math.max(1, (displayedRange.end - displayedRange.start) * scale),
+                top: HEADER + Math.max(0, project.tracks.findIndex((t) => t.id === displayedRange.trackIds[0])) * ROW,
+                height: Math.max(1, displayedRange.trackIds.length) * ROW }}
+              onPointerDown={(e) => rangePointer(e, "range-move")}
+              onDoubleClick={(e) => {
+                const track = boundedTrackAt(e.clientY), time = timeAt(e.clientX);
+                const clip = [...project.clips].reverse().find((c) => c.trackId === track?.id && c.start <= time && clipEnd(c) > time);
+                if (clip) eventDoubleClick(e, clip);
+              }}>
+              <span>{formatTime(displayedRange.end - displayedRange.start)} · Drag to move · Alt to copy</span>
+              {tool === "range" && <>
+                <div className="range-handle left" title="Resize range start" onPointerDown={(e) => rangePointer(e, "range-start")}/>
+                <div className="range-handle right" title="Resize range end" onPointerDown={(e) => rangePointer(e, "range-end")}/>
+              </>}
             </div>
           )}
           {drag?.mode === "marquee" && drag.moved && (
@@ -1162,37 +1211,18 @@ export default function Timeline(props: Props) {
                 ),
                 width: Math.abs(drag.time - timeAt(drag.currentX!)) * scale,
                 top:
-                  Math.min(drag.y, drag.currentY!) -
-                  scroller.current!.getBoundingClientRect().top +
-                  scroll.y,
-                height: Math.abs(drag.y - drag.currentY!),
+                  Math.min(drag.contentY!, drag.currentY! - scroller.current!.getBoundingClientRect().top + scroll.y),
+                height: Math.abs(drag.contentY! - (drag.currentY! - scroller.current!.getBoundingClientRect().top + scroll.y)),
               }}
             />
           )}
-          {drag?.mode === "move" &&
-            drag.copy &&
-            drag.moved &&
-            drag.ids?.map((id) => {
-              const clip = project.clips.find((c) => c.id === id)!;
-              return (
-                <div
-                  key={id}
-                  className="copy-ghost"
-                  style={{
-                    left: Math.max(0, clip.start + (drag.delta ?? 0)) * scale,
-                    width: clip.duration * scale,
-                    top:
-                      HEADER +
-                      project.tracks.findIndex(
-                        (t) => t.id === (drag.targetTrack ?? clip.trackId),
-                      ) *
-                        ROW,
-                  }}
-                >
-                  {clip.name}
-                </div>
-              );
-            })}
+          {ghosts.map((clip) => <div key={clip.id} className="copy-ghost"
+            style={{ left: clip.start * scale, width: Math.max(3, clip.duration * scale),
+              top: HEADER + project.tracks.findIndex((t) => t.id === clip.trackId) * ROW + 9 }}>
+            <span>{clip.name}</span>
+            <Waveform asset={getAsset(project, clip)} clip={clip} scale={scale} left={scroll.x} viewport={scroll.width}
+              samples={peaks.get(clip.assetId)} color={project.tracks.find((t) => t.id === clip.trackId)!.color}/>
+          </div>)}
           <div
             className="playhead"
             style={{
@@ -1234,9 +1264,10 @@ export default function Timeline(props: Props) {
             className="context-menu"
             style={{
               left: Math.min(menu.x, innerWidth - 230),
-              top: Math.min(menu.y, innerHeight - 250),
+              top: Math.max(40, Math.min(menu.y, innerHeight - 420)),
             }}
           >
+            <button onClick={() => { props.onEdit(menu.clip); setMenu(null); }}>Open Audio Editor <kbd>Ctrl E</kbd></button>
             <button
               onClick={() => {
                 props.onAnalyze(menu.clip);
@@ -1255,7 +1286,7 @@ export default function Timeline(props: Props) {
             </button>
             <button
               onClick={() => {
-                props.onSplit([menu.clip.id], position);
+                props.onSplit(selection, position);
                 setMenu(null);
               }}
             >
@@ -1264,8 +1295,8 @@ export default function Timeline(props: Props) {
             <button
               onClick={() => {
                 props.onMove(
-                  [menu.clip.id],
-                  menu.clip.duration,
+                  selection,
+                  Math.max(...relatedClips(project, selection, linked).map(clipEnd)) - Math.min(...relatedClips(project, selection, linked).map((c) => c.start)),
                   undefined,
                   true,
                 );
@@ -1276,16 +1307,27 @@ export default function Timeline(props: Props) {
             </button>
             <button
               onClick={() => {
-                props.onFront([menu.clip.id]);
+                props.onFront(selection);
                 setMenu(null);
               }}
             >
               Move to Front <kbd>U</kbd>
             </button>
+            <button onClick={() => { props.onBack(selection); setMenu(null); }}>Move to Back <kbd>Shift U</kbd></button>
+            {project.clips.filter((c) => c.trackId === menu.clip.trackId && c.start <= menu.time && clipEnd(c) > menu.time).length > 1 && <>
+              <hr/><small>Overlapping events at pointer</small>
+              <div className="overlap-choices">
+                {[...project.clips].reverse().filter((c) => c.trackId === menu.clip.trackId && c.start <= menu.time && clipEnd(c) > menu.time).map((clip, i) =>
+                  <button key={clip.id} className={clip.id === menu.clip.id ? "active" : ""}
+                    onClick={() => { props.onSelect([clip.id], clip.trackId); setMenu({ ...menu, clip }); }}>
+                    <span>{clip.name}</span><small>{i === 0 ? "Front" : "Behind"} · {formatTime(clip.start)}</small>
+                  </button>)}
+              </div>
+            </>}
             <hr />
             <button
               onClick={() => {
-                props.onDelete([menu.clip.id]);
+                props.onDelete(selection);
                 setMenu(null);
               }}
             >

@@ -148,8 +148,10 @@ def analysis_geometry(project):
         origin = clip["start"] - clip["sourceStart"] if clip else region.get('projectOrigin')
         if origin is None:
             continue
-        start = max(0, origin + region["sourceStart"])
-        end = origin + region["sourceEnd"]
+        source_start = max(region["sourceStart"], clip["sourceStart"]) if clip else region["sourceStart"]
+        source_end = min(region["sourceEnd"], clip["sourceStart"] + clip["duration"]) if clip else region["sourceEnd"]
+        start = max(0, origin + source_start)
+        end = origin + source_end
         if end > start:
             regions.append({**region["values"], "id": region["id"], "start": start, "end": end,
                             "phase": origin + region["sourceStart"] + region["values"]["offset"]})

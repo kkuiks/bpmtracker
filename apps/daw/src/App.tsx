@@ -29,6 +29,7 @@ import {
   X,
 } from "lucide-react";
 import Timeline, { type TimelineViewportControl } from "./Timeline";
+import AudioEditor from "./AudioEditor";
 import { AudioEngine } from "./audio";
 import { ProjectHistory } from "./history";
 import { Fader, NumberField } from "./controls";
@@ -43,6 +44,11 @@ import {
   addAudioTracks,
   clipEnd,
   clockGeometry,
+  clockSourceScope,
+  copyAudio,
+  pasteAudio,
+  moveRange,
+  orderClips,
   createProject,
   duplicateTracks,
   formatTime,
@@ -60,6 +66,7 @@ import {
   splitClips,
   trimClips,
   uid,
+  type AudioClipboard,
   type Analysis,
   type Asset,
   type Clip,
@@ -98,7 +105,8 @@ function importPreferences(): { mode: ImportOptions["mode"]; copy: boolean } {
 }
 const keyGuide = [
   ["1 / 2 / 3 / 5", "Object / Range / Split / Erase tool"],
-  ["Space / Enter / Num 0", "Start–stop / Start / Stop"],
+  ["Space / Num Enter / Num 0", "Start–stop / Start / Stop"],
+  ["Double-click / Ctrl E / Enter", "Open selected event in Audio Editor"],
   ["Num .", "Go to project start"],
   ["P / Alt P", "Locators to selection / Loop selection"],
   ["Num /", "Cycle on–off"],
@@ -111,6 +119,8 @@ const keyGuide = [
   ["Ctrl Z / Ctrl Shift Z", "Undo / Redo"],
   ["Ctrl C / Ctrl X / Ctrl V", "Copy / Cut / Paste"],
   ["Ctrl D", "Duplicate after selection"],
+  ["U / Shift U", "Move selected events to front / back"],
+  ["Range drag / Alt range drag", "Move / Copy range contents"],
   ["Alt X / Shift X", "Split at cursor / Split range boundaries"],
   ["Ctrl G / Ctrl U / K", "Group / Ungroup / Linked stem editing"],
   ["M / S", "Mute / Solo selected track"],
@@ -150,6 +160,8 @@ export default function App() {
   const [addBeforeTrack, setAddBeforeTrack] = useState<string | null>(null), [removingTracks, setRemovingTracks] = useState<string[]>([]);
   const [range, setRange] = useState<TimeRange | null>(null),
     [selectedClock, setSelectedClock] = useState<string | null>(null);
+  const [editorClipId, setEditorClipId] = useState<string | null>(null);
+  const editorClip = project.clips.find((c) => c.id === editorClipId) ?? null;
   const [selectedMap, setSelectedMap] = useState<MapSelection | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const previewClocks = useRef<AudioClock[] | undefined>(undefined);
@@ -179,7 +191,7 @@ export default function App() {
     for (const [id, owner] of jobSessions.current)
       if (owner.kind !== "export") void api?.cancel(id);
     setJobs((list) => list.filter((job) => job.kind === "export"));
-    setModal(null); setTrackMenu(null);
+    setModal(null); setTrackMenu(null); setEditorClipId(null);
     setImportMode(confirmedImportPrefs.current.mode); setCopyMedia(confirmedImportPrefs.current.copy);
     trackSelection.current = { ids: [], active: null, anchor: null };
     setSelectedTracks([]); setActiveTrack(null);
@@ -247,13 +259,13 @@ export default function App() {
       selectTracks(ids, current.active && available.has(current.active) ? current.active : ids.at(-1) ?? null,
         current.anchor && available.has(current.anchor) ? current.anchor : ids.at(-1) ?? null);
   }, [project.tracks]);
-  const selectedClip = project.clips.find((c) => selection.includes(c.id));
+  const selectedClip = project.clips.find((c) => c.id === selection[0]);
   const track = project.tracks.find(
     (t) => t.id === (activeTrack ?? selectedClip?.trackId),
   );
   const clock =
-    project.clocks.find((c) => c.id === selectedClock) ??
-    [...project.clocks].reverse().find((c) => c.clipId === selectedClip?.id);
+    project.clocks.find((c) => c.id === selectedClock && clockSourceScope(project, c)) ??
+    [...project.clocks].reverse().find((c) => c.clipId === selectedClip?.id && clockSourceScope(project, c));
   const mapTempo = selectedMap?.kind === "tempo" ? project.tempos.find((t) => t.id === selectedMap.id) : null;
   const mapSignature = selectedMap?.kind === "signature" ? project.signatures.find((s) => s.id === selectedMap.id) : null;
   const activeJob = jobs.find(
@@ -478,52 +490,70 @@ export default function App() {
       void engine.current?.play(bounds.start).catch((e) => tell(e.message));
     }
   };
-  const move = (
-    ids: string[],
-    delta: number,
-    targetTrack?: string,
-    copy = false,
-  ) =>
-    change(
-      (p) => moveClips(p, ids, delta, linked, targetTrack, copy),
-      copy ? "Copy events" : "Move events",
-    );
+  const selectCopies = (next: Project, ids: string[], nextRange: TimeRange | null = null) => {
+    setSelection(nextRange ? [] : ids); setRange(nextRange); setSelectedClock(null); setSelectedMap(null);
+    const tracks = [...new Set(nextRange?.trackIds ?? ids.flatMap((id) => {
+      const clip = next.clips.find((c) => c.id === id); return clip ? [clip.trackId] : [];
+    }))];
+    if (tracks.length) selectTracks(tracks, tracks[0]);
+  };
+  const editAudio = (clip = selectedClip) => {
+    if (!clip) { tell("Select an audio event to open the editor."); return; }
+    setEditorClipId(clip.id); setMixer(false); setSelection([clip.id]); setRange(null);
+    setSelectedClock(null); setSelectedMap(null); selectTracks([clip.trackId]);
+    if (editorClipId === clip.id) queueMicrotask(() => document.querySelector<HTMLElement>(".audio-editor")?.focus({ preventScroll: true }));
+  };
+  const move = (ids: string[], delta: number, targetTrack?: string, copy = false) => {
+    const p = projectRef.current, next = moveClips(p, ids, delta, linked, targetTrack, copy);
+    commit(next, copy ? "Copy events" : "Move events");
+    if (!copy && next !== p) {
+      const primary = next.clips.find((c) => c.id === ids[0]);
+      const tracks = [...new Set(relatedClips(next, ids, linked).map((c) => c.trackId))];
+      if (primary) selectTracks(tracks, primary.trackId);
+    }
+    if (copy && next !== p) {
+      const before = new Set(p.clips.map((c) => c.id));
+      const copied = next.clips.filter((c) => !before.has(c.id));
+      const originals = relatedClips(p, ids, linked);
+      const primary = copied[originals.findIndex((c) => c.id === ids[0])] ?? copied[0];
+      selectCopies(next, [primary.id, ...copied.filter((c) => c.id !== primary.id).map((c) => c.id)]);
+      if (editorClipId && ids.includes(editorClipId)) setEditorClipId(copied[originals.findIndex((c) => c.id === editorClipId)]?.id ?? null);
+    }
+  };
+  const editRange = (value: TimeRange, delta: number, targetTrack?: string, copy = false) => {
+    const result = moveRange(projectRef.current, value, delta, linked, targetTrack, copy);
+    commit(result.project, copy ? "Copy audio range" : "Move audio range");
+    selectCopies(result.project, result.ids, result.range);
+  };
   const trim = (ids: string[], edge: "start" | "end", delta: number) =>
     change((p) => trimClips(p, ids, edge, delta, linked), `Trim event ${edge}`);
-  const split = (ids: string[], time: number) =>
-    change((p) => splitClips(p, ids, time, linked), "Split events");
+  const split = (ids: string[], time: number) => {
+    const p = projectRef.current, next = splitClips(p, ids, time, linked);
+    if (next === p) return;
+    const before = new Set(p.clips.map((c) => c.id));
+    const affected = new Set(relatedClips(p, ids, linked).map((c) => c.id));
+    commit(next, "Split events");
+    setSelection(next.clips.filter((c) => affected.has(c.id) || !before.has(c.id)).map((c) => c.id));
+    setRange(null); setSelectedMap(null); setSelectedClock(null);
+  };
+  const removeSavedClock = (id: string) => {
+    change((p) => p.clocks.some((c) => c.id === id) ? { ...p, clocks: p.clocks.filter((c) => c.id !== id) } : p, "Remove saved clock");
+    setSelectedClock(null);
+  };
   const remove = (ids = selection) => {
     if (selectedMap && ids === selection) { removeMap(selectedMap); return; }
-    if (selectedClock && ids === selection) {
-      change(
-        (p) => ({
-          ...p,
-          clocks: p.clocks.filter((c) => c.id !== selectedClock),
-        }),
-        "Remove clock scope",
-      );
-      setSelectedClock(null);
-      return;
-    }
     if (range && range.end > range.start && ids === selection) {
-      change(
-        (p) => removeRange(p, range, linked),
-        "Delete selected audio range",
-      );
-      setSelection([]);
-      return;
-    }
-    change((p) => removeClips(p, ids, linked), "Delete events");
-    setSelection([]);
+      change((p) => removeRange(p, range, linked), "Delete selected audio range");
+    } else change((p) => removeClips(p, ids, linked), "Delete events");
+    setSelection([]); setSelectedClock(null);
   };
-  const updateTrack = (id: string, fields: Partial<Track>) =>
-    change(
-      (p) => ({
-        ...p,
-        tracks: p.tracks.map((t) => (t.id === id ? { ...t, ...fields } : t)),
-      }),
-      "Edit track",
-    );
+  const updateTrack = (id: string, fields: Partial<Track>) => change((p) => {
+    const track = p.tracks.find((t) => t.id === id);
+    if (!track || Object.entries(fields).every(([key, value]) => track[key as keyof Track] === value)) {
+      setProject(p); return p;
+    }
+    return { ...p, tracks: p.tracks.map((t) => t.id === id ? { ...t, ...fields } : t) };
+  }, "Edit track");
   const timeBase = (id: string) => change((p) => {
     const current = p.tracks.find((t) => t.id === id)!;
     return setTrackTimeBase(p, id, current.timeBase === "linear" ? "musical" : "linear");
@@ -649,12 +679,15 @@ export default function App() {
     const ids = id ? selectTrack(id, { ctrl: false, shift: false }, true) : trackSelection.current.ids;
     setAppMenu(null); setTrackMenu({ ids: [...ids], x, y });
   };
-  const updateClock = (id: string, fields: Partial<ClockValues>) => change((p) => ({
-    ...p, clocks: p.clocks.map((c) => c.id === id ? { ...c, values: { ...c.values, ...fields } } : c),
-  }), "Edit saved analysis clock");
-  const restoreClockValues = (id: string) => change((p) => ({
-    ...p, clocks: p.clocks.map((saved) => saved.id === id ? { ...saved, values: { ...saved.original } } : saved),
-  }), "Restore original prediction values");
+  const updateClock = (id: string, fields: Partial<ClockValues>, label = "Edit saved analysis clock") => change((p) => {
+    const clock = p.clocks.find((c) => c.id === id);
+    if (!clock || Object.entries(fields).every(([key, value]) => clock.values[key as keyof ClockValues] === value)) return p;
+    return { ...p, clocks: p.clocks.map((c) => c.id === id ? { ...c, values: { ...c.values, ...fields } } : c) };
+  }, label);
+  const restoreClockValues = (id: string) => {
+    const clock = projectRef.current.clocks.find((c) => c.id === id);
+    if (clock) updateClock(id, clock.original, "Restore original prediction values");
+  };
   const alignClock = (id: string) => {
     try {
       const p = projectRef.current, saved = p.clocks.find((c) => c.id === id);
@@ -985,96 +1018,28 @@ export default function App() {
     setMetronome(true);
     await engine.current.play(geometry.start).catch((e) => tell(e.message));
   };
-  const clipboard = useRef<{
-    clips: Clip[];
-    clocks: Clock[];
-    assets: Asset[];
-    tracks: Track[];
-    analyses: Analysis[];
-  } | null>(null);
+  const clipboard = useRef<AudioClipboard | null>(null);
   const copy = () => {
-    const usingRange = range && range.end > range.start;
-    const clips = usingRange
-      ? rangeClips(project, range, linked)
-      : relatedClips(project, selection, linked);
-    if (!clips.length) return;
-    clipboard.current = structuredClone({
-      clips,
-      clocks: usingRange
-        ? []
-        : project.clocks.filter((c) => clips.some((x) => x.id === c.clipId)),
-      assets: project.assets.filter((a) =>
-        clips.some((c) => c.assetId === a.id),
-      ),
-      tracks: project.tracks.filter((t) =>
-        clips.some((c) => c.trackId === t.id),
-      ),
-      analyses: project.analyses,
-    });
-    tell(`Copied ${clips.length} audio event${clips.length === 1 ? "" : "s"}.`);
+    if (selectedMap) { tell("Tempo/signature points use their own editing commands. Audio Copy and Cut are unavailable here."); return false; }
+    const data = copyAudio(projectRef.current, selection, range, linked);
+    if (!data) return false;
+    clipboard.current = data;
+    tell(data.kind === "range" ? "Copied audio range, including gaps." : `Copied ${data.clips.length} audio event${data.clips.length === 1 ? "" : "s"}.`);
+    return true;
   };
   const paste = () => {
+    if (selectedMap) { tell("Select an audio track before pasting audio."); return; }
     const data = clipboard.current;
-    if (!data?.clips.length) return;
-    change((p) => {
-      const next = structuredClone(p);
-      const first = Math.min(...data.clips.map((c) => c.start));
-      const clipIds = new Map<string, string>(),
-        groups = new Map<string, string>(),
-        tracks = new Map<string, string>();
-      for (const original of data.tracks) {
-        if (next.tracks.some((t) => t.id === original.id))
-          tracks.set(original.id, original.id);
-        else {
-          const added = { ...original, id: uid() };
-          next.tracks.push(added);
-          tracks.set(original.id, added.id);
-        }
-      }
-      for (const original of data.clips) {
-        const clone = {
-          ...original,
-          id: uid(),
-          start: Math.max(0, position + original.start - first),
-          trackId:
-            data.clips.length === 1 && activeTrack
-              ? activeTrack
-              : tracks.get(original.trackId)!,
-        };
-        if (original.groupId) {
-          if (!groups.has(original.groupId))
-            groups.set(original.groupId, uid());
-          clone.groupId = groups.get(original.groupId)!;
-        }
-        clipIds.set(original.id, clone.id);
-        next.clips.push(clone);
-      }
-      for (const clock of data.clocks)
-        next.clocks.push({
-          ...structuredClone(clock),
-          id: uid(),
-          clipId: clipIds.get(clock.clipId)!,
-          projectOrigin:
-            next.clips.find((c) => c.id === clipIds.get(clock.clipId))!.start -
-            next.clips.find((c) => c.id === clipIds.get(clock.clipId))!
-              .sourceStart,
-        });
-      next.assets.push(
-        ...data.assets.filter((a) => !next.assets.some((x) => x.id === a.id)),
-      );
-      next.analyses.push(
-        ...data.analyses.filter(
-          (a) => !next.analyses.some((x) => x.id === a.id),
-        ),
-      );
-      return next;
-    }, "Paste events");
+    if (!data) return;
+    const result = pasteAudio(projectRef.current, data, engine.current?.position ?? position, activeTrack);
+    commit(result.project, data.kind === "range" ? "Paste audio range" : "Paste events");
+    selectCopies(result.project, result.ids, result.range);
   };
   const groupSelection = (group: boolean) => {
+    const clips = relatedClips(projectRef.current, selection, linked);
+    if (!clips.length || (group && clips.every((c) => c.groupId && c.groupId === clips[0].groupId)) || (!group && clips.every((c) => !c.groupId))) return;
     const id = group ? uid() : null;
-    const ids = new Set(
-      relatedClips(project, selection, linked).map((c) => c.id),
-    );
+    const ids = new Set(clips.map((c) => c.id));
     change(
       (p) => ({
         ...p,
@@ -1118,12 +1083,17 @@ export default function App() {
 
   commands.current = (command) => {
     setAppMenu(null);
-    if (command === "play") togglePlay();
+    if (command === "editor") editAudio();
+    else if (command === "play") togglePlay();
     else if (command === "rewind") seek(0);
     else if (command === "undo") {
+      if (!history.current.undoLabel) return;
+      setPreviewing(false);
       projectRef.current = history.current.undo(); setProject(projectRef.current);
       setDirty(true);
     } else if (command === "redo") {
+      if (!history.current.redoLabel) return;
+      setPreviewing(false);
       projectRef.current = history.current.redo(); setProject(projectRef.current);
       setDirty(true);
     } else if (command === "import") void beginImport();
@@ -1148,35 +1118,24 @@ export default function App() {
       split(
         selection.length
           ? selection
-          : project.clips
-              .filter((c) => c.trackId === activeTrack)
-              .map((c) => c.id),
+          : editorClip && document.activeElement?.closest(".audio-editor") ? [editorClip.id] : project.clips.map((c) => c.id),
         position,
       );
     else if (command === "duplicate") {
       const bounds = selectionBounds();
-      if (bounds) move(selection, bounds.end - bounds.start, undefined, true);
+      if (selectedMap) return;
+      if (range && range.end > range.start) editRange(range, range.end - range.start, undefined, true);
+      else if (bounds) move(selection, bounds.end - bounds.start, undefined, true);
     } else if (command === "locators") setLocators();
     else if (command === "cycle")
       setLoop((value) => ({ ...value, enabled: !value.enabled }));
     else if (command === "click") setMetronome((value) => !value);
     else if (command === "linked") setLinked((value) => !value);
     else if (command === "copy") copy();
-    else if (command === "cut") {
-      copy();
-      remove();
-    } else if (command === "paste") paste();
-    else if (command === "front")
-      change(
-        (p) => ({
-          ...p,
-          clips: [
-            ...p.clips.filter((c) => !selection.includes(c.id)),
-            ...p.clips.filter((c) => selection.includes(c.id)),
-          ],
-        }),
-        "Move events to front",
-      );
+    else if (command === "cut") { if (copy()) remove(); }
+    else if (command === "paste") paste();
+    else if (command === "front" || command === "back")
+      change((p) => orderClips(p, selection, command === "front", linked), command === "front" ? "Move events to front" : "Move events to back");
   };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1231,6 +1190,7 @@ export default function App() {
               KeyX: "cut",
               KeyV: "paste",
               KeyD: "duplicate",
+              KeyE: "editor",
               KeyG: "group",
               KeyU: "ungroup",
               KeyA: e.shiftKey ? "select-none" : "select-all",
@@ -1254,7 +1214,8 @@ export default function App() {
       } else if (e.code === "NumpadDivide") command = "cycle";
       else if (e.code === "Enter" || e.code === "NumpadEnter") {
         e.preventDefault();
-        startPlayback();
+        if (e.code === "Enter" && selectedClip) editAudio();
+        else startPlayback();
         return;
       } else if (e.code === "KeyX" && e.altKey) command = "split";
       else if (e.code === "KeyX" && e.shiftKey) {
@@ -1310,7 +1271,7 @@ export default function App() {
         return;
       } else if (e.code === "KeyK") command = "linked";
       else if (e.code === "KeyT" && !ctrl) command = "add-track";
-      else if (e.code === "KeyU" && !ctrl) command = "front";
+      else if (e.code === "KeyU" && !ctrl) command = e.shiftKey ? "back" : "front";
       else if (e.code === "KeyG") {
         e.preventDefault();
         zoom(1 / 1.25);
@@ -1357,6 +1318,11 @@ export default function App() {
       if (command === "group" || command === "ungroup")
         groupSelection(command === "group");
       else if (command === "select-all") {
+        if (selectedMap) return;
+        if (editorClip && node.closest(".audio-editor")) {
+          setSelection([]); setRange({ start: editorClip.start, end: clipEnd(editorClip), trackIds: [editorClip.trackId] });
+          return;
+        }
         setSelection(project.clips.map((c) => c.id));
         setRange(null);
         setSelectedClock(null);
@@ -1403,7 +1369,8 @@ export default function App() {
           </button>
           <button className={appMenu === "project" ? "active" : ""} onClick={() => { setTrackMenu(null); setAppMenu(appMenu === "project" ? null : "project"); }}>Project</button>
           <button onClick={() => beginAnalysis()}>Analysis</button>
-          <button onClick={() => setMixer((value) => !value)}>
+          <button onClick={() => editAudio()}>Audio Editor</button>
+          <button onClick={() => { setMixer((value) => !value); setEditorClipId(null); }}>
             MixConsole
           </button>
           <button onClick={() => setModal("help")}>Help</button>
@@ -1535,7 +1502,13 @@ export default function App() {
         </button>
       </section>
       <section className="info-line" aria-label="Info Line">
-        {selectedClip ? <>
+        {range && range.end > range.start ? <>
+          <span className="info-name">Audio Range</span>
+          <TimeField project={project} label="Range start" value={range.start} onChange={(start) => setRange({ ...range, start: Math.min(start, range.end - .001) })}/>
+          <TimeField project={project} label="Range end" value={range.end} onChange={(end) => setRange({ ...range, end: Math.max(end, range.start + .001) })}/>
+          <NumberField label="Range length" value={range.end - range.start} min={.001} step={.001} suffix="s" onChange={(duration) => setRange({ ...range, end: range.start + duration })}/>
+          <span className="info-value">Tracks <b>{range.trackIds.length}</b></span>
+        </> : selectedClip ? <>
           <span className="info-name">{selectedClip.name}</span>
           <TimeField project={project} label="Event start" value={selectedClip.start} onChange={(start) => move(selection, start - selectedClip.start)}/>
           <TimeField project={project} label="Event end" value={clipEnd(selectedClip)} onChange={(end) => trim(selection, "end", end - clipEnd(selectedClip))}/>
@@ -1623,13 +1596,17 @@ export default function App() {
                   <Waves size={14} />
                   Analyze selected audio
                 </button>
+                <button className="secondary-button full" onClick={() => editAudio(selectedClip)}>Open Audio Editor</button>
               </InspectorSection>
             )}
             {clock && (
               <InspectorSection title="Analysis" key={clock.id} initiallyOpen={selectedClock === clock.id} badge={JSON.stringify(clock.values) === JSON.stringify(clock.original) ? "ANALYZED" : "EDITED"}>
                 <select className="saved-clock-select" aria-label="Saved analysis scope" value={clock.id} onChange={(e) => setSelectedClock(e.target.value)}>
-                  {project.clocks.filter((saved) => saved.clipId === clock.clipId).map((saved) => <option key={saved.id} value={saved.id}>{formatTime(saved.sourceStart)}–{formatTime(saved.sourceEnd)} · {saved.values.bpm.toFixed(2)} BPM</option>)}
+                  {project.clocks.filter((saved) => saved.clipId === clock.clipId && clockSourceScope(project, saved)).map((saved) => <option key={saved.id} value={saved.id}>{formatTime(saved.sourceStart)}–{formatTime(saved.sourceEnd)} · {saved.values.bpm.toFixed(2)} BPM</option>)}
                 </select>
+                <p className="field-help">Original analyzed source: {formatTime(clock.sourceStart)}–{formatTime(clock.sourceEnd)}.
+                  {(() => { const scope = clockSourceScope(project, clock)!; return scope.start !== clock.sourceStart || scope.end !== clock.sourceEnd
+                    ? ` This fragment covers ${formatTime(scope.start)}–${formatTime(scope.end)}; no new analysis was run.` : ""; })()}</p>
                 <NumberField
                   label="Quarter BPM"
                   value={clock.values.bpm}
@@ -1674,6 +1651,7 @@ export default function App() {
                 />
                 <p className="field-help">
                   Edit or restore the saved values, then Apply &amp; Align to update the project grid and move this song with its linked stems.
+                  The offset is measured from the original analyzed source start.
                 </p>
                 <p className="field-help alignment-preview">{alignmentLabel(clock)}</p>
                 <button className="primary-button full" onClick={() => alignClock(clock.id)}>Apply &amp; Align</button>
@@ -1686,6 +1664,8 @@ export default function App() {
                   <Undo2 size={13} />
                   Restore Original Prediction
                 </button>
+                <button className="secondary-button full" title="Remove this saved clock draft; retain the original prediction and project map."
+                  onClick={() => removeSavedClock(clock.id)}>Remove Saved Clock</button>
               </InspectorSection>
             )}
             <div className="inspector-bottom">
@@ -1723,7 +1703,7 @@ export default function App() {
             loop={loop}
             peaks={peaks.current}
             onSelect={(ids, track) => {
-              setSelection(ids);
+              setSelection(ids); setRange(null);
               if (track) selectTracks([track]);
               setSelectedClock(null);
               setSelectedMap(null);
@@ -1746,18 +1726,10 @@ export default function App() {
             onSplit={split}
             onDelete={remove}
             onAddTrack={() => addTrack()}
-            onFront={(ids) =>
-              change(
-                (p) => ({
-                  ...p,
-                  clips: [
-                    ...p.clips.filter((c) => !ids.includes(c.id)),
-                    ...p.clips.filter((c) => ids.includes(c.id)),
-                  ],
-                }),
-                "Move event to front",
-              )
-            }
+            onFront={(ids) => change((p) => orderClips(p, ids, true, linked), "Move events to front")}
+            onBack={(ids) => change((p) => orderClips(p, ids, false, linked), "Move events to back")}
+            onEdit={editAudio}
+            onRangeMove={editRange}
             onTrack={updateTrack}
             onAnalyze={beginAnalysis}
             onMapSelect={chooseMap} onMapAdd={addMap} onMapMove={moveMap} onMapDelete={removeMap} onTimeBase={timeBase}
@@ -1812,6 +1784,10 @@ export default function App() {
               </button>
             </div>
           )}
+          {editorClip && <AudioEditor key={editorClip.id} project={project} clip={editorClip} peaks={peaks.current.get(editorClip.assetId)}
+            range={range} snap={snap} linked={linked} position={position}
+            onRange={(value) => { setRange(value); setSelection(value ? [] : [editorClip.id]); setSelectedClock(null); setSelectedMap(null); }}
+            onSeek={seek} onTrim={trim} onSplit={split} onClose={() => setEditorClipId(null)} onAnalyze={() => beginAnalysis(editorClip)}/>}
           {mixer && (
             <div className="mix-console">
               <div className="panel-heading">
@@ -1928,13 +1904,17 @@ export default function App() {
                   ["Export Audio & Map…", "export", ""],
                 ]
               : appMenu === "edit" ? [
-                  ["Undo", "undo", "Ctrl Z"],
-                  ["Redo", "redo", "Ctrl Shift Z"],
+                  [`Undo${history.current.undoLabel ? " " + history.current.undoLabel : ""}`, "undo", "Ctrl Z"],
+                  [`Redo${history.current.redoLabel ? " " + history.current.redoLabel : ""}`, "redo", "Ctrl Shift Z"],
+                  ["Open Audio Editor", "editor", "Ctrl E"],
+                  ["Cut", "cut", "Ctrl X"],
                   ["Copy", "copy", "Ctrl C"],
                   ["Paste", "paste", "Ctrl V"],
                   ["Duplicate", "duplicate", "Ctrl D"],
                   ["Split at Cursor", "split", "Alt X"],
                   ["Delete", "delete", "Del"],
+                  ["Move to Front", "front", "U"],
+                  ["Move to Back", "back", "Shift U"],
                 ] : [
                   ["Project Setup…", "project-setup", ""],
                   ["Add Audio Track…", "add-track", "T"],
@@ -1945,7 +1925,10 @@ export default function App() {
                   ["Move Tracks Down", "tracks-down", ""],
                 ]
             ).map(([label, command, key]) => (
-              <button key={command} disabled={appMenu === "project" && !["project-setup", "add-track"].includes(command) && !selectedTracks.length} onClick={() => commands.current(command)}>
+              <button key={command} disabled={(appMenu === "project" && !["project-setup", "add-track"].includes(command) && !selectedTracks.length) ||
+                (command === "undo" && !history.current.undoLabel) || (command === "redo" && !history.current.redoLabel) ||
+                (command === "editor" && !selectedClip) || (["copy", "cut", "duplicate"].includes(command) && (!!selectedMap || (!range && !selection.length))) ||
+                (command === "paste" && (!clipboard.current || !!selectedMap))} onClick={() => commands.current(command)}>
                 {label}
                 <kbd>{key}</kbd>
               </button>

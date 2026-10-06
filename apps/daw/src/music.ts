@@ -192,8 +192,14 @@ function mapForClock(p: Project, clock: Clock, bar: number, phaseOffset: number)
 export function clockPlacement(p: Project, clock: Clock, linked = true) {
   const reference = p.clips.find((clip) => clip.id === clock.clipId);
   if (!reference) throw new Error("Select an existing reference event to align this saved analysis.");
+  const scopeStart = Math.max(clock.sourceStart, reference.sourceStart);
+  const scopeEnd = Math.min(clock.sourceEnd, reference.sourceStart + reference.duration);
+  if (scopeEnd <= scopeStart) throw new Error("This event contains no audio from the analyzed source range.");
   const barSeconds = 60 / clock.values.bpm * 4 / clock.values.denominator * clock.values.numerator;
-  const phaseOffset = ((clock.values.offset % barSeconds) + barSeconds) % barSeconds;
+  const phaseOffset = (((clock.sourceStart + clock.values.offset - scopeStart) % barSeconds) + barSeconds) % barSeconds;
+  // Only arrange the evidence that remains in this fragment. Stored values and
+  // the original source scope still belong to the immutable analysis receipt.
+  clock = { ...clock, sourceStart: scopeStart, sourceEnd: scopeEnd };
   if (phaseOffset >= clock.sourceEnd - clock.sourceStart - EPS)
     throw new Error("This scope contains no downbeat to align. Choose a longer analyzed range or edit its saved clock.");
   const phase = reference.start - reference.sourceStart + clock.sourceStart + phaseOffset;

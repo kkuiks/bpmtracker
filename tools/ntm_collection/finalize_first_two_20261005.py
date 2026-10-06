@@ -1,4 +1,4 @@
-"""Save the owner's first-two offset decision, without added tests or cleanup."""
+"""Register aligned references for a fixed two-recording batch."""
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -136,9 +136,9 @@ def main():
             sample_frames=review['sample_frames'], duration_seconds=review['duration_seconds'],
             reference_support_seconds=record['supplied_map_support_seconds'],
             qualification=dict(reference_tier='owner_reviewed_supplied_source_map', full_song_alignment_accepted=True,
-                scope_note='Owner-accepted current offset; supplied map extent and unknown margins are preserved',
+                scope_note='Reviewed alignment offset; supplied map extent and unknown margins are preserved',
                 independent_millisecond_timing_certified=False), known_development_material=True,
-            exposure_note='Acquisition and owner listening only; no analyzer or evaluator is adopted',
+            exposure_note='Source collection and alignment listening; no model prediction or evaluation',
             independent_original_click_millisecond_accuracy_certified=False,
             accepted_reference_is_already_audio_relative=True, additional_reference_offset_seconds=0,
             original_clocks=[{k: r[k] for k in ('path', 'bytes', 'sha256')} for r in record['source_reference_files']],

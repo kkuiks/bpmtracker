@@ -1,316 +1,207 @@
 # Joljak audio workspace
 
-A Windows desktop application for arranging audio on a shared tempo/signature
-map, inspecting fixed-model predictions, and rendering aligned files. The interface uses React/TypeScript inside
-Electron. Playback runs on a Web Audio sample clock; Python media and analysis
-jobs run in separate processes. The application's editing and playback code is
-independent of the archived prototypes.
+Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.5.0**.
 
-## Run the assembled Windows app
+The initial design target is fewer than ten tracks and projects under thirty minutes. Analysis produces one constant BPM, time signature and downbeat offset for a selected song or range. The project map can contain multiple editable tempo and signature events.
 
-During development, double-click **`Start Joljak.cmd`** in the repository root
-from Windows Explorer. First launch prepares a runtime cache under
-`%LOCALAPPDATA%\Joljak\development`. Later launches refresh only the built UI,
-Electron code and Python adapter. Close the application before restarting to see
-the current build. No manual ZIP extraction or Windows Node/Python installation
-is required for this launcher.
+## Run on Windows
 
-The local portable bundle is `../../dist/Joljak-win-x64/`. Run `Joljak.exe` on
-Windows. Keep the complete folder together. It includes Electron, Python 3.12,
-the recorded CPU analysis dependencies and the official final0 checkpoint.
-It does not require a Node.js/Python installation, WSL, or network access at
-runtime. Recordings and accepted sample references are not bundled.
+In an assembled portable bundle, run **`Joljak.exe`** and keep the complete folder together. The bundle contains Electron, Python 3.12, CPU analysis dependencies and the official Beat This final0 checkpoint. It runs offline without a separate Node.js, Python or WSL installation. Source recordings and evaluation references are not included.
 
-The owner explicitly requested a first-version audit. Actual Windows startup,
-editing, playback, CPU inference, persistence, recovery and export were exercised
-for the initial version; see [audit coverage and limits](audit/README.md). That
-audit predates the stage A project-map/layout and stage B import/track revisions
-and is not evidence that those revised behaviors have been exercised. Build and packaging do not run
-these checks automatically. The owner's opt-in verification rule still applies.
+For development, run **`Start Joljak.cmd`** in the repository root from Windows Explorer. First launch requires the frontend build and `dist/Joljak-win-x64.zip`; it extracts the runtime into `%LOCALAPPDATA%\Joljak\development`. Later launches reuse that runtime and refresh the built UI, Electron code and Python adapter. Close the app before relaunching to load a new build.
 
-## First working flow
+The portable folder is `dist/Joljak-win-x64/` at the repository root. Updating this folder does not update the ZIP. An existing ZIP can seed the development cache, after which the launcher copies current application files from the checkout.
 
-1. Use **Import Audio** for WAV, MP3 or FLAC. Choose a target track and **One
-   track**, **Different tracks**, or **Aligned stems**. Source files can be
-   referenced or copied into Joljak's local media storage. A single file dropped
-   into the timeline imports directly at its snapped pointer position.
-2. Use Object Selection (`1`) to select an entire song event, or Range Selection
-   (`2`) to choose a window inside one reference event.
-3. Choose **Analyze Audio**. An optional tap (`T` in the dialog) or approximate
-   quarter BPM chooses a metrical layer only. No initial meter input is accepted.
-4. Audition the original proposal, then **Apply & Align**. The proposal shows the
-   target project bar and signed shift before application. The reference song
-   and its linked stems move together to align the first downbeat with that bar.
-5. Edit the project Tempo/Signature tracks. Saved analysis values remain separate
-   in the Inspector; **Apply & Align** applies an edited draft. **Restore Original
-   Prediction** restores the saved values only. Apply separately to change the
-   project grid and song/stem positions.
-6. Save a `.joljak` project. **Save As → Collect original audio** makes a project
-   portable. Export stereo WAV mix/stems/click and tempo-map JSON/MIDI.
+## Basic workflow
 
-No reference timestamps, accepted offsets, meter labels or song-specific rules
-enter the analysis adapter. It imports the current fixed-metronome functions
-without changing their configuration or source. All acoustic candidates and
-scores are prepared before the hint file is read. Selected input bounds are
-rounded to original decoded sample frames, and the result is placed on the
-project timeline using the event's source-to-project mapping.
+1. **Import Audio**: select WAV, MP3 or FLAC files and choose **One track**, **Different tracks** or **Aligned stems**. Files can remain referenced at their original location or be copied into app-local media storage.
+2. Select an event with Object Selection (`1`), or use Range Selection (`2`) to select part of an event.
+3. **Analyze Audio**: optionally tap or enter an approximate quarter BPM. This selects a metrical layer; precise BPM, meter and phase come from audio. There is no initial meter input.
+4. Audition the proposal, then use **Apply & Align**. The preview shows the target project bar and signed shift. The song and linked stems move together so the inferred first downbeat lands on that bar.
+5. Edit audio, project Tempo/Signature events or saved analysis values. **Restore Original Prediction** restores saved analysis values; use **Apply & Align** separately to update the map and placement.
+6. Save a `.joljak` project. **Save As → Collect original audio** gathers sources for portability. Export WAV mix/stems/click and tempo-map JSON/MIDI.
 
-## Audio import and tracks (stage B, 0.4.3)
+## Import audio and manage tracks
 
-Drop a single file on an audio event lane to use that track and the pointer's
-time. Drop below the audio lanes to create a new track. The placement preview
-uses the project Snap setting; Ctrl temporarily bypasses it. Dropping into the
-track list creates tracks at its insertion line, with audio at the project cursor.
-Multiple files open Import Audio so placement, order and source storage remain
-explicit. The import destination is captured before decoding; later cursor or
-track selection changes do not redirect it. Import does not change timeline zoom.
+A single file dropped onto an audio lane imports onto that track at the pointer time. Dropping below the lanes creates a track. Snap controls placement; Ctrl bypasses Snap temporarily. Dropping into the track list inserts tracks at the indicated row and places their audio at the project cursor.
 
-- **One track** joins files end to end in the displayed order on the selected
-  track, or one new track. Up/down arrows change the file order.
-- **Different tracks** creates independent tracks with one shared start.
-- **Aligned stems** creates tracks with one shared start and links their audio
-  events. Linked edits (`K`) applies move/copy/split/trim/delete to the event
-  group. Volume/pan/mute/solo remain independent. Group/ungroup uses Ctrl G/U.
-  Apply & Align still moves grouped stems together even when ordinary Linked
-  edits is disabled, as required by the approved stage A alignment decision.
+Multiple files open Import Audio so file order, placement and source storage can be selected. The destination is captured before decoding; moving the cursor or changing track selection during decoding does not redirect the import. Import preserves the current zoom.
 
-The dialog offers the captured cursor/drop position, the last audio event end,
-or a specified musical/seconds position. New tracks are inserted below the
-selected track or at the chosen insertion point. They start Linear; importing
-onto an existing track retains its time base and mixer settings.
+| Import mode | Placement |
+| --- | --- |
+| One track | Files follow one another on the selected track or one new track, in the displayed order. |
+| Different tracks | Each file gets an independent track with the same start time. |
+| Aligned stems | Each file gets a track with the same start time; events are linked for group editing. |
 
-Original-file copying means Joljak's app-local workspace/media storage, not the
-current project's folder. With it disabled, originals are referenced. The choice
-and placement preset are remembered for subsequent imports; a single-file drop
-uses that source-storage choice. Preferences are remembered when Import is
-confirmed; cancelling the dialog restores the prior choices. Save As collection remains the portable-project
-path. Cancelled/failed/unplaced imports remove only that job's newly allocated
-media/cache directories, after its worker/file handles close. Adopted project
-assets, undo resources and existing user media are preserved.
+Placement can use the captured cursor/drop time, the last audio event end or a specified musical/seconds position. New tracks start **Linear**. Import onto an existing track retains its mixer settings and time base.
 
-`T`, the track-list plus button, blank-list double-click or Project/track menus
-open **Add Audio Track**, with name and count. Ctrl-click selects individual
-tracks; Shift-click selects a contiguous range. A normal click selects one track.
-Passive header areas, including volume/pan readouts, select the track. Track
-buttons select their track while retaining their own action. Header dragging uses
-the default arrow cursor consistently. The Info Line retains a fixed 50 px height
-for no selection, audio events, tempo and signatures.
-Timeline content fills its visible viewport, and grid/cursor lines share that
-content height. The track-list viewport ends above the horizontal scrollbar to
-keep its visible rows aligned with the audio lanes.
-Drag a track name or blank header area to reorder the selected tracks, using the
-insertion line. Track order is also reflected in the MixConsole. Right-click a
-track or use its `…` menu for select-all-events, duplicate, remove and move up/down.
-`Shift Delete` removes selected tracks, with confirmation if they contain audio.
-Track operations and audio imports participate in Undo/Redo.
+The copy option stores originals in Joljak's app-local media directory. **Save As → Collect original audio** is the way to gather sources beside a portable project. Confirmed import preferences are remembered; cancellation restores the previous choices. Cancelled or failed imports release only their newly allocated media and cache files. Existing project assets and undo resources remain available.
 
-Track duplication preserves the chosen track settings and event/source placement,
-shares media, and gives copied event groups new IDs. Saved clocks refer to the
-copied events while their original raw analysis receipts remain unchanged. Track
-removal deletes only events on those tracks, preserving source media, analysis
-records and the shared Tempo/Signature map. Existing group members on other
-tracks remain. This revision was compiled/assembled without a new runtime audit.
+- `T`, the track-list plus button, blank-list double-click or Project menu opens **Add Audio Track**, with name and count.
+- Click a track header to select a track. Ctrl-click selects individual tracks; Shift-click selects a contiguous range. Track focus preserves the selected event, range or map object.
+- Double-click a track name to rename it. Drag headers to reorder the selected tracks; MixConsole follows the same order.
+- Track context menus provide select-all-events, duplicate, remove and move up/down. `Shift Delete` removes selected tracks, with confirmation when they contain audio.
+- Duplication shares source media and gives copied event groups new IDs. Removal affects events on the selected tracks, retains source media and analysis records, and leaves the shared map in place.
+- Imports and track changes participate in Undo/Redo.
 
-The first follow-up to the owner-requested A/B review restores track-name
-double-click editing without interfering with header dragging. Track/channel
-focus now preserves the selected event, range or map object; the Inspector shows
-the active track while the Info Line retains the selected object. Notifications
-appear at the upper right and their body does not intercept pointer events.
-The earlier 0.4.2 review is evidence for that version, not a runtime result for
-these 0.4.3 fixes.
+## Edit audio
 
-The owner delegated the remaining A/B recommendations, with five explicit
-workflow choices: separate stem-track groups per song; a distinct song-level
-move/copy action carrying audio, stems and associated map events; conflict review
-only when alignment/map application conflicts; bottom BPM changes from the
-cursor; original-value restoration followed by separate application.
-The song-level command and conflict review belong to subsequent implementation
-groups and are not provided by this first interaction-fix revision.
+Object Selection (`1`) selects and moves events. Its lower corner handles trim by hiding or revealing source content. Range Selection (`2`) selects a time window across tracks. Split (`3`) and Erase (`5`) retain their own actions at event corners. Shift marquee adds to the selection.
 
-Reference workflows: [audio import](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/importing_audio_and_midi/importing_audio_and_midi_importing_audio_files_t.html),
-[import options](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/importing_audio_and_midi/importing_audio_and_midi_open_options_dialog_r.html),
-[track insertion](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_tracks_via_the_project_menu_adding_t.html),
-[track selection](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_selecting_tracks_t.html),
-[reorder](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_moving_tracks_in_the_track_list_t.html)
-and [remove](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_removing_tracks_t.html).
-Installed Cubase Pro 15 was inspected in an owned temporary project before this
-stage was approved. These references do not claim complete Cubase parity.
+Events can move between tracks, be copied with Alt-drag, split with Alt-click, or be split at the cursor with Alt X. Ctrl constrains the movement axis while dragging an event. During trim and range gestures, Ctrl bypasses Snap. Alt and Ctrl can change during a drag; previews follow the current modifiers and movement limits.
 
-## Editing contract
+**Linked edits** (`K`) carries move/copy/split/trim/delete across a stem group. Ctrl G groups events and Ctrl U ungroups them. Mixer controls remain independent. **Apply & Align** moves linked stems together regardless of the ordinary Linked edits setting.
 
-Implemented Cubase-style actions include object/range selection, multi-event
-movement, constrained dragging, Alt-drag copies, Alt-click splits, normal sizing,
-linked stem edits, clipboard operations, range deletion without closing the gap,
-locator/cycle editing and undo/redo. On one audio track, only the front event
-plays where events overlap. **Move to Front** (`U`) changes that priority.
+### Range and clipboard
 
-- `1`, `2`, `3`, `5`: object, range, split, erase.
-- `Space`, `Enter`, `Num 0`: start/stop, start, stop.
-- `Num .`, `Num 1`, `Num 2`: project start, left locator, right locator.
-- `Shift P/L/R`: focus the project/left/right position input.
-- `Ctrl Num 1/2`: set the left/right locator at the project cursor.
-- `P`, `Alt P`, `Num /`: locators to selection, loop selection, cycle toggle.
-- `C`, `F`, `J`: metronome, auto-scroll, snap.
-- `G`, `H`, `Shift F`: zoom out, zoom in, fit project.
-- `Ctrl Z`, `Ctrl Shift Z`: undo, redo.
-- `Ctrl C/X/V/D`: copy, cut, paste, duplicate.
-- `Alt X`, `Shift X`: split at cursor, split range boundaries.
-- `Ctrl G/U`, `K`: group, ungroup, linked editing.
-- `T`, `M`, `S`: add audio track, mute track, solo track.
-- `Ctrl S`, `Ctrl Shift S`: save, save as.
-- Lower event corners trim by hiding/revealing source content, without stretching.
-- `Ctrl` constrains drag direction; on sizing it temporarily disables snapping.
-- `Ctrl+wheel` zooms at the pointer; `Shift+wheel` pans horizontally.
+Double-click an event with Range Selection to select its full duration. Shift extends a range. Drag the selected range's body to move its audio, Alt-drag to copy, or drag its edges to resize the selection. The Info Line edits range Start, End and Length without moving audio. Range deletion leaves the gap in place.
 
-In 0.4.4 the timeline owns scale and scroll position together. Ctrl-wheel keeps
-the same time under the pointer and applies the visible range, native scroll
-and waveform drawing before one paint. Continuous inputs accumulate against
-the latest requested view, without delayed scroll callbacks. Precision-wheel
-deltas are proportional; zero vertical deltas do not zoom. Playback auto-scroll
-briefly yields during a zoom gesture.
+Range clipboard data preserves the selected duration, leading/trailing silence and empty rows between source tracks. Paste starts at the cursor on the selected destination track and retains relative track spacing. Missing destination rows create tracks. Copies become selected. Ctrl D duplicates after the event selection span or the full selected range.
 
-Source behavior references: [tool modifiers](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/preferences/preferences_editing_tool_modifiers_r.html),
-[normal sizing](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/parts_events/parts_and_events_resizing_events_with_the_object_selection_tool_normal_sizing_t.html),
-[event movement](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/parts_events/parts_and_events_moving_with_the_object_selection_tool_t.html),
-[overlapping audio](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_audio_overlapping_handling_t.html),
-[edit commands](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/key_commands/key_commands_edit_category_c.html),
-[transport commands](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/key_commands/key_commands_transport_category_c.html),
-[zoom commands](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/key_commands/key_commands_zoom_category_c.html).
-These are implementation references, not a claim that all Cubase behavior has
-been reproduced or runtime-validated.
+For example, copying a 1–5 s range containing audio only at 2–4 s and pasting at 12 s places audio at 13–15 s and selects the complete 12–16 s range.
 
-## Project timing and layout (owner-approved stage A)
+Audio Cut/Copy/Paste is unavailable while a Tempo/Signature point is selected. Delete acts on the visible audio or map selection. Saved analysis drafts have a separate **Remove Saved Clock** button.
 
-The editing toolbar and Info Line are above the arrangement. Tempo and Signature
-are separate project tracks with the same bar/beat grid as audio; their Inspector
-shows an event list and the selected event editor. MixConsole is a collapsible
-lower zone. The bottom Transport is one compact row: adjacent L/R fields,
-Cycle/Stop/Start, position, tempo/signature, metronome level and stereo output
-meter. Inspector has a vertical volume fader with a dB scale/readout, horizontal
-pan, M/S and the small clock/note switch. Event details and analysis are
-collapsible. Inspector and MixConsole share the volume component; Shift-drag
-adjusts finely, Ctrl-click restores 0 dB, and the bottom detent is silence. The click level has its own slider/numeric field, is audible while
-adjusting, and is saved with the project; the same level is used for click export.
+### Audio Editor and overlapping events
 
-New projects have **120 BPM, 4/4 and a Bars+Beats ruler** before any analysis.
-There are no default badges or separate fallback ranges. The first specified
-value replaces the initial value for its map; later events hold until the next
-event. Explicitly entering 120 BPM or 4/4 also establishes a user value.
-Switch the ruler to Seconds without changing a track's time base. **Project →
-Project Setup** sets an independent timeline/playback length (initially 30 minutes).
-Content end remains separate; export uses the content range or explicit locators.
-Import/alignment extends the project if its new audio would exceed that length.
+Object-tool double-click, Ctrl E or Return opens the selected event in the lower **Audio Editor**. Its local Range, Trim and Split tools edit the event non-destructively. The pane shows the source waveform, project cursor/grid and event boundaries, with zoom/fit and an explicit Analyze button. Opening it closes the lower MixConsole.
 
-- A new audio track starts **Linear**: tempo edits preserve event positions in
-  seconds. The Inspector and track header have the clock/note switch.
-- A **Musical** track preserves event quarter positions while tempo changes move
-  its events. Switching time base preserves current physical placement. Source
-  offset, audio duration and playback speed stay fixed in both modes.
-- Tempo events are steps on the shared quarter clock. Signature events live on
-  whole project bars; numbering continues through all songs and signature changes.
-  Click a point to edit it in the Inspector, double-click a track to add an event,
-  or use its `+` button at the cursor. Drag tempo points horizontally to move
-  their position and vertically to change BPM. Grabbing a point or signature
-  flag preserves its original pointer offset. The initial tempo point permits
-  BPM adjustment but stays at the start; the initial signature also stays put.
-  Erase/Delete removes non-initial points.
-- Bottom BPM input inserts/updates a step at the cursor and preserves the earlier
-  tempo. It establishes preceding initialization as a chosen working value when
-  needed, rather than changing that earlier segment. Point/Inspector editing
-  remains the way to change an existing event. This is the owner's explicit
-  interaction choice, not a claim of identical Cubase tempo-mode behavior.
-- The ruler, musical position, snap, ordinary metronome and exported project maps
-  consume the same project map. L/R flags and their range highlight are integrated
-  into the ruler/event display. Locator fields follow the Transport time format. Bars+Beats displays
-  bar.beat.sixteenth.tick, with 120 display ticks per sixteenth; actual stored
-  seconds/quarter positions retain their precision.
-- Applying a fixed-model result inserts/updates a tempo event at the aligned
-  analyzed start and a signature event on its first downbeat bar. Other existing
-  events are preserved. Neither map automatically restores an earlier value at
-  the scope/song end or in silence. First downbeat alignment still shifts the
-  song and linked stems together, after establishing missing initial values.
-  The inference receipt retains its actual source range: persistence of a working
-  project event is not a prediction about unobserved audio or variable-tempo analysis.
-- Project tempo edits affect all Musical tracks. Linear tracks retain their
-  absolute positions; a later song can require explicit realignment after edits
-  to earlier map events. Moving/copying audio does not move the project map.
-- Saved analysis scopes and original predictions stay separate from project-map
-  edits. Trim/split hides or divides audio without changing source-relative
-  predictions. Saved scopes follow their reference event placement; they survive
-  reference deletion as records. Analysis audition is explicitly marked as a
-  preview and can return to the ordinary project metronome without applying it.
+Alt X in the Project window splits selected events, or all intersecting events when none are selected. In the focused Audio Editor it targets that event. Shift X splits at both range boundaries.
 
-Playback controls follow the inspected Cubase flow: Stop preserves the current
-sample position; Start resumes; a second Stop while stopped returns to the last
-playback start. Space toggles playback. Start while playing does not pause. Drag
-the lower ruler or cursor head to locate; dragging during playback continues at
-the new position, with Snap respected (Ctrl temporarily bypasses it). Locator
-editing stays in the upper ruler. Auto-scroll does not compete with a drag.
-Control revisions invalidate old position replies and pending loads; resume keeps
-the exact worklet stop sample rather than seeking to an older UI notification.
+Right-click an overlap to select a hidden event. **Move to Front** (`U`) and **Move to Back** (`Shift U`) change order. At each time, only the front event on a track is audible.
 
-Project schema **v2** saves the independent project duration, ruler format,
-quarter tempo events, bar signature events and track time bases. Existing v1
-projects open without rewriting their files. Their saved clocks/predictions and
-physical audio placement are preserved; use **Apply & Align** to apply a
-saved clock to the new shared map. The migration provides the 120 BPM/4/4 default
-rather than silently converting independent clock phases into a global map.
-Projects save `timingPolicy: persistent`. Older v2 projects have identifiable
-non-initial default-origin automatic returns removed and their missing initial
-values established from the first explicit events. Migration preserves physical
-audio placement and all analysis receipts. Unmarked manual/analysis-origin
-events are retained because they cannot safely be distinguished from real edits;
-inspect/remove those explicitly if needed. Opening does not overwrite the file.
+A gesture makes one undo entry. No-op edits leave history unchanged. Undo/Redo shows the next action; original media and raw analysis records remain retained across history changes.
 
-Playback/export use the same gain, stereo-balance/mono-pan, overlap priority and
-click synthesis conventions. Source-rate PCM is retained for inference; streamed
-SoXR HQ 48 kHz PCM is used for playback/export. Original media stays unchanged.
-The playback cache is loaded in bounded two-second chunks. WAV outputs share one
-selected origin, sample rate and frame length. Stems respect track mute/solo,
-volume, pan and master gain.
+Ordinary event and range edits leave the shared Tempo/Signature map in place. A separate song-level move/copy operation carrying audio, stems and related map events is still pending.
 
-JSON preserves exact quarter/bar and second coordinates, source-relative saved
-clocks and original prediction records. MIDI is a quantized derivative of the
-project map, with export-origin/bar markers; it is not producer ground truth.
-The editable arrangement has bounded undo history. Imported assets and original
-analysis records remain independent of undoing their application. Recovery and
-media/model job files remain in the local application workspace.
+## Project map and timing
 
-First scope excludes recording, VST, MIDI performance editing, fades, FX/buses,
-automation, time-stretching, pitch changes and automatic tempo/meter inference.
+The toolbar and Info Line sit above the arrangement. Tempo and Signature are separate project tracks sharing the audio grid. Their Inspector lists and edits map events. MixConsole opens in the lower zone; Transport sits at the bottom.
 
-## Development and packaging
+New projects start at **120 BPM, 4/4**, with a Bars+Beats ruler and a 30-minute project duration. The first explicitly specified value replaces its map's initial value. Each tempo/signature event holds until the next event, including through silence. No automatic return is inserted at a song or analyzed range end.
+
+**Project → Project Setup** changes project duration. Content length is separate: exports use the content range or locators. Import and alignment extend project duration when necessary. Switching the ruler between Bars+Beats and Seconds does not change a track's time base.
+
+### Linear and Musical tracks
+
+| Time base | Effect of a project tempo edit |
+| --- | --- |
+| Linear | Event positions remain fixed in seconds. |
+| Musical | Event quarter positions remain fixed, so their physical positions move with the map. |
+
+Switching time base preserves current placement. Source offsets, audio duration and playback speed remain fixed in both modes. Tempo edits affect every Musical track, so a later song can need realignment after changing earlier tempo events.
+
+### Map editing
+
+Tempo events use the shared quarter clock; signature events attach to whole project bars. Bar numbering continues through songs and signature changes.
+
+Click a map point to edit it in the Inspector. Double-click a map track or use its `+` button to add a point. Drag a tempo point horizontally for position and vertically for BPM. The first tempo point stays at the project start but permits BPM adjustment; the first signature stays at bar 1. Erase/Delete removes non-initial points.
+
+The bottom BPM field inserts or updates a tempo step **from the cursor**, preserving earlier tempo. Existing point/Inspector editing changes that point's value. Applying an analysis inserts or updates map events at the aligned analyzed start and first downbeat bar, preserving other events. Alignment conflict review is still pending.
+
+The ruler, musical position, snap, ordinary click and map export use the project map. Bars+Beats displays `bar.beat.sixteenth.tick`, with 120 display ticks per sixteenth; stored second and quarter coordinates keep their full precision.
+
+## Analysis and saved predictions
+
+The adapter uses the [fixed-metronome estimator](../../experiments/metronome_reconstruction_v1/README.md) with its recorded configuration. It receives selected source audio, without evaluation timestamps, alignment offsets, meter labels or song-specific rules. Selection bounds are rounded to original decoded sample frames. Candidates and scores are prepared before the tap is read.
+
+Raw predictions and source bounds remain separate from editable saved clocks and the project map. Audition previews a saved clock without applying it; ordinary project click can be restored afterwards. **Restore Original Prediction** restores saved values without running the model or changing placement.
+
+Split and copied fragments inherit saved clocks where source audio overlaps the original analyzed range. Their drafts are independent, while original source bounds and raw results remain unchanged. Audition and application use the remaining intersection and preserve original downbeat phase. Extending a clip does not extend the inferred scope into unobserved audio.
+
+**Apply & Align** shows a placement preview, updates the project map and shifts the song and linked stems to a real bar. Each track retains its chosen time base. Persistent project map events remain working arrangement values beyond the analyzed scope; they do not extend the prediction's audio coverage.
+
+## Transport and mixer
+
+Transport provides L/R locators, Cycle, Stop, Start, musical position, tempo/meter, click volume and output meters.
+
+Stop preserves position, Start resumes, and a second Stop while stopped returns to the last playback start. Space toggles playback. Num Enter always starts/resumes; Return starts when no event is selected and otherwise opens Audio Editor. Drag the lower ruler or cursor head to seek while stopped or playing; Ctrl bypasses Snap.
+
+Ctrl-wheel zooms around the pointer, Shift-wheel pans horizontally, and fit shows the project. Playback auto-scroll yields briefly during zoom and cursor dragging.
+
+Inspector and MixConsole provide track volume, pan, mute and solo. The volume fader has a dB readout, Shift fine adjustment and Ctrl-click reset to 0 dB; its bottom detent is silence. Click volume is independent and saved with the project. Playback and click export use the same click level.
+
+## Save, recover and export
+
+Projects use schema v2 with assets, tracks, clips, shared tempo/signature events, saved clocks and original analysis records. Save As can collect original audio for portability. Project recovery and cache regeneration use the application workspace; missing sources can be relocated. Project switches cancel stale import/analysis jobs and reject their completions. Exports retain their original project snapshot.
+
+Older v1 projects open with preserved audio placement and saved predictions, plus an initial 120 BPM/4/4 project map. Apply & Align places their saved clocks onto that map. Older v2 files have identifiable default-origin automatic returns removed during in-memory migration. Manual/analysis-origin events are retained. Migration preserves audio placement and prediction records, and opening does not overwrite the file.
+
+Source-rate PCM is used for analysis. Streamed SoXR HQ 48 kHz PCM is used for playback and audio export. WAV mix, stems and click share the selected start, sample rate and frame length. Stems respect mute/solo, volume, pan and master gain. Mono uses pan; stereo uses balance. Overlapping events follow the same front-event priority in playback and rendering.
+
+JSON retains exact map coordinates, saved source-relative clocks and raw analyses. MIDI is a quantized interchange derivative with export-origin/bar markers, rather than an exact recording of the original source clock.
+
+## Keyboard and mouse reference
+
+| Input | Action |
+| --- | --- |
+| `1` / `2` / `3` / `5` | Object / Range / Split / Erase |
+| Object double-click / Ctrl E / Return with event selected | Open Audio Editor |
+| Space / Num Enter / Num 0 | Toggle playback / Start / Stop |
+| Num . / Num 1 / Num 2 | Project start / left locator / right locator |
+| Shift P / L / R | Focus project / left / right position field |
+| Ctrl Num 1 / 2 | Set left / right locator at cursor |
+| P / Alt P / Num / | Locators to selection / loop selection / toggle Cycle |
+| C / F / J | Metronome / auto-scroll / Snap |
+| G / H / Shift F | Zoom out / zoom in / fit project |
+| Ctrl-wheel / Shift-wheel | Zoom at pointer / horizontal pan |
+| Ctrl Z / Ctrl Shift Z | Undo / Redo |
+| Ctrl C / X / V / D | Copy / Cut / Paste / Duplicate |
+| Alt-drag | Copy event or range contents |
+| Range body / edge drag | Move contents / resize selection |
+| Alt X / Shift X | Split at cursor / range boundaries |
+| U / Shift U | Move to Front / Back |
+| Ctrl G / Ctrl U / K | Group / Ungroup / Linked edits |
+| T / M / S | Add Audio Track / Mute / Solo |
+| Ctrl S / Ctrl Shift S | Save / Save As |
+| Shift Delete | Remove selected tracks |
+
+## Build and package
+
+Build in Linux/WSL with Node.js/npm and the [Python CPU analysis environment](../../experiments/metronome_reconstruction_v1/README.md#environment). Place the official checkpoint at `samples/.experiment-state/metronome-v1/final0.ckpt`.
 
 ```sh
 cd apps/daw
 ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci
 npm run build
-# Live React/CSS updates in the actual Windows desktop application:
+```
+
+From the repository root, assemble the portable runtime and the ZIP needed for the first development launch:
+
+```sh
+python3 apps/daw/scripts/package_windows.py --zip
+```
+
+For routine updates, rebuild the UI and refresh the existing bundle:
+
+```sh
+python3 apps/daw/scripts/package_windows.py --refresh-app
+```
+
+Add `--zip` to refresh the distribution archive as well. `--resume` continues an incomplete bundle produced by this builder. Downloads and wheel caches are stored in `.daw-runtime/`; generated bundles are stored in `dist/`. The builder packages the pinned Windows x64 / CPython 3.12 / CPU dependency set.
+
+For live React/CSS updates in the Windows app:
+
+```sh
+cd apps/daw
 npm run dev:windows
 ```
 
-Development launch can use `JOLJAK_PYTHON` for the existing CPU model environment,
-`JOLJAK_DATA` for a workspace-local runtime directory and `JOLJAK_DEV_URL` for a
-local Vite server. The production app uses a secure custom local protocol and
-does not serve arbitrary source directories.
+Restart development launch after Electron or Python adapter changes. Build the UI before using `Start Joljak.cmd` for a built-app review. Frontend hot reload does not replace the packaged analysis runtime.
 
-`dev:windows` starts local Vite and the cached native runtime. React/CSS changes
-reload immediately. After Electron/Python adapter edits, close Joljak, stop Vite
-with `Ctrl+C` and restart the command. Use `npm run build` before reviewing the
-built application through `Start Joljak.cmd`. The frozen analysis module/runtime
-is not replaced by a frontend hot reload.
+Development configuration uses `JOLJAK_PYTHON` for Python, `JOLJAK_DATA` for the workspace and `JOLJAK_DEV_URL` for the Vite server. Production uses a local application protocol with a sandboxed preload bridge. Playback runs on an AudioWorklet sample clock; media, analysis and rendering jobs run in separate Python processes.
 
-From the repository root, after building the UI:
+## Validation status and limits
 
-```sh
-python3 apps/daw/scripts/package_windows.py
-# After the runtime is assembled, update application files and the distribution ZIP:
-python3 apps/daw/scripts/package_windows.py --refresh-app --zip
-```
+| Version | Available evidence |
+| --- | --- |
+| Initial implementation | [Windows integration audit](audit/README.md): 64 editing, playback, analysis, persistence, recovery and export cases, with recorded measurements and fixture limits. |
+| 0.4.2 | Import/track workflow comparison against native Cubase and controlled material. |
+| 0.4.4 | Audio-editing workflow comparison and timeline observations. |
+| 0.5.0 | Vite build and Windows app-file refresh; no new runtime, playback, regression, export round-trip or inference results. |
 
-`--resume` is reserved for refreshing an incomplete bundle generated by that
-builder. Downloads/caches stay in ignored `.daw-runtime/`; the generated bundle
-stays in ignored `dist/`. Cross-platform pip marker resolution is avoided by
-downloading the complete recorded environment with `--no-deps`, targeting
-Windows x64 / CPython 3.12 / CPU PyTorch. Existing system installations are not
-modified. Do not run automatic benchmarks or playback checks when packaging.
+`npm run build` bundles the frontend; it does not run TypeScript project-wide type checking or the audit suites. Build, packaging and startup do not run audits or accuracy benchmarks. Earlier observations describe their respective revisions.
+
+Cubase Pro 15 informs familiar editing interactions, including [import](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/importing_audio_and_midi/importing_audio_and_midi_importing_audio_files_t.html), [tool modifiers](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/preferences/preferences_editing_tool_modifiers_r.html), [normal sizing](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/parts_events/parts_and_events_resizing_events_with_the_object_selection_tool_normal_sizing_t.html) and [overlapping audio](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_audio_overlapping_handling_t.html). Complete Cubase behavior is outside the implementation scope.
+
+Recording, VST, MIDI performance editing, fades, FX/buses, automation, time stretching, pitch changes and automatic tempo/meter-change inference are not implemented. The separate song-level audio/stem/map command and alignment conflict review remain pending.

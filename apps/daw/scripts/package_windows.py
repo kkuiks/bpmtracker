@@ -1,8 +1,7 @@
-"""Assemble a Windows portable app without running playback or model checks.
+"""Assemble or refresh a portable Windows app from a built frontend.
 
-Build the renderer first. Downloads go only to the ignored workspace runtime
-directory; npm, Python and Windows installations outside this project are not
-modified. The existing official checkpoint is copied without changing it.
+Runtime packages are cached locally. The bundle contains the pinned CPU
+analysis environment and a local official checkpoint.
 """
 from pathlib import Path
 import json
@@ -47,13 +46,16 @@ def refresh_app(package):
         'Import WAV, MP3 or FLAC. Select a song or a range inside one reference event, then Analyze Audio.\n'
         'Drop a file at its timeline position, or use Import Audio for one track, different tracks or linked stems.\n'
         'T opens Add Audio Track. Right-click tracks to duplicate/remove; drag headers to reorder.\n'
+        'Object-tool double-click or Ctrl E opens Audio Editor: zoom, range selection, trim and split.\n'
+        'Drag a selected range to move its contents; Alt copies. Ctrl D duplicates the complete range.\n'
+        'Range clipboard preserves gaps. Paste uses the selected destination track.\n'
         'A tap chooses the metrical layer only. Apply & Align moves the song and linked stems onto the project grid.\n'
         'Use the Tempo/Signature tracks, Linear/Musical track switch and bottom Transport with click volume.\n'
         'Tempo/signature values hold until the next event. Drag the lower ruler/cursor to seek.\n'
         'Stop keeps the current position; Start resumes. Second Stop returns to playback start.\n'
         'Bottom BPM changes the map from the cursor; earlier tempo stays unchanged.\n'
         'Restore Original Prediction changes saved values only. Apply & Align separately.\n\n'
-        'The source README distinguishes the initial audit from later A/B revisions.\n'
+        'Analysis supports constant tempo and 3/4 or 4/4; tempo and meter changes are not detected automatically.\n'
         'No recordings or accepted reference maps are included.\n', encoding='utf-8')
 
 
@@ -153,7 +155,7 @@ def main():
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(info) as source, destination.open('wb') as output:
                     shutil.copyfileobj(source, output)
-    (OUTPUT / 'START HERE.txt').write_text('Joljak\n\nRun Joljak.exe on Windows. No Node.js, Python, WSL or network connection is needed after assembly.\n\nImport your own WAV, MP3 or FLAC files. Use 1/2/3 for object/range/split tools. Select a song event or a range inside it, then Analyze Audio. Tap input chooses only the initial beat unit. Apply a proposal to its analyzed scope; Reset to Analysis restores the saved original result.\n\nNo recordings or reviewed reference maps are included. Playback, inference and export have not been exercised automatically by the build process.\n', encoding='utf-8')
+    (OUTPUT / 'START HERE.txt').write_text('Joljak\n\nRun Joljak.exe on Windows. No Node.js, Python, WSL or network connection is needed after assembly.\n\nImport your own WAV, MP3 or FLAC files. Use 1/2/3 for object/range/split tools. Select a song event or a range inside it, then Analyze Audio. Tap input chooses only the initial beat unit. Apply a proposal to its analyzed scope; Restore Original Prediction restores saved analysis values; apply separately to change the grid.\n\nNo recordings or reviewed reference maps are included. Analysis supports constant tempo and 3/4 or 4/4.\n', encoding='utf-8')
     refresh_app(package)
     if args.zip:
         replace_archive()

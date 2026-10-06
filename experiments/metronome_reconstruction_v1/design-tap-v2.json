@@ -1,9 +1,9 @@
 {
-  "purpose": "Owner-approved implementation and evaluation of an initial approximate quarter-BPM tap that selects only a metrical octave layer.",
-  "latest_owner_scope": {
+  "purpose": "An initial approximate quarter-BPM tap selects a metrical octave layer from candidates computed from audio.",
+  "tap_contract": {
     "date_local": "2026-10-05",
-    "initial_tap_allowed": true,
-    "time_signature_input_allowed": false,
+    "initial_tap_supported": true,
+    "time_signature_input_supported": false,
     "tap_applies_to": "initial section only; current whole-input use relies on constant BPM and constant meter",
     "same_discrete_unit_hints_must_produce_identical_model_outputs": true,
     "tap_must_not_set_or_attract_fine_bpm": true,
@@ -42,16 +42,16 @@
     "run": "samples/experiments/metronome_reconstruction_v1/20261005-tap26-v2",
     "input_manifest": "samples/selections/fixed-metronome-v1/all-valid-inference.json",
     "hint_manifest": "samples/selections/fixed-metronome-v1/tap-only-diagnostic-inputs-v2.json",
-    "hint_origin": "Reference-derived correct-unit diagnostic, explicitly authorized by owner; no actual human taps were collected",
+    "hint_origin": "Reference-derived correct-unit diagnostic; no actual human taps were collected",
     "conditions": ["Matched audio-family control without a hint", "Reference BPM used only as a unit hint", "Same hint minus 5 BPM", "Same hint plus 5 BPM"],
     "invariance": "Compare the entire model prediction, including exact BPM, meter, offset, scores and flags; same layer must mean exact equality",
     "evaluation": "Reuse the unchanged first-experiment accepted-event adapters and timing metrics on the same 26 samples",
     "formal_pass_threshold_selected": false,
-    "timing_reference_limit": "Owner-approved practical maps are not independent original-click millisecond certificates",
+    "timing_reference_limit": "Listening-reviewed reference maps do not independently certify original-click timing at millisecond precision",
     "automatic_generalization_claim": false
   },
   "controls": {
-    "requested_contract_controls": 13,
+    "contract_controls": 13,
     "examples": ["155/160/165 give identical results", "79.75 sensor evidence with a 160 hint produces 159.5, not 160", "No evidence cannot produce a clock from a tap", "Unavailable layer and invalid inputs are handled", "Time-signature input is rejected", "3/4 is inferred from audio"],
     "not_real_audio_accuracy_evidence": true
   },
@@ -63,7 +63,6 @@
     "new_encoder_training": false,
     "legacy_inference_or_weights_used": false,
     "tempo_or_meter_changes_supported": false,
-    "automatic_reference_acceptance": false,
-    "future_unrequested_experiments_or_tests_authorized": false
+    "automatic_reference_acceptance": false
   }
 }

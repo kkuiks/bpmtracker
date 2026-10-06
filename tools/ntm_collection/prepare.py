@@ -173,7 +173,7 @@ def source_offset(path,item,master,master_rate=4000):
     return dict(status='audition_proposal_only',offset_seconds=float(np.median(offsets)),
         median_correlation=float(np.median(correlations)),offset_spread_seconds=float(np.ptp(offsets)),
         windows=results,diagnostic_sample_rate=master_rate,automatic_acceptance=False,
-        note='Direct source waveform matches; instrument processing/pulse aliases can shift candidates. Owner listening decides.')
+        note='Direct source waveform matches; instrument processing/pulse aliases can shift candidates. Refine alignment by listening to the Master and click.')
 
 
 def prepare(job):
