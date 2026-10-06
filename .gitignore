@@ -1,6 +1,10 @@
 # Private source data and project notes
 /_local
 /samples/
+/.daw-state/
+/.daw-runtime/
+*.joljak
+*.joljak.autosave
 /legacy/_local
 /legacy/FAILURE_STUDY.md
 /legacy/migration-20261002/

@@ -1,0 +1,27 @@
+{
+  "name": "joljak-daw",
+  "version": "0.4.4",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "dev:windows": "node scripts/dev_windows.mjs",
+    "build": "vite build",
+    "desktop": "electron .",
+    "package:windows": "python3 scripts/package_windows.py"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "lucide-react": "1.52.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "44.5.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.2"
+  }
+}
