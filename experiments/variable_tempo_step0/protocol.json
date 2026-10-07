@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "experiment": "variable-tempo-expansion-step0-v1",
+  "output_target": "prerequisite diagnostics and decision; no automatic piecewise decoder",
+  "fixed_estimator": "Original prepare_audio_family/select_from_family unchanged",
+  "observation_model": "official Beat This 1.1.0 final0, CPU float32, 50 fps, four threads",
+  "bpm_range": [30, 400],
+  "denominator_max": 4,
+  "primary_meter": [4, 4],
+  "primary_real_ids": ["state_shirt_hospital_hill", "andrew-wade-a-day-to-remember", "jens-bogren-opeth"],
+  "secondary_rate_only_ids": ["legacy_circle", "babyslakh_Track00008"],
+  "reference_policy": {
+    "accepted_audio_relative_events_unchanged": true,
+    "additional_reference_offset_seconds": 0,
+    "real_boundary_metric": "practical agreement with owner-reviewed maps; no independent millisecond certification",
+    "tier3_boundary_metric": "unscored when audio origin is unresolved",
+    "constructed_metric": "sample-coordinate error and continuous boundary error",
+    "source_and_reference_processes_separate": true,
+    "oracle_clocks": "rate and canonical quarter/bar phase only; support and boundary remain in evaluation-only files"
+  },
+  "candidate_metrics": {
+    "stages": ["broad_bpm_list", "base_scored", "final_family_scored", "retained", "selected"],
+    "primary_rate_target": "nearest representable denominator-four rate; exact reference and representational error also retained",
+    "diagnostics": ["exact nominal survival", "closest candidate error", "rank", "score gap", "stage loss", "segment duration", "half/double relations"],
+    "rate_recovery_does_not_certify_phase": true,
+    "small_steps_not_merged_by_gtzan_two_percent_tolerance": true,
+    "local_proposal_if_loss_observed": "source-only windows can propose rates; their edges never define tempo changes"
+  },
+  "support_diagnostic": {
+    "states": ["MATCH", "MISMATCH", "UNKNOWN"],
+    "known_clock_input": "explicit oracle diagnostic",
+    "observations": "source beat probabilities and weighted peaks on original timeline",
+    "span_quarters_sweep": [4, 8, 16],
+    "output_step_seconds": 0.1,
+    "calibration": "general score/density distributions from constructed fixed controls; real change labels not used to choose parameters",
+    "sustained_support": "report run lengths in seconds and quarters; no product minimum duration declared",
+    "phase_drift_policy": "separate clock-phase contradiction from evidence for a different nominal rate"
+  },
+  "boundary_diagnostic": {
+    "known_neighbor_clocks": "oracle rates and phases",
+    "reference_boundary_hidden": true,
+    "objective": "compare neighboring clocks against original-time source evidence",
+    "window_edges_are_not_boundaries": true,
+    "metrics": ["signed/absolute seconds error", "local beat normalized error", "audio-supported ambiguity interval", "misses"],
+    "oracle_phase_continuity": "if used, report separately from audio-only objective and preserve ambiguity"
+  },
+  "fixed_controls": {
+    "development_groups": 280,
+    "already_used_validation_groups": 87,
+    "reserved_groups_consumed": 0,
+    "gtzan_is_approximately_fixed_coarse_annotation": true,
+    "constructed_fixed_and_120_1_probe": true,
+    "metrics": ["MATCH/MISMATCH/UNKNOWN coverage", "sustained false mismatch runs", "false nominal change proposals"]
+  },
+  "no_predeclared_product_success_threshold": true,
+  "failure_denominators_preserved": true,
+  "scope_exclusions": ["tempo ramps", "automatic meter changes", "full recursive decoding", "legacy architecture", "DAW integration", "new paid acquisition", "sample cleanup", "neural training", "source commits or pushes"]
+}
