@@ -105,6 +105,12 @@ The ruler, musical position, snap, ordinary click and map export use the project
 
 The adapter uses the [fixed-metronome estimator](../../experiments/metronome_reconstruction_v1/README.md) with its recorded configuration. It receives selected source audio, without evaluation timestamps, alignment offsets, meter labels or song-specific rules. Selection bounds are rounded to original decoded sample frames. Candidates and scores are prepared before the tap is read.
 
+The separate [benchmark comparison](../../experiments/metronome_benchmark_v1/README.md#recorded-expansion-and-method-comparison)
+records frozen development/validation and defined-clock results for this estimator
+and two alternative clock fitters. The application's adapter still uses the
+original estimator; the comparison implementations are not integrated into the
+app. They use the same neural observations, without new neural training.
+
 Raw predictions and source bounds remain separate from editable saved clocks and the project map. Audition previews a saved clock without applying it; ordinary project click can be restored afterwards. **Restore Original Prediction** restores saved values without running the model or changing placement.
 
 Split and copied fragments inherit saved clocks where source audio overlaps the original analyzed range. Their drafts are independent, while original source bounds and raw results remain unchanged. Audition and application use the remaining intersection and preserve original downbeat phase. Extending a clip does not extend the inferred scope into unobserved audio.
@@ -201,6 +207,12 @@ Development configuration uses `JOLJAK_PYTHON` for Python, `JOLJAK_DATA` for the
 | 0.5.0 | Vite build and Windows app-file refresh; no new runtime, playback, regression, export round-trip or inference results. |
 
 `npm run build` bundles the frontend; it does not run TypeScript project-wide type checking or the audit suites. Build, packaging and startup do not run audits or accuracy benchmarks. Earlier observations describe their respective revisions.
+
+The 2026-10-07 benchmark evaluated 280 GTZAN development groups, 87 separate
+validation groups and 58 generated musical inputs outside the application.
+Its model scores and implementation-contract controls do not certify 0.5.0
+startup, playback, project persistence or export behavior. The app-file version
+and runtime-validation status in the table remain unchanged.
 
 Cubase Pro 15 informs familiar editing interactions, including [import](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/importing_audio_and_midi/importing_audio_and_midi_importing_audio_files_t.html), [tool modifiers](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/preferences/preferences_editing_tool_modifiers_r.html), [normal sizing](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/parts_events/parts_and_events_resizing_events_with_the_object_selection_tool_normal_sizing_t.html) and [overlapping audio](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_audio_overlapping_handling_t.html). Complete Cubase behavior is outside the implementation scope.
 

@@ -504,6 +504,166 @@ validation execution reviews each passed 18 checks. Replaying all 58 generated
 inputs from cached observations with complete tracing reproduced original
 clock/event coordinates. Workflow passes remain separate from musical accuracy.
 
+### Cohorts and preserved denominators
+
+The full GTZAN catalog retains 999 rows: 472 qualified, 526 outside the declared
+fixed-clock approximation and one source error. Qualified rows form 465 exact
+feature groups. Roles were assigned before predictions, with one representative
+per selected feature group:
+
+| Role | Qualified rows | Exact feature groups | Inferred in this checkpoint |
+| --- | --- | --- | --- |
+| Development | 285 | 280 | 280 |
+| Validation | 87 | 87 | 87 |
+| Reserved | 100 | 98 | 0 |
+
+Four development groups have three-pulse bars; the other 276 have four-pulse
+bars. Validation has 87 four-pulse groups. Group counts describe exact feature
+identity, not verified independent songs or artists. No eligible inference
+failure or abstention is removed from event or BPM denominators.
+
+The unchanged original automatic condition has these partitioned results:
+
+| Partition | Pulse BPM ≤2% | Half rate | Double rate | Other rate | Beat F1@70ms | Downbeat F1@70ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| Original 100 | 88/100 | 6 | 1 | 5 | 92.09% | 83.17% |
+| Additional 180 | 164/180 | 9 | 7 | 0 | 96.96% | 89.84% |
+| Full 280 | 252/280 | 15 | 8 | 5 | 95.22% | 87.46% |
+
+### Recorded rate and timing diagnostics
+
+The following tables retain every method and condition. BPM columns compare
+the unchanged fitted annotation pulse rate; bar agreement compares annotated
+pulses per bar. Event scores are macro F1 percentages at the stated tolerance,
+not complete-song success rates or independent producer-clock accuracy. Micro
+F1 and its event counts remain in each comparison's `results.json` and
+`summary.json` alongside per-input predictions and metrics.
+
+#### Development — 280 groups
+
+| Method/condition | BPM ≤0.1% | BPM ≤1% | BPM ≤2% | Pulses/bar | Failed/abstained |
+| --- | --- | --- | --- | --- | --- |
+| Original automatic | 217/280 | 252/280 | 252/280 | 276/280 | 0 |
+| Original unit diagnostic | 236/280 | 275/280 | 275/280 | 277/280 | 1 |
+| Minimal events | — | — | — | — | 0 |
+| Simple automatic | 223/280 | 252/280 | 253/280 | 277/280 | 0 |
+| Simple unit diagnostic | 242/280 | 276/280 | 277/280 | 278/280 | 0 |
+| Retained automatic | 217/280 | 252/280 | 252/280 | 276/280 | 0 |
+| Retained unit diagnostic | 236/280 | 276/280 | 276/280 | 277/280 | 1 |
+
+| Method/condition | Beat 20ms | Beat 30ms | Beat 70ms | Downbeat 20ms | Downbeat 30ms | Downbeat 70ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| Original automatic | 78.08% | 90.60% | 95.22% | 72.52% | 83.48% | 87.46% |
+| Original unit diagnostic | 79.85% | 92.55% | 97.31% | 73.53% | 84.73% | 88.86% |
+| Minimal events | 78.19% | 90.69% | 95.18% | 70.04% | 82.63% | 87.30% |
+| Simple automatic | 77.88% | 90.43% | 95.40% | 72.23% | 83.31% | 87.59% |
+| Simple unit diagnostic | 79.97% | 92.85% | 97.95% | 73.21% | 84.42% | 88.65% |
+| Retained automatic | 78.08% | 90.60% | 95.22% | 72.52% | 83.48% | 87.46% |
+| Retained unit diagnostic | 80.04% | 92.85% | 97.54% | 73.63% | 84.88% | 88.86% |
+
+#### Validation — 87 groups
+
+| Method/condition | BPM ≤0.1% | BPM ≤1% | BPM ≤2% | Pulses/bar | Failed/abstained |
+| --- | --- | --- | --- | --- | --- |
+| Original automatic | 69/87 | 77/87 | 77/87 | 84/87 | 0 |
+| Original unit diagnostic | 76/87 | 84/87 | 84/87 | 84/87 | 1 |
+| Minimal events | — | — | — | — | 0 |
+| Simple automatic | 69/87 | 77/87 | 77/87 | 84/87 | 0 |
+| Simple unit diagnostic | 76/87 | 86/87 | 86/87 | 83/87 | 0 |
+| Retained automatic | 69/87 | 77/87 | 77/87 | 84/87 | 0 |
+| Retained unit diagnostic | 76/87 | 84/87 | 84/87 | 84/87 | 1 |
+
+| Method/condition | Beat 20ms | Beat 30ms | Beat 70ms | Downbeat 20ms | Downbeat 30ms | Downbeat 70ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| Original automatic | 73.10% | 89.24% | 95.50% | 66.41% | 80.07% | 85.35% |
+| Original unit diagnostic | 74.64% | 91.39% | 97.10% | 67.03% | 81.01% | 85.99% |
+| Minimal events | 74.44% | 89.96% | 95.03% | 66.46% | 82.00% | 86.80% |
+| Simple automatic | 74.76% | 90.37% | 95.32% | 68.03% | 81.01% | 85.64% |
+| Simple unit diagnostic | 76.03% | 92.61% | 98.39% | 68.19% | 81.54% | 86.24% |
+| Retained automatic | 73.10% | 89.24% | 95.50% | 66.41% | 80.07% | 85.35% |
+| Retained unit diagnostic | 74.64% | 91.39% | 97.10% | 67.03% | 81.01% | 85.99% |
+
+Original/retained unit diagnostics abstain on `gtzan_country_00097` in development
+and `gtzan_country_00091` in validation because the encoded unit is absent from
+the prepared audio family. Both remain in the respective denominators, with
+zero event F1. Simple conditions have no failed or abstained clocks.
+
+Predictor sources and settings were frozen at `2026-10-07T02:49:00.856229+00:00` before
+the first validation observation. Source correspondence was recorded in
+`samples/.benchmark-state/gtzan-v1/20261007-validation-method-freeze.json` and the
+completed execution review; validation did not trigger another parameter change.
+
+### Generated event scores and paired contrasts
+
+Generated event F1 retains all 58 inputs, including the predeclared 120.1 BPM
+probe. The 57-input precision subset was defined by output representability,
+without correcting a reference or discarding a poor prediction. All 58 inputs
+return clocks in every condition. Retained-candidate scores equal the original.
+
+| Method/condition | Quarter 10ms | Quarter 20ms | Quarter 30ms | Quarter 70ms | Downbeat 20ms | Downbeat 70ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| Original automatic | 83.12% | 84.74% | 85.03% | 85.03% | 61.18% | 61.46% |
+| Original unit diagnostic | 90.31% | 91.17% | 91.62% | 92.76% | 63.47% | 65.28% |
+| Simple automatic | 81.25% | 81.88% | 82.55% | 84.84% | 66.23% | 68.06% |
+| Simple unit diagnostic | 90.08% | 90.79% | 91.36% | 93.41% | 73.30% | 75.19% |
+
+Joint quarter/bar maximum-error counts on the 57 representable inputs are the
+same at 10, 20, 30 and 70ms: original automatic 21, original unit diagnostic 30,
+simple automatic 26 and simple unit diagnostic 38. These thresholds remain
+diagnostics rather than a specified product acceptance criterion.
+
+| Variant | Representable inputs | Original automatic ≤20ms | Simple automatic ≤20ms | Original unit ≤20ms | Simple unit ≤20ms |
+| --- | --- | --- | --- | --- | --- |
+| double_time | 8 | 3 | 4 | 4 | 6 |
+| dropout | 8 | 4 | 4 | 5 | 7 |
+| half_time | 8 | 4 | 4 | 6 | 6 |
+| leading_shift | 8 | 3 | 4 | 4 | 5 |
+| straight | 9 | 4 | 6 | 5 | 7 |
+| syncopated | 8 | 0 | 0 | 2 | 2 |
+| weak_downbeat | 8 | 3 | 4 | 4 | 5 |
+
+The `straight` row includes both long inputs: ten full inputs but nine
+representable clocks. Other variants each have eight inputs. The 48 comparisons
+share composition and declared transport; arrangement edits can also change
+noise-voice realizations. Only `leading_shift` is an exact waveform translation.
+It adds 317ms while retaining the source-relative transport relation.
+
+The simple unit diagnostic switches from 3/4 to 4/4 between
+`control00_straight`/`control00_leading_shift` (60 BPM) and
+`control02_straight`/`control02_leading_shift` (120 BPM). Its automatic condition
+changes meter only in the latter pair. A changed BPM/meter is not credited as
+phase invariance. The original and retained methods preserve rate/meter in all
+eight shift pairs; corresponding phase movement residuals are a few milliseconds.
+
+### Reliability and execution evidence
+
+Original automatic development predictions have the following warning table:
+
+| Reference agreement diagnostic | No warning | Warning |
+| --- | --- | --- |
+| Pulse BPM ≤2% | 169 | 83 |
+| Pulse BPM >2% | 10 | 18 |
+| Beat and downbeat F1@70ms both ≥0.9 | 161 | 70 |
+| Either event F1@70ms <0.9 | 18 | 31 |
+
+These cells do not calibrate a correctness probability. A pulse-rate match can
+still have a bar-phase error. The event cutoff 0.9 is a decomposition diagnostic,
+not a product pass rule.
+
+Recorded focused controls are trace 16, decomposition 7, simple fitting 11,
+generated coordinates 7, generated scoring/pairing 8 and candidate retention 7:
+56 cases passed. Earlier parser/metric 28 and GTZAN qualification 16 controls
+are separate evidence. Frozen development and validation execution reviews
+each passed 18 checks. The final cross-run review passed 18 source-freeze,
+cohort, denominator, origin and replay checks. The 58 traced cache replays
+reproduce the original clock/event coordinates. These records certify execution
+contracts, not musical accuracy or DAW runtime behavior.
+
+Recorded reference/configuration inputs, raw predictions and earlier comparison
+versions remain preserved. New neural training, waveform-decoder evaluation
+for GTZAN, application integration, a new DAW audit and inference on the 98
+reserved groups are absent from this checkpoint.
+
 Preserved local outputs under `samples/experiments/metronome_benchmark_v1/`:
 
 - `20261007-gtzan-development280-frozen-v1/`: unchanged predictions and complete traces.

@@ -59,7 +59,7 @@ The tap refers to the initial section. Using that layer throughout the input rel
 
 ## Recorded experiments
 
-The fixed-condition cohort has 26 samples: 13 complete recordings, ten original-recording excerpts, two synthetic recordings and one GuitarSet auxiliary recording. Its meters are 24 instances of 4/4 and two of 3/4. Every sample contributes to one common denominator, including failed predictions.
+The original fixed-condition cohort has 26 samples: 13 complete recordings, ten original-recording excerpts, two synthetic recordings and one GuitarSet auxiliary recording. Its meters are 24 instances of 4/4 and two of 3/4. Every sample contributes to one common denominator, including failed predictions. The external benchmark cohorts described below use separate memberships and denominators.
 
 The automatic run has 19/26 nominal BPM matches and 26/26 stored meter matches. A reference-derived correct-unit diagnostic has 26/26 nominal BPM and meter matches, with quarter and bar maximum errors both within 20 ms for 24/26 and 30 ms for 25/26. The [root result summary](../../README.md#실험-결과) gives the conditions and remaining errors.
 
@@ -99,3 +99,44 @@ To build a page from an existing saved run:
 ```
 
 The builder ranks recorded `max(quarter_max_error_ms, bar_max_error_ms)` and copies saved prediction/reference events. It performs no inference or scoring. Reference clicks stop outside reference support. Recorded control results establish their specific contracts; they do not establish unseen-song accuracy.
+
+## External evaluation checkpoint — 2026-10-07
+
+The separate [automatic benchmark toolkit](../metronome_benchmark_v1/README.md#recorded-expansion-and-method-comparison)
+evaluated this unchanged estimator, with the same official final0 checkpoint and
+configuration. Its completed jobs comprise the BabySlakh twenty-recording pilot
+and repeat, all 280 qualified GTZAN development feature groups, 58 defined-clock
+generated inputs, and the first use of 87 GTZAN validation groups. The original
+26-sample manifests, references and predictions are preserved separately.
+
+| Original estimator condition | Development pulse BPM error ≤2% | Development beat/downbeat F1@70ms | Validation pulse BPM error ≤2% | Validation beat/downbeat F1@70ms |
+| --- | ---: | ---: | ---: | ---: |
+| Automatic | 252/280 | 95.22% / 87.46% | 77/87 | 95.50% / 85.35% |
+| Reference-unit diagnostic | 275/280 | 97.31% / 88.86% | 84/87 | 97.10% / 85.99% |
+
+Each unit diagnostic retains one unsupported-layer abstention in its denominator:
+`gtzan_country_00097` in development and `gtzan_country_00091` in validation.
+Development automatic disagreements include 15 half-rate, eight double-rate and
+five other-rate cases; 17 inputs have perfect beat F1 and zero downbeat F1@70ms.
+GTZAN provides short public features and coarse annotations, not verified
+producer clocks or a waveform-decoder/full-song benchmark. Validation is entirely
+four-pulse; 98 reserved exact-feature groups were not inferred. Duplicate-feature
+grouping does not verify all recording/artist independence.
+
+The generated music has 58 inputs from ten parent compositions. Original
+automatic/unit-diagnostic clocks have quarter-and-bar maximum error ≤20ms for
+21/57 and 30/57 representable inputs respectively. The predeclared long 120.1 BPM
+probe stays in the full 58-input summaries; it cannot be represented with maximum
+denominator four. Its unit diagnostic returns 120 BPM and accumulates about
+214ms of drift. Defined sample scheduling is verified within one 32kHz frame,
+without giving transport markers to the model. This verifies a constructed
+clock/audio relation, not independently measured real-producer timing.
+
+The benchmark also implements a robust event-line baseline and an all-tested
+candidate-retention comparison. Neither replaces `hinted.py` or the application's
+adapter. The simple baseline has similar GTZAN agreement and lower clock-fitting
+cost, but changes meter in some pure leading-shift pairs. Original versus simple
+generated precision is 21/57 versus 26/57 automatic, and 30/57 versus 38/57 in
+unit diagnostics. No new neural training or post-validation retuning occurred.
+Detailed methods, diagnostic tolerances and preserved output paths are in the
+benchmark README.
