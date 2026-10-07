@@ -1,10 +1,14 @@
 # Automatic fixed-metronome benchmark
 
 Read a prepared dataset, qualify reference capabilities, run the
-unchanged fixed-metronome estimator, and produce JSON, CSV and an HTML report.
+frozen fixed-metronome estimator, and produce JSON, CSV and an HTML report.
 BabySlakh supplies encoded MIDI clocks; GTZAN supplies public features and
 coarse beat annotations. Both paths require no per-recording listening, manual offset selection or
 post-prediction reference correction.
+
+Additional source-only methods compare the same constant BPM, 3/4 or 4/4,
+and global downbeat-offset output. A paired generated-music corpus measures
+defined sample-clock phase and drift, separately from real-annotation agreement.
 
 ## BabySlakh reference scope
 
@@ -49,6 +53,110 @@ dependencies into a separate local directory:
 
 The inference worker imports the existing estimator and configuration without
 changing model packages, weights or numerical parameters.
+
+## Complete candidate diagnostics
+
+`run_gtzan --role development --limit 0 --trace` evaluates every development
+feature group with the frozen estimator. Tracing preserves every tested clock,
+score component, phase seed, refinement seed and retained candidate in compressed
+JSONL. It wraps and restores the original functions; it does not change their
+return values. Original inputs, source snapshots and predictions remain separate
+from later comparisons.
+
+```sh
+PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+  .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.decompose \
+  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
+  --previous samples/experiments/metronome_benchmark_v1/PILOT_RUN \
+  --output samples/experiments/metronome_benchmark_v1/ANALYSIS_RUN
+```
+
+Decomposition records vocabulary error, compatible candidates in the broad
+search and final family, audio-score ranks and gaps, bar grouping and downbeat
+evidence. Annotation-best candidates are explicitly reference-informed oracle
+diagnostics; they never replace primary predictions. Cause remains unresolved
+where model evidence and annotation interpretation cannot be adjudicated.
+
+## Methods with the same output
+
+`simple_clock` fits event-index lines with a robust loss, quantizes BPM to the
+same rational vocabulary, and scores 3/4 or 4/4 bar phases against source events.
+Its period seeds come from observed intervals; octave hypotheses, phases and
+scores are prepared before hints. It uses no spectral search or original
+multi-term clock objective. Configuration is frozen in `simple-clock-v1.json`.
+
+`retained_clock` changes only candidate retention. All clocks already tested by
+the original broad search and family search compete in discrete unit groups,
+with their original scores unchanged. It requires a complete source-only trace.
+It adds no genre-specific rule or reference-derived tempo multiplier.
+
+Both methods separate `prepare` from `select`. A tap is encoded by the original
+discrete octave rule; its number cannot affect fine BPM, phase or score. The
+default estimator is not replaced by these comparison entry points.
+
+```sh
+PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+  .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.simple_clock prepare \
+  --source samples/experiments/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
+  --evidence samples/experiments/metronome_benchmark_v1/FROZEN_RUN/evidence \
+  --model-config samples/experiments/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
+  --output samples/experiments/metronome_benchmark_v1/SIMPLE_RUN
+
+PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+  .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.simple_clock select \
+  --source samples/experiments/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
+  --evidence samples/experiments/metronome_benchmark_v1/FROZEN_RUN/evidence \
+  --model-config samples/experiments/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
+  --output samples/experiments/metronome_benchmark_v1/SIMPLE_RUN \
+  --hints samples/experiments/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
+
+PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+  .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.retained_clock prepare \
+  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
+  --output samples/experiments/metronome_benchmark_v1/RETAINED_RUN
+
+PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+  .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.retained_clock select \
+  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
+  --output samples/experiments/metronome_benchmark_v1/RETAINED_RUN \
+  --hints samples/experiments/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
+```
+
+`compare_models --run FROZEN_RUN --model simple=SIMPLE_RUN --model
+retained=RETAINED_RUN --output COMPARISON_RUN` scores additional predictions
+against the unchanged annotation protocol. Original conditions stay in the
+comparison. Missing predictions remain in the denominator.
+
+## Defined sample-clock music controls
+
+`generated_controls --output CORPUS_ROOT` creates deterministic analytic
+drum/bass/chord music. Eight short compositions each have seven paired variants:
+straight, weak downbeat, syncopated, half-time, double-time, dropout and leading
+shift. Two additional long compositions probe drift, for 58 inputs from ten
+parent groups. These are controlled synthetic inputs, not 58 independent songs.
+
+Transport markers and actual music-event placement use the declared sample
+coordinates. A separate marker WAV is read against the rational transport and
+excluded from every model input. The coordinate bound is one frame at 32 kHz
+(0.03125 ms); it does not establish a real recording's producer clock or a
+unique perceptual interpretation. Ideal reference events are generated without
+the estimator's grid helper. There is no latency-changing audio postprocessing.
+
+The long 120.1 BPM input is a predefined output-vocabulary probe. Its denominator
+ten cannot be represented by the current maximum denominator four. Precision
+counts on representable clocks keep a separate denominator of 57. All 58 inputs
+remain in event and failure summaries.
+
+Use the source-only `inference prepare/select` worker on the corpus manifest,
+then compare methods with `score_generated --corpus CORPUS_ROOT --model-config
+CONFIG --method frozen=FROZEN_RUN --method simple=SIMPLE_RUN --output
+RESULTS_RUN`. `replay_clock` can reproduce full traces from cached observations
+without repeating neural inference. `runtime_compare` measures the two clock
+fitters on deterministic source IDs with neural inference and tracing excluded.
+
+Focused controls for tracing, decomposition, simple fitting, candidate retention,
+generated coordinates and precision scoring are separate `controls_*` modules.
+Their results establish implementation contracts, not real-audio accuracy.
 
 ## Acquire the pilot inputs
 
@@ -315,3 +423,96 @@ predictions are read without modification; the review output must be new.
 `execution_path_passed` describes an operational evaluation path. Model
 accuracy is reported separately. Source errors stay recorded, and neither
 adapter provides a verified original producer clock.
+
+## Recorded expansion and method comparison
+
+The 2026-10-07 frozen expansion evaluated all **280 development feature groups**
+without changing the original estimator, configuration or qualification rule.
+The original 100 inputs reproduced every prediction in all three conditions.
+Their automatic beat/downbeat F1@70ms remained 92.09%/83.17%; the additional
+180 inputs scored 96.96%/89.84%. The complete 280 scored 95.22%/87.46%.
+This cohort change is not a model improvement. The original pilot contained all
+four 3-pulse development inputs; the added inputs all have 4-pulse bars.
+
+Automatic rate disagreements were 15 half-rate, eight double-rate and five
+other-rate cases. Of those 28, 24 had compatible rates already tested in the
+final family; four lacked a compatible final-family rate, including two with
+compatible rates in the original broad search. Seventeen inputs had beat F1=1
+and downbeat F1=0 at 70ms: disco one, hiphop three and reggae thirteen.
+These are descriptive counts on this subset, not genre-wide error rates.
+Annotation interpretation and sensor/model causes remain unresolved where
+independent evidence is unavailable.
+
+The three fixed-clock methods share the same source observations and reference
+protocol. Configuration and model sources were frozen before the first use of
+the **87 validation groups**; no parameters were retuned from validation.
+Validation has only 4-pulse bars. The **98 reserved groups remain uninferred**.
+
+| Method and condition | Development BPM ≤2% | Development beat/downbeat F1@70ms | Validation BPM ≤2% | Validation beat/downbeat F1@70ms |
+| --- | ---: | ---: | ---: | ---: |
+| Original automatic | 252/280 | 95.22% / 87.46% | 77/87 | 95.50% / 85.35% |
+| Simple automatic | 253/280 | 95.40% / 87.59% | 77/87 | 95.32% / 85.64% |
+| Retained-candidate automatic | 252/280 | 95.22% / 87.46% | 77/87 | 95.50% / 85.35% |
+| Original unit diagnostic | 275/280 | 97.31% / 88.86% | 84/87 | 97.10% / 85.99% |
+| Simple unit diagnostic | 277/280 | 97.95% / 88.65% | 86/87 | 98.39% / 86.24% |
+| Retained-candidate unit diagnostic | 276/280 | 97.54% / 88.86% | 84/87 | 97.10% / 85.99% |
+
+Original and retained-candidate unit diagnostics abstained once in each cohort;
+simple diagnostics returned all clocks. Every condition preserves its selected
+denominator. Validation bar-pulse agreement is 84/87 for every automatic method,
+84/87 for the original/retained unit diagnostics and 83/87 for the simple unit
+diagnostic. At 20ms, automatic validation beat/downbeat F1 is 73.10%/66.41% for
+the original and 74.76%/68.03% for the simple method. These are coarse-annotation
+diagnostics, not certified producer timing.
+
+The generated corpus contains **58 inputs from ten parent compositions**,
+including 48 paired contrasts. All conditions returned 58 clocks. The predefined
+120.1 BPM vocabulary probe remains in the full denominator; representable-clock
+precision uses 57 inputs.
+
+| Method and condition | BPM error ≤0.1% | Declared meter | Quarter and bar maximum error ≤20ms |
+| --- | ---: | ---: | ---: |
+| Original automatic | 37/58 | 32/58 | 21/57 |
+| Simple automatic | 37/58 | 36/58 | 26/57 |
+| Original unit diagnostic | 55/58 | 34/58 | 30/57 |
+| Simple unit diagnostic | 54/58 | 44/58 | 38/57 |
+
+Retained-candidate results match the original in these controls. Both original
+conditions preserved BPM/meter across all eight leading-shift pairs. The simple
+automatic method changed meter in one pair; its unit diagnostic changed meter
+in two. The simple method's higher aggregate precision therefore does not
+establish uniformly better stability. The long representable 128.5 BPM control
+had maximum quarter errors of 2.82ms original versus 1.12ms simple, without rate
+drift. The 120.1 BPM unit diagnostics both returned 120 BPM and accumulated about
+214ms of drift. The existing denominator-four output domain was not relaxed.
+
+On ten deterministic source-ID selections, clock-fitting median time was
+3.888s original versus 0.033s simple. These paired measurements exclude neural
+inference, evidence preprocessing and tracing; they are not end-to-end speedups.
+All timed predictions reproduced saved coordinates. The simpler method is a
+promising comparison implementation, but mixed accuracy and shift-stability
+results leave the application's default estimator unchanged.
+
+Warning flags remain uncalibrated. In development, ten of 28 original automatic
+rate disagreements had no warning; eighteen of 49 inputs below the separate
+diagnostic requirement of beat and downbeat F1 both ≥0.9 also had no warning.
+A flagged BPM match can still have a phase error and is not necessarily a false
+warning. Flags are not per-song accuracy probabilities.
+
+The 56 new focused contract/metric controls passed. Frozen development and
+validation execution reviews each passed 18 checks. Replaying all 58 generated
+inputs from cached observations with complete tracing reproduced original
+clock/event coordinates. Workflow passes remain separate from musical accuracy.
+
+Preserved local outputs under `samples/experiments/metronome_benchmark_v1/`:
+
+- `20261007-gtzan-development280-frozen-v1/`: unchanged predictions and complete traces.
+- `20261007-gtzan-development280-analysis-v1/`: 100/180/280 partitions and oracle-labeled decomposition.
+- `20261007-gtzan-development280-comparison-v2/`: same-output method comparison.
+- `20261007-generated58-comparison-v2/`: defined-clock precision and paired contrasts.
+- `20261007-gtzan-validation87-frozen-v1/`: first separate-role evaluation.
+- `20261007-gtzan-validation87-comparison-v1/`: frozen-method validation comparison.
+
+Generated inputs and verification records are in
+`samples/external/generated-clock-contrast-v1/`. Existing samples, reference
+coordinates and previous runs were preserved. No neural training was performed.

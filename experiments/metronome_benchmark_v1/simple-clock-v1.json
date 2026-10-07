@@ -1,0 +1,16 @@
+{
+  "method": "robust event-index constant-clock fit v1",
+  "seed_limit": 8,
+  "phase_anchor_limit": 12,
+  "robust_iterations": 4,
+  "huber_seconds": 0.04,
+  "period_relative_refinement_limit": 0.1,
+  "histogram_step_seconds": 0.002,
+  "beat_weight": 0.5555555555555556,
+  "downbeat_weight": 0.4444444444444444,
+  "minimum_agreement": 0.75,
+  "ambiguity_margin": 0.02,
+  "hypothesis_powers": [-4, -3, -2, -1, 0, 1, 2, 3, 4],
+  "configuration_chosen_before_expanded_comparison": true,
+  "reference_used_in_candidate_generation": false
+}

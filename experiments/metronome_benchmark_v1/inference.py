@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import time
+from contextlib import nullcontext
 
 
 def write_json(path, content):
@@ -97,9 +98,17 @@ def prepare(args):
             np.savez_compressed(args.output / "evidence" / f"{ident}.npz", beat_logits=beat_array,
                                 downbeat_logits=down_array, fps=config["fps"], duration_seconds=row["duration_seconds"])
             evidence = make_evidence(beat_array, down_array, row["duration_seconds"], config)
-            family = prepare_audio_family(evidence, config)
-            write_json(args.output / "families" / f"{ident}.json", family)
-            prediction = decorate(select_from_family(family), row["duration_seconds"])
+            if args.trace:
+                from .trace import CandidateTrace
+                tracing = CandidateTrace(args.output / "traces", ident)
+            else:
+                tracing = nullcontext(None)
+            with tracing as trace:
+                family = prepare_audio_family(evidence, config)
+                write_json(args.output / "families" / f"{ident}.json", family)
+                prediction = decorate(select_from_family(family), row["duration_seconds"])
+                if trace is not None:
+                    trace.finish(family, prediction)
             if event_processor is not None:
                 try:
                     beat_events, downbeat_events = event_processor(beat, downbeat)
@@ -158,6 +167,7 @@ def main():
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hints", type=Path)
+    parser.add_argument("--trace", action="store_true", help="Record all tested clocks and source-only search stages")
     args = parser.parse_args()
     if args.stage == "prepare":
         (args.output / "evidence").mkdir(parents=True, exist_ok=True)

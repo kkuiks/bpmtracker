@@ -70,7 +70,7 @@ def render_report(results):
 <p>평가 가능 표본의 역할: {escape(json.dumps(summary['qualified_by_role'], ensure_ascii=False))}. 곡별 수동 판단은 0회입니다. 적합성 판정과 그룹 배정은 예측 전에 기록했습니다.</p>
 <p class="note">원음을 새로 확보하거나 앱의 디코더를 평가한 결과가 아닙니다. 공개된 50fps·128밴드 특징을 float32 모델에 입력합니다. 기존 박·마디 주석과의 일치도를 채점하며, 제작자의 정밀 시계나 정확한 악보 박자표를 인증하지 않습니다.</p>
 <h2>사전 선정 규칙</h2><p>원래 박 주석을 모두 사용하여 일정한 박 간격을 최소제곱으로 맞춥니다. 절대 잔차의 95백분위가 30ms 이하, 최대가 70ms 이하인 표본만 고정 조건 근사에 포함합니다. 주석의 박 순서가 일정한 3박·4박 마디를 이루는지도 확인합니다. 주석을 제거하거나 이동하지 않으며, 이 근사는 실제 제작 템포가 일정하다는 증명과 구분됩니다.</p>
-<p>동일한 특징은 같은 그룹으로 묶고 개발 60%·검증 20%·보관 20%에 결정적으로 배정합니다. 이번 시제품은 선택한 역할 안에서 장르·마디당 박 수를 순회하며 최대 100개 그룹을 선정합니다. 실행별 실제 제한과 ID는 split.json에 기록합니다. 보관 구간은 이번 추론에 들어가지 않습니다. 서로 다른 파일의 동일 원곡·아티스트 관계는 전부 확인하지 못했으므로 최종 독립 테스트로 취급하지 않습니다.</p>
+<p>동일한 특징은 같은 그룹으로 묶고 개발 60%·검증 20%·보관 20%에 결정적으로 배정합니다. 선택한 역할 안에서 장르·마디당 박 수를 순회하여 그룹을 선정합니다. 실행별 제한과 실제 ID는 split.json에 기록하며, 제한 0은 해당 역할의 전체 그룹을 뜻합니다. 보관 구간은 이번 추론에 들어가지 않습니다. 서로 다른 파일의 동일 원곡·아티스트 관계는 전부 확인하지 못했으므로 최종 독립 테스트로 취급하지 않습니다.</p>
 <h2>선정 집합에서의 비교</h2><p>이벤트의 주 지표는 오차 허용 {primary}ms의 곡별 평균 F1입니다. 추론 실패는 선정 분모에 남고 F1은 0으로 집계합니다. JSON에는 20·30ms 진단과 이벤트 전체를 합친 F1도 기록합니다.</p>
 <div class="scroll"><table><tr><th>조건</th><th>분모</th><th>예측 반환</th><th>실패·미반환</th><th>주석 박 BPM 오차 ≤2%</th><th>마디당 박 수 일치</th><th>박 F1</th><th>마디 첫 박 F1</th></tr>{''.join(methods)}</table></div>
 <p>주석의 박을 4분음표로 읽는 단위 제공 조건은 참조 기반 진단입니다. 박자표·주석 시각·위상은 추론에 제공하지 않습니다. Beat This 기본 출력은 같은 관측에서 얻은 가변 이벤트열이며 고정 BPM·박자표·오프셋을 반환하는 모델과 출력 목표가 다릅니다.</p>
@@ -123,7 +123,8 @@ def prepare(args):
         "checkpoint": str(args.checkpoint.resolve()), "checkpoint_bytes": args.checkpoint.stat().st_size,
         "frozen_model_sources": frozen_sources, "model_parameters_changed": False, "new_training": False,
         "reference_unit_hints_are_diagnostic": True, "beat_this_version": importlib.metadata.version("beat-this"),
-        "source_audio_acquired": False, "precomputed_features_only": True})
+        "source_audio_acquired": False, "precomputed_features_only": True,
+        "complete_candidate_trace": args.trace})
     print(f"QUALIFY {len(rows)} total; {len(references)} qualified; {len(selected)} selected {args.role}; "
           f"{dict(Counter(row['status'] for row in rows))}", flush=True)
     return rows, references, protocol
@@ -177,6 +178,7 @@ def main():
     parser.add_argument("--role", choices=["development", "validation"], default="development")
     parser.add_argument("--limit", type=int, default=100, help="Maximum exact feature groups; zero evaluates the complete selected role")
     parser.add_argument("--prepare-only", action="store_true")
+    parser.add_argument("--trace", action="store_true", help="Preserve every scored clock for later decomposition")
     args = parser.parse_args()
     if args.limit < 0:
         parser.error("--limit must be nonnegative")
@@ -194,7 +196,7 @@ def main():
     command = [sys.executable, "-m", "experiments.metronome_benchmark_v1.inference"]
     options = ["--source", str(args.output / "source-inputs.json"), "--config", str(args.output / "model-config.json"),
                "--checkpoint", str(args.checkpoint), "--output", str(args.output)]
-    subprocess.run(command + ["prepare"] + options, cwd=ROOT, env=environment, check=True)
+    subprocess.run(command + ["prepare"] + options + (["--trace"] if args.trace else []), cwd=ROOT, env=environment, check=True)
     subprocess.run(command + ["select"] + options + ["--hints", str(args.output / "unit-hints.json")],
                    cwd=ROOT, env=environment, check=True)
     build_results(args, rows, references, protocol)
