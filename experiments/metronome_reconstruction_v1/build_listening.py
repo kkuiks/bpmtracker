@@ -4,6 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+from tools.project_storage import resolve_path
 
 from .evaluate import reference_events
 
@@ -34,11 +35,11 @@ def build(run, samples_root, output, condition="tap_only", count=5):
         ident, meta = row["id"], metadata[row["id"]]
         map_path = run / condition / "tempo-maps" / (ident + ".json")
         proposal = json.loads(map_path.read_text(encoding="utf-8"))
-        ref = json.loads((samples_root / meta["reference"]["path"]).read_text(encoding="utf-8"))
+        ref = json.loads(resolve_path(samples_root / meta["reference"]["path"]).read_text(encoding="utf-8"))
         beat_ref, down_ref = reference_events(ref, meta["reference_support_seconds"])
         metrics = row["conditions"][condition]["metrics"]
         audio_url, map_url = f"audio/{ident}.wav", f"maps/{ident}.json"
-        assets[audio_url] = str((samples_root / meta["audio"]["path"]).absolute())
+        assets[audio_url] = str(resolve_path(samples_root / meta["audio"]["path"]).absolute())
         assets[map_url] = str(map_path.absolute())
         tracks.append({
             "id": ident, "rank": rank, "title": row["title"],
@@ -80,7 +81,7 @@ def build(run, samples_root, output, condition="tap_only", count=5):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run", type=Path, required=True)
-    parser.add_argument("--samples-root", type=Path, default=Path("samples"))
+    parser.add_argument("--samples-root", type=Path, default=Path("data/samples"))
     parser.add_argument("--output", type=Path)
     parser.add_argument("--condition", default="tap_only")
     parser.add_argument("--count", type=int, default=5)

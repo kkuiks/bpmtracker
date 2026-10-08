@@ -13,10 +13,11 @@ import html
 import json
 import os
 from pathlib import Path
+from tools.project_storage import resolve_path
 import shutil
 import time
 
-os.environ.setdefault("MPLCONFIGDIR", str(Path("samples/.experiment-state/metronome-v1/matplotlib")))
+os.environ.setdefault("MPLCONFIGDIR", str(Path("data/research/state/experiment/metronome-v1/matplotlib")))
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -188,7 +189,7 @@ def main():
                "qualification": meta["qualification"], "reference_scope_note": meta["reference_scope_note"]}
         try:
             prediction = json.loads((args.run / "predictions" / (ident + ".json")).read_text())
-            ref = json.loads((args.samples_root / meta["reference"]["path"]).read_text())
+            ref = json.loads(resolve_path(args.samples_root / meta["reference"]["path"]).read_text())
             beat_ref, down_ref = reference_events(ref, meta["reference_support_seconds"])
             with np.load(args.evidence / (ident + ".npz")) as arrays:
                 evidence = make_evidence(arrays["beat_logits"], arrays["downbeat_logits"], float(arrays["duration_seconds"]), config)

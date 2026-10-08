@@ -54,9 +54,8 @@ const checkpoint = bundled
   ? path.join(packagedAnalysis, "final0.ckpt")
   : path.join(
       repository,
-      "samples",
-      ".experiment-state",
-      "metronome-v1",
+      "data",
+      "models",
       "final0.ckpt",
     );
 const send = (name, data) => {

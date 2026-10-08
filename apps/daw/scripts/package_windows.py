@@ -111,7 +111,7 @@ def main():
     module.mkdir(exist_ok=True)
     for name in ['__init__.py', 'grid.py', 'infer.py', 'hinted.py', 'config-tap-v2.json', 'design-tap-v2.json']:
         shutil.copyfile(ROOT / 'experiments/metronome_reconstruction_v1' / name, module / name)
-    shutil.copyfile(ROOT / 'samples/.experiment-state/metronome-v1/final0.ckpt', analysis / 'final0.ckpt')
+    shutil.copyfile(ROOT / 'data/models/final0.ckpt', analysis / 'final0.ckpt')
     python = resource / 'python'
     python.mkdir(exist_ok=True)
     with zipfile.ZipFile(python_zip) as archive:

@@ -8,11 +8,16 @@ from pathlib import Path
 from datetime import datetime,timezone
 import argparse,hashlib,json,os,re,subprocess
 from urllib.parse import urlsplit,urlunsplit
+from zoneinfo import ZoneInfo
 import requests
 from playwright.sync_api import sync_playwright
+if __package__:
+    from .storage import bind_selected, note_stage, assert_candidate_allowed, library_root
+else:
+    from storage import bind_selected, note_stage, assert_candidate_allowed, library_root
 
 REPO=Path(__file__).resolve().parents[2]
-PRIVATE=REPO/'samples/.private/ntm'
+PRIVATE=REPO/'data/private/ntm'
 
 
 def save(path,value):
@@ -62,21 +67,44 @@ def transfer(url,path,label):
     emit(source=label,file=path.name,downloaded_bytes=written)
 
 
+def member_master(context,url,path,label,source_page):
+    """Use ordinary authenticated member access for protected site uploads."""
+    if urlsplit(url).hostname!='members.urm.academy':
+        return transfer(url,path,label)
+    receipt_path=path.with_name(path.name+'.transfer.json')
+    if path.exists() and receipt_path.exists() and json.loads(receipt_path.read_text()).get('complete'):
+        emit(file=path.name,source=label,reusing_previous_transfer=True);return
+    response=context.request.get(url,headers={'Referer':source_page},timeout=180000)
+    if response.status!=200:raise RuntimeError('master_transfer_http_'+str(response.status))
+    data=response.body();path.parent.mkdir(parents=True,exist_ok=True)
+    temporary=path.with_name(path.name+'.part');temporary.write_bytes(data);temporary.replace(path)
+    save(receipt_path,dict(complete=True,source=safe_url(url),bytes=len(data),
+        expected_bytes=int(response.headers.get('content-length',len(data))),
+        sha256=hashlib.sha256(data).hexdigest(),transport='authenticated_member_browser_request',
+        checksum_recorded_for_inventory=True,post_transfer_integrity_checks_run=False))
+    response.dispose()
+    emit(source=label,file=path.name,downloaded_bytes=len(data))
+
+
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--batch',type=Path,required=True);parser.add_argument('--auth',type=Path,required=True)
     parser.add_argument('--slug');parser.add_argument('--refresh-recorded-link',action='store_true')
     args=parser.parse_args();batch=args.batch;selection=json.loads((batch/'selection.json').read_text())
+    if args.slug:
+        targets=[s for s in selection['songs'] if s['slug']==args.slug]
+        for song in targets or [dict(slug=args.slug)]:assert_candidate_allowed(song)
     if args.slug and any(s['slug']==args.slug and not s.get('collection_enabled',True) for s in selection['songs']):
         raise RuntimeError('owner_excluded_source')
     songs=[s for s in selection['songs'] if s.get('collection_enabled',True) and (args.slug is None or s['slug']==args.slug)]
     if not songs:raise RuntimeError('selection_missing')
+    bind_selected(batch,songs)
     # Skip completed transfers whose archives were intentionally removed.
-    songs=[s for s in songs if not ((batch/s['slug']/'source.zip.transfer.json').exists() and
-        json.loads((batch/s['slug']/'source.zip.transfer.json').read_text()).get('current_file_disposition')=='intentionally_removed_after_owner_approved_cleanup')]
+    songs=[s for s in songs if not ((library_root()/s['slug']/'collection/source.zip.transfer.json').exists() and
+        json.loads((library_root()/s['slug']/'collection/source.zip.transfer.json').read_text()).get('current_file_disposition')=='intentionally_removed_after_owner_approved_cleanup')]
     if not songs:
         emit(status='selected_sources_already_finalized',new_provider_requests=0);return
     PRIVATE.mkdir(parents=True,exist_ok=True,mode=0o700);os.chmod(PRIVATE,0o700)
-    os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(REPO/'legacy/data/tools/ntm-collector/browsers')
+    os.environ['PLAYWRIGHT_BROWSERS_PATH']=str(REPO/'data/runtime/ntm-collector/browsers')
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True,executable_path=p.chromium.executable_path)
         context=browser.new_context(storage_state=str(args.auth));page=context.new_page();nonce=[]
@@ -92,16 +120,18 @@ def main():
         if not nonce and (PRIVATE/'nonce.json').exists():nonce.append(json.loads((PRIVATE/'nonce.json').read_text())['nonce'])
         headers={'X-WP-Nonce':nonce[0]} if nonce else {}
         for song in songs:
-            slug=song['slug'];job=batch/slug;job.mkdir(exist_ok=True)
-            response=context.request.get('https://members.urm.academy/wp-json/wp/v2/ntm_session?slug='+slug,headers=headers,timeout=45000)
+            slug=song['slug'];job=library_root()/slug/'collection';job.mkdir(exist_ok=True)
+            response=context.request.get('https://members.urm.academy/wp-json/wp/v2/ntm_session/'+str(song['session_id']),headers=headers,timeout=45000)
             if response.status!=200:raise RuntimeError('session_metadata_http_'+str(response.status))
-            items={r['id']:r for r in response.json() if r.get('slug')==slug}
-            item=items[song['session_id']]
+            item=response.json()
+            if not isinstance(item,dict) or item.get('id')!=song['session_id'] or item.get('slug')!=slug:
+                raise RuntimeError('session_metadata_identity_mismatch')
             if item.get('hasAccess') is not True:raise RuntimeError('member_login_required')
             save(job/'source.json',dict(title=song['title'],slug=slug,session_id=item['id'],source_page='https://members.urm.academy/ntm-sessions/'+slug+'/',
-                 access_confirmed=True,master_source=safe_url(item['songFile']),acquired_date_local='2026-10-05'))
+                 access_confirmed=True,master_source=safe_url(item['songFile']),acquired_date_local=datetime.now(ZoneInfo('Asia/Seoul')).date().isoformat()))
             master=item['songFile'];extension=Path(urlsplit(master).path).suffix.lower()
-            encoded=job/('master-original'+extension);transfer(master,encoded,song['title']+' Master')
+            encoded=job/('master-original'+extension);member_master(context,master,encoded,song['title']+' Master',
+                song.get('source_page','https://members.urm.academy/ntm-sessions/'+slug+'/'))
             wav=job/'master.wav'
             if not wav.exists():
                 temporary=job/'master.partial.wav'
@@ -109,7 +139,8 @@ def main():
                 temporary.replace(wav)
             files=item.get('sessionFiles') or {}
             archive=job/'source.zip';request_path=job/'archive-request.json'
-            if archive.exists() and archive.with_name('source.zip.transfer.json').exists():continue
+            if archive.exists() and archive.with_name('source.zip.transfer.json').exists():
+                note_stage(song,batch,'acquired_pending_clock_preparation');continue
             transport=PRIVATE/(slug+'-transport.json')
             if request_path.exists() and transport.exists():link=json.loads(transport.read_text())['url']
             else:
@@ -134,6 +165,7 @@ def main():
                 save(request_path,receipt)
                 emit(source=song['title'],archive_link_requested=True,recorded_link_refresh=bool(prior),rate_limit_response=value.get('rateLimit'))
             transfer(link,archive,song['title']+' multitracks')
+            note_stage(song,batch,'acquired_pending_clock_preparation')
         context.storage_state(path=str(PRIVATE/'auth-state.json'));os.chmod(PRIVATE/'auth-state.json',0o600)
         browser.close()
     emit(acquisition_complete=True,source_count=len(songs),archive_integrity_tests_run=False)

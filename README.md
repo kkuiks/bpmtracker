@@ -63,7 +63,7 @@ Windows에서 음원과 악기별 스템을 편집하고, 고정 메트로놈을
 
 명목 BPM 일치는 참조에 기록된 미세한 수치 차이를 포함한 정확한 수치 일치와 구분됩니다. 이 결과는 알려진 개발 표본의 검토된 참조와의 비교이며, 독립적인 제작자 클릭의 밀리초 정확도·실제 탭 성능·미지곡 일반화를 입증하지 않습니다. 시간 오차 기준은 진단용이며, 정식 제품 합격 기준은 정하지 않았습니다.
 
-원음·참조·실행 보고서는 소스 저장소에 포함되지 않습니다. 로컬 실행 자료의 구조와 청취 페이지 사용법은 [분석기 안내](experiments/metronome_reconstruction_v1/README.md#recorded-experiments)에 있습니다.
+원음·참조·실행 보고서는 로컬 저장소 내부의 `data/`에 보관하며 Git에는 포함하지 않습니다. 로컬 실행 자료의 구조와 청취 페이지 사용법은 [분석기 안내](experiments/metronome_reconstruction_v1/README.md#recorded-experiments)에 있습니다.
 
 별도의 [자동 평가 도구](experiments/metronome_benchmark_v1/README.md)는 적합성 판정과 참조 생성, 추론, 채점, 보고서 생성을 연결합니다. BabySlakh 20곡 중 고정 조건의 11곡에서 자동 분석과 박 단위 제공 진단 모두 명목 BPM이 9/11개 일치했습니다. 명시된 박자표는 모두 4/4이며 8/8개가 일치했습니다. 2026-10-07 새 실행에서도 모든 예측과 집계가 재현됐습니다. 음원 시간 원점의 독립적인 정합 근거가 없어 정밀 위상 정확도는 채점하지 않았습니다. 기존 26개 집합과 별도인 합성 개발 자료의 MIDI 선언값 비교입니다.
 
@@ -90,7 +90,7 @@ apps/daw/                                Windows 오디오 작업 앱
 experiments/metronome_reconstruction_v1/   고정 메트로놈 추정기·평가기·청취 도구
 experiments/metronome_benchmark_v1/        표본·참조 적합성 판정·자동 추론·채점
 tools/ntm_collection/                     표본 수집·원본 시계 추출·오프셋 검토 도구
-legacy/                                  이전 구현과 실험의 보존 자료
+data/                                    로컬 샘플·연구 결과·모델 (Git 제외)
 ```
 
-표본 수집 도구의 입력·출력과 정렬 방식은 [수집 도구 안내](tools/ntm_collection/README.md)에 있습니다. 음원, 모델 가중치, 가상환경, 실행 결과와 배포 파일은 별도로 준비합니다.
+표본 수집 도구의 입력·출력과 정렬 방식은 [수집 도구 안내](tools/ntm_collection/README.md)에 있습니다. 모든 로컬 샘플은 `data/samples/`에 실제 파일로 모으며, 카탈로그가 등록 여부와 현재 경로를 관리합니다. 연구 결과는 `data/research/`, 모델은 `data/models/`에 보관합니다. 이전 구현은 Git 이력에 남고, 선별한 실패 증거는 현재 연구 자료에 보관합니다. 로컬 자료와 배포 파일은 소스 Git에 포함하지 않습니다.

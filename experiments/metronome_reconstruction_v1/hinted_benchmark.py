@@ -7,6 +7,7 @@ import csv
 import html
 import json
 from pathlib import Path
+from tools.project_storage import resolve_path
 import shutil
 
 import numpy as np
@@ -102,7 +103,7 @@ def main():
                "reference_meter": meta["reference_meter_values"][0],
                "original_automatic_bpm": previous[ident]["prediction"]["quarter_bpm"],
                "conditions": {}}
-        ref = json.loads((args.samples_root / meta["reference"]["path"]).read_text())
+        ref = json.loads(resolve_path(args.samples_root / meta["reference"]["path"]).read_text())
         beat_ref, down_ref = reference_events(ref, meta["reference_support_seconds"])
         nominal = Fraction(row["reference_bpm_exact"]).limit_denominator(config["denominator_max"])
         for variant in variants:

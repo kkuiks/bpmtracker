@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import mimetypes
 from pathlib import Path
+from tools.project_storage import resolve_path
 import re
 from urllib.parse import unquote, urlsplit
 
@@ -14,7 +15,7 @@ def serve(root, port):
     data = json.loads((root / "index-data.json").read_text(encoding="utf-8"))
     routes = json.loads((root / "assets.json").read_text(encoding="utf-8"))["assets"]
     requested = {track[key] for track in data["tracks"] for key in ("audio_url", "map_url")}
-    allowed = {name: Path(routes[name]) for name in requested}
+    allowed = {name: resolve_path(routes[name]) for name in requested}
     allowed.update({name: frontend / name for name in ("index.html", "app.js", "style.css")})
     allowed["index-data.json"] = root / "index-data.json"
 

@@ -11,6 +11,7 @@ import argparse
 from fractions import Fraction
 import math
 from pathlib import Path
+from tools.project_storage import resolve_path
 import time
 
 import numpy as np
@@ -24,7 +25,7 @@ STATE_NAMES = {UNKNOWN: "UNKNOWN", MATCH: "MATCH", MISMATCH: "MISMATCH"}
 
 
 def load_evidence(path, config):
-    with np.load(path, allow_pickle=False) as data:
+    with np.load(resolve_path(path), allow_pickle=False) as data:
         if int(data["fps"]) != config["fps"]:
             raise ValueError("Observation frame rate differs")
         evidence = make_evidence(data["beat_logits"], data["downbeat_logits"], float(data["duration_seconds"]), config)
@@ -177,7 +178,7 @@ def calibrate(run, output, model, protocol, fixed_library=False, fixed_developme
     if fixed_development:
         for row in read_json(run / "negative-controls/oracle-inputs.json")["rows"]:
             if row["role"] == "development":
-                calibration.append({"id": row["id"], "evidence": Path(row["evidence_path"]),
+                calibration.append({"id": row["id"], "evidence": resolve_path(row["evidence_path"]),
                                     "clock": next(c for c in row["clocks"] if c["clock_id"] == "annotation_fit_oracle")})
     write_json(output / "calibration-protocol.json", {"ids": [item["id"] for item in calibration],
                "fixed_library_added": fixed_library, "real_variable_labels_used": False,

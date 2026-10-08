@@ -1,21 +1,13 @@
 # Local data and workspace files
 /_local
-/samples/
+/data/
 /.daw-state/
 /.daw-runtime/
 *.joljak
 *.joljak.autosave
-/legacy/_local
-/legacy/FAILURE_STUDY.md
-/legacy/migration-20261002/
 
-# Local planning files and archived Markdown
-# Keep the original versioned human documentation in the source archive.
+# Local planning files
 /*[Pp]roposal*.md
-/legacy/**/*.md
-!/legacy/README.md
-!/legacy/docs/analysis.md
-!/legacy/docs/benchmark.md
 
 # Workspace configuration
 AGENTS.md
@@ -82,4 +74,3 @@ cookies*.json
 credentials*.json
 private-transport*.json
 
-# Original ignore rules remain at legacy/.gitignore and apply within that tree.

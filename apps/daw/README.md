@@ -164,7 +164,7 @@ JSON retains exact map coordinates, saved source-relative clocks and raw analyse
 
 ## Build and package
 
-Build in Linux/WSL with Node.js/npm and the [Python CPU analysis environment](../../experiments/metronome_reconstruction_v1/README.md#environment). Place the official checkpoint at `samples/.experiment-state/metronome-v1/final0.ckpt`.
+Build in Linux/WSL with Node.js/npm and the [Python CPU analysis environment](../../experiments/metronome_reconstruction_v1/README.md#environment). Place the official checkpoint at `data/models/final0.ckpt`.
 
 ```sh
 cd apps/daw

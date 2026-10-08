@@ -27,7 +27,7 @@ Run from the repository root:
 ```sh
 .venv-metronome-v1/bin/python -m experiments.metronome_reconstruction_v1.hinted \
   --audio input.wav --tap-bpm 155 \
-  --checkpoint samples/.experiment-state/metronome-v1/final0.ckpt \
+  --checkpoint data/models/final0.ckpt \
   --output proposal.json
 ```
 
@@ -59,6 +59,13 @@ The tap refers to the initial section. Using that layer throughout the input rel
 
 ## Recorded experiments
 
+Current physical sample files are in `data/samples/`, stored observations are in
+`data/research/state/experiment/metronome-v1/`, and the official checkpoint is
+`data/models/final0.ckpt`. Frozen input records retain historical identifiers;
+`tools/project_storage.py` resolves them using the path-only consolidation index.
+No filesystem aliases or reference-clock values are used by that resolver.
+
+
 The original fixed-condition cohort has 26 samples: 13 complete recordings, ten original-recording excerpts, two synthetic recordings and one GuitarSet auxiliary recording. Its meters are 24 instances of 4/4 and two of 3/4. Every sample contributes to one common denominator, including failed predictions. The external benchmark cohorts described below use separate memberships and denominators.
 
 The automatic run has 19/26 nominal BPM matches and 26/26 stored meter matches. A reference-derived correct-unit diagnostic has 26/26 nominal BPM and meter matches, with quarter and bar maximum errors both within 20 ms for 24/26 and 30 ms for 25/26. The [root result summary](../../README.md#실험-결과) gives the conditions and remaining errors.
@@ -68,10 +75,10 @@ Reference-derived taps test correct-unit assistance; they are not measured human
 Original audio, manifests, observations, reports and run snapshots are local data, absent from a source-only checkout. For a checkout with these materials, the layout is:
 
 ```text
-samples/selections/fixed-metronome-v1/
+data/samples/selections/fixed-metronome-v1/
   all-valid-inference.json       source inputs only
   all-valid-evaluation.json      references and supported intervals
-samples/experiments/metronome_reconstruction_v1/
+data/research/runs/metronome_reconstruction_v1/
   20261005-first26-v1/            automatic results
   20261005-tap26-v2/              unit-hint diagnostic and no-hint control
 ```
@@ -84,7 +91,7 @@ With a prepared local run, start the standard-library server:
 
 ```sh
 python3 -m experiments.metronome_reconstruction_v1.serve_listening \
-  --root samples/experiments/metronome_reconstruction_v1/20261005-tap26-v2/listening-bottom5 \
+  --root data/research/runs/metronome_reconstruction_v1/20261005-tap26-v2/listening-bottom5 \
   --port 8997
 ```
 
@@ -94,8 +101,8 @@ To build a page from an existing saved run:
 
 ```sh
 .venv-metronome-v1/bin/python -m experiments.metronome_reconstruction_v1.build_listening \
-  --run samples/experiments/metronome_reconstruction_v1/20261005-tap26-v2 \
-  --samples-root samples --condition tap_only --count 5
+  --run data/research/runs/metronome_reconstruction_v1/20261005-tap26-v2 \
+  --samples-root data/samples --condition tap_only --count 5
 ```
 
 The builder ranks recorded `max(quarter_max_error_ms, bar_max_error_ms)` and copies saved prediction/reference events. It performs no inference or scoring. Reference clicks stop outside reference support. Recorded control results establish their specific contracts; they do not establish unseen-song accuracy.

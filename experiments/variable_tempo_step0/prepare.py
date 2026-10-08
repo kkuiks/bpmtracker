@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
+from tools.project_storage import resolve_path
 import shutil
 import subprocess
 
@@ -30,7 +31,7 @@ def main():
         row = rows[ident]
         if ident in protocol["primary_real_ids"] and row["meters"] != [{"numerator": 4, "denominator": 4}]:
             raise ValueError("A primary real recording violates the frozen fixed-4/4 scope")
-        path = Path(row["audio_path"])
+        path = resolve_path(row["audio_path"])
         path = path if path.is_absolute() else SAMPLES / path
         sources.append(source_row(ident, path))
         admitted.append({"id": ident, "variant": "real_variable" if ident in protocol["primary_real_ids"] else "secondary_rate_only",

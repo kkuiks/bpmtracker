@@ -7,14 +7,15 @@ import hashlib
 import json
 import math
 from pathlib import Path
+from tools.project_storage import resolve_path
 
 ROOT = Path(__file__).resolve().parents[2]
-SAMPLES = ROOT / "samples"
+SAMPLES = ROOT / "data/samples"
 PACKAGE = Path(__file__).parent
 
 
 def read_json(path):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return json.loads(resolve_path(path).read_text(encoding="utf-8"))
 
 
 def write_json(path, value):
@@ -24,7 +25,7 @@ def write_json(path, value):
 
 
 def digest(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return hashlib.sha256(resolve_path(path).read_bytes()).hexdigest()
 
 
 def nearest_rate(value, denominator=4):
@@ -109,6 +110,7 @@ def oracle_clock(segment, quarters, bars, meter=4):
 
 def source_row(ident, path):
     import soundfile as sf
+    path = resolve_path(path)
     info = sf.info(path)
     return {"id": ident, "audio_path": str(Path(path).resolve()),
             "sample_rate": info.samplerate, "sample_frames": info.frames,

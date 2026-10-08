@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
+from tools.project_storage import resolve_path
 import time
 from contextlib import nullcontext
 
@@ -78,7 +79,7 @@ def prepare(args):
             if feature_input:
                 if row["fps"] != config["fps"] or row["mel_bands"] != 128:
                     raise ValueError("Published features differ from the estimator's input contract")
-                path = row["spectrogram_path"]
+                path = resolve_path(row["spectrogram_path"])
                 if path not in bundles:
                     bundles[path] = np.load(path, allow_pickle=False)
                 signal = bundles[path][row["spectrogram_key"]].astype(np.float32)
@@ -86,7 +87,7 @@ def prepare(args):
                     raise ValueError("Published features differ from their prepared source geometry")
                 beat, downbeat = tracker(torch.from_numpy(signal))
             else:
-                signal, rate = sf.read(row["audio_path"], dtype="float32", always_2d=True)
+                signal, rate = sf.read(resolve_path(row["audio_path"]), dtype="float32", always_2d=True)
                 if rate != row["sample_rate"] or signal.shape != (row["sample_frames"], row["channels"]):
                     raise ValueError("Decoded mixture geometry differs from source manifest")
                 if not np.isfinite(signal).all():

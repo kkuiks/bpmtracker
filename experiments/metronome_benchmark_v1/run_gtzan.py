@@ -174,7 +174,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--protocol", type=Path, default=PACKAGE / "protocol-gtzan-v1.json")
     parser.add_argument("--config", type=Path, default=MODEL / "config-tap-v2.json")
-    parser.add_argument("--checkpoint", type=Path, default=ROOT / "samples/.experiment-state/metronome-v1/final0.ckpt")
+    parser.add_argument("--checkpoint", type=Path, default=ROOT / "data/models/final0.ckpt")
     parser.add_argument("--role", choices=["development", "validation"], default="development")
     parser.add_argument("--limit", type=int, default=100, help="Maximum exact feature groups; zero evaluates the complete selected role")
     parser.add_argument("--prepare-only", action="store_true")

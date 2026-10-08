@@ -9,6 +9,10 @@ import xml.etree.ElementTree as ET
 import mido
 import numpy as np
 import soundfile as sf
+if __package__:
+    from .storage import bind_selected, note_stage, assert_candidate_allowed, library_root, SAMPLES
+else:
+    from storage import bind_selected, note_stage, assert_candidate_allowed, library_root, SAMPLES
 
 
 def save(path,value):
@@ -124,7 +128,8 @@ def drum_role(filename):
 
 
 def prepare(batch,song):
-    job=batch/song['slug'];audio=job/'master.wav';info=sf.info(audio);references=[];midis=[];projects=[];song_meters=[]
+    assert_candidate_allowed(song,'review')
+    job=library_root()/song['slug']/'collection';audio=job/'master.wav';info=sf.info(audio);references=[];midis=[];projects=[];song_meters=[]
     with zipfile.ZipFile(job/'source.zip') as archive:
         names=[i.filename for i in archive.infolist() if not i.is_dir() and '__MACOSX' not in i.filename]
         save(job/'archive-members.json',dict(members=[dict(name=i.filename,bytes=i.file_size) for i in archive.infolist()],zip_wide_crc_scan_run=False))
@@ -139,11 +144,11 @@ def prepare(batch,song):
                 if ext in {'.wav','.aif','.aiff','.mp3','.flac','.m4a'}:continue
                 path=job/'references/native-logic'/str(relative);path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_bytes(archive.read(name))
-                references.append(dict(label=str(relative),path=str(path.relative_to(batch)),archive_member=name,native_project_clock_decoded=False))
+                references.append(dict(label=str(relative),path=str(path.relative_to(SAMPLES)),archive_member=name,native_project_clock_decoded=False))
                 continue
             if ext not in {'.mid','.midi','.rpp','.song','.cpr','.ptx'}:continue
             path=job/'references'/f'{len(references):03d}{ext}';path.parent.mkdir(exist_ok=True);path.write_bytes(archive.read(name))
-            references.append(dict(label=PurePosixPath(name).name,path=str(path.relative_to(batch)),archive_member=name))
+            references.append(dict(label=PurePosixPath(name).name,path=str(path.relative_to(SAMPLES)),archive_member=name))
             if ext in {'.mid','.midi'}:
                 clock=midi_clock(path)
                 if clock:
@@ -190,12 +195,13 @@ def prepare(batch,song):
 
 
 def prepare_partial(batch,song):
-    job=batch/song['slug']
+    assert_candidate_allowed(song,'review')
+    job=library_root()/song['slug']/'collection'
     extraction=json.loads((job/'partial-reference-extraction.json').read_text())
-    references=[dict(label=PurePosixPath(r['archive_member']).name,path=str((job/r['path']).relative_to(batch)),
+    references=[dict(label=PurePosixPath(r['archive_member']).name,path=str((job/r['path']).relative_to(SAMPLES)),
                      archive_member=r['archive_member']) for r in extraction['complete_reference_files']]
     reference=next(r for r in references if PurePosixPath(r['archive_member']).suffix.lower() in {'.mid','.midi'})
-    clock=midi_clock(batch/reference['path'])
+    clock=midi_clock(SAMPLES/reference['path'])
     if clock is None or not clock['meter_events']:raise RuntimeError('partial_reference_clock_incomplete')
     clock['tempo_source_archive_member']=reference['archive_member']
     clock['source_archive_complete']=False
@@ -215,7 +221,8 @@ def prepare_partial(batch,song):
 
 
 def write_review(batch,song,clock,references,details,candidates):
-    job=batch/song['slug'];audio=job/'master.wav';info=sf.info(audio)
+    assert_candidate_allowed(song,'review')
+    job=library_root()/song['slug']/'collection';audio=job/'master.wav';info=sf.info(audio)
     save(job/'raw-clock.json',clock)
     initial=candidates[0]['offset_seconds'] if candidates else 0.
     periods=clock['tempo_events'];meters=clock['meter_events'];quarters=[];bars=[]
@@ -234,8 +241,8 @@ def write_review(batch,song,clock,references,details,candidates):
     if not candidates:description+=' 자동 오프셋 시작값을 얻지 못해 0 ms에서 조정합니다.'
     if clock.get('source_archive_complete') is False:
         description+=' Master와 MIDI는 확보됐으며, 멀티트랙 압축 파일의 남은 다운로드는 제공처 한도로 대기 중입니다.'
-    review=dict(title=song['title'],slug=song['slug'],description=description,audio=str(audio.relative_to(batch)),original_audio=str(audio.relative_to(batch)),
-        raw_clock=str((job/'raw-clock.json').relative_to(batch)),audio_sha256=geometry['sha256'],clock_sha256=digest(job/'raw-clock.json'),
+    review=dict(title=song['title'],slug=song['slug'],description=description,audio=str(audio.relative_to(SAMPLES)),original_audio=str(audio.relative_to(SAMPLES)),
+        raw_clock=str((job/'raw-clock.json').relative_to(SAMPLES)),audio_sha256=geometry['sha256'],clock_sha256=digest(job/'raw-clock.json'),
         sample_rate=info.samplerate,sample_frames=info.frames,channels=info.channels,duration_seconds=geometry['duration_seconds'],
         project_end_seconds=clock['project_end_seconds'],source_range_start_seconds=0.,
         tempo_events=periods,meter_events=meters,quarters=quarters,bars=bars,candidates=candidates,initial_offset_seconds=initial,
@@ -246,36 +253,36 @@ def write_review(batch,song,clock,references,details,candidates):
     result=dict(title=song['title'],slug=song['slug'],bpm=[e['bpm'] for e in periods],meter=[f'{e["numerator"]}/{e["denominator"]}' for e in meters],
                 offset_seconds=initial,duration_seconds=geometry['duration_seconds'],owner_acceptance_pending=True,tests_or_verification_run=False)
     save(job/'preparation-status.json',dict(status='ready_for_owner_listening',**result));print(json.dumps(result,ensure_ascii=False),flush=True)
-    return dict(title=song['title'],review=song['slug']+'/review-data.json')
+    return dict(title=song['title'],review=str((job/'review-data.json').relative_to(SAMPLES)))
 
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--batch',type=Path,required=True);parser.add_argument('--slug')
     parser.add_argument('--partial-source',action='store_true');args=parser.parse_args();batch=args.batch
     selection=json.loads((batch/'selection.json').read_text());rows=[]
+    if args.slug:
+        targets=[s for s in selection['songs'] if s['slug']==args.slug]
+        for song in targets or [dict(slug=args.slug)]:assert_candidate_allowed(song,'review')
+    bind_selected(batch,[s for s in selection['songs'] if s.get('review_enabled',True) and (args.slug is None or s['slug']==args.slug)])
     prepared_any=False
     for song in selection['songs']:
         if not song.get('review_enabled',True):continue
-        path=batch/song['slug']/'review-data.json'
+        path=library_root()/song['slug']/'collection/review-data.json'
         existing=json.loads(path.read_text()) if path.exists() else {}
         if args.slug is None or args.slug==song['slug']:
             if existing.get('human_alignment_accepted'):pass
             elif args.partial_source:prepare_partial(batch,song);prepared_any=True
             else:prepare(batch,song);prepared_any=True
-        if path.exists():rows.append(dict(title=song['title'],review=song['slug']+'/review-data.json'))
-    pending=any(not json.loads((batch/r['review']).read_text()).get('human_alignment_accepted') for r in rows)
+            note_stage(song,batch,'pending_owner_alignment' if (library_root()/song['slug']/'collection/raw-clock.json').exists() else 'source_only')
+        if path.exists():rows.append(dict(title=song['title'],review=str(path.relative_to(SAMPLES))))
+    pending=any(not json.loads((SAMPLES/r['review']).read_text()).get('human_alignment_accepted') for r in rows)
     if rows and not prepared_any and not pending:
         print(json.dumps(dict(existing_owner_accepted_sources=len(rows),preparation_reused=True,owner_choices_and_cleanup_state_preserved=True)),flush=True);return
     save(batch/'index-data.json',dict(songs=rows,owner_acceptance_pending=pending))
-    repo=Path(__file__).resolve().parents[2]
-    html=(repo/'tools/ntm_collection/review.html').read_text().replace('승인된 오프셋으로 저장한 세 곡입니다. 다른 위치도 비교해서 들을 수 있습니다.','이번에 확보한 세 곡의 오프셋은 아직 미확정입니다. 클릭 위치를 조정해 선택하세요.')
-    html=html.replace('joljak-ntm-new3:','joljak-ntm-20261005:')
-    html=html.replace('새 NTM 3곡',f'NTM {len(rows)}곡')
-    (batch/'review.html').write_text(html)
-    shutil_source=(repo/'tools/ntm_collection/serve.py').read_text();(batch/'serve.py').write_text(shutil_source)
+    # The canonical server/frontend serves this descriptor directly.
     active=[s for s in selection['songs'] if s.get('review_enabled',True)]
     save(batch/'batch.json',dict(status='ready_for_owner_listening' if pending else 'active_sources_owner_accepted',prepared_sources=len(rows),
-                               archive_downloads_complete=all((batch/s['slug']/'source.zip').exists() for s in selection['songs']),
+                               archive_downloads_complete=all((library_root()/s['slug']/'collection/source.zip').exists() for s in selection['songs']),
                                excluded_sources=len(selection['songs'])-len(active),
                                tests_or_verification_run=False,owner_acceptance_pending=pending,source_cleanup_performed=False))
 

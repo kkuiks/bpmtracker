@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 
 REPO = Path(__file__).resolve().parents[2]
-PRIVATE = REPO / 'samples/.private/ntm'
+PRIVATE = REPO / 'data/private/ntm'
 
 
 def private_json(path, value):
@@ -58,7 +58,7 @@ def main():
     args = parser.parse_args()
     PRIVATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(PRIVATE, 0o700)
-    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(REPO / 'legacy/data/tools/ntm-collector/browsers')
+    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = str(REPO / 'data/runtime/ntm-collector/browsers')
     token = secrets.token_urlsafe(24)
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True, executable_path=pw.chromium.executable_path)

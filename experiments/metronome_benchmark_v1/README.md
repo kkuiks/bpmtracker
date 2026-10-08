@@ -47,7 +47,7 @@ dependencies into a separate local directory:
 
 ```sh
 .venv-metronome-v1/bin/python -m pip install --no-deps \
-  --target samples/.benchmark-state/babyslakh-v1/python-deps \
+  --target data/research/state/benchmark/babyslakh-v1/python-deps \
   -r experiments/metronome_benchmark_v1/requirements.txt
 ```
 
@@ -64,11 +64,11 @@ return values. Original inputs, source snapshots and predictions remain separate
 from later comparisons.
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.decompose \
-  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
-  --previous samples/experiments/metronome_benchmark_v1/PILOT_RUN \
-  --output samples/experiments/metronome_benchmark_v1/ANALYSIS_RUN
+  --run data/research/runs/metronome_benchmark_v1/FROZEN_RUN \
+  --previous data/research/runs/metronome_benchmark_v1/PILOT_RUN \
+  --output data/research/runs/metronome_benchmark_v1/ANALYSIS_RUN
 ```
 
 Decomposition records vocabulary error, compatible candidates in the broad
@@ -95,31 +95,31 @@ discrete octave rule; its number cannot affect fine BPM, phase or score. The
 default estimator is not replaced by these comparison entry points.
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.simple_clock prepare \
-  --source samples/experiments/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
-  --evidence samples/experiments/metronome_benchmark_v1/FROZEN_RUN/evidence \
-  --model-config samples/experiments/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
-  --output samples/experiments/metronome_benchmark_v1/SIMPLE_RUN
+  --source data/research/runs/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
+  --evidence data/research/runs/metronome_benchmark_v1/FROZEN_RUN/evidence \
+  --model-config data/research/runs/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
+  --output data/research/runs/metronome_benchmark_v1/SIMPLE_RUN
 
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.simple_clock select \
-  --source samples/experiments/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
-  --evidence samples/experiments/metronome_benchmark_v1/FROZEN_RUN/evidence \
-  --model-config samples/experiments/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
-  --output samples/experiments/metronome_benchmark_v1/SIMPLE_RUN \
-  --hints samples/experiments/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
+  --source data/research/runs/metronome_benchmark_v1/FROZEN_RUN/source-inputs.json \
+  --evidence data/research/runs/metronome_benchmark_v1/FROZEN_RUN/evidence \
+  --model-config data/research/runs/metronome_benchmark_v1/FROZEN_RUN/model-config.json \
+  --output data/research/runs/metronome_benchmark_v1/SIMPLE_RUN \
+  --hints data/research/runs/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
 
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.retained_clock prepare \
-  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
-  --output samples/experiments/metronome_benchmark_v1/RETAINED_RUN
+  --run data/research/runs/metronome_benchmark_v1/FROZEN_RUN \
+  --output data/research/runs/metronome_benchmark_v1/RETAINED_RUN
 
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.retained_clock select \
-  --run samples/experiments/metronome_benchmark_v1/FROZEN_RUN \
-  --output samples/experiments/metronome_benchmark_v1/RETAINED_RUN \
-  --hints samples/experiments/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
+  --run data/research/runs/metronome_benchmark_v1/FROZEN_RUN \
+  --output data/research/runs/metronome_benchmark_v1/RETAINED_RUN \
+  --hints data/research/runs/metronome_benchmark_v1/FROZEN_RUN/unit-hints.json
 ```
 
 `compare_models --run FROZEN_RUN --model simple=SIMPLE_RUN --model
@@ -164,7 +164,7 @@ From the repository root:
 
 ```sh
 python3 -m experiments.metronome_benchmark_v1.acquire \
-  --root samples/external/babyslakh-v2
+  --root data/samples/datasets/babyslakh-v2
 ```
 
 The downloader checks the published archive fingerprint and resumes incomplete
@@ -178,10 +178,10 @@ The downloaded archive and extracted inputs remain local. The pilot uses about
 ## Run automatic evaluation
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.run \
-  --data-root samples/external/babyslakh-v2/inputs \
-  --output samples/experiments/metronome_benchmark_v1/RUN_ID
+  --data-root data/samples/datasets/babyslakh-v2/inputs \
+  --output data/research/runs/metronome_benchmark_v1/RUN_ID
 ```
 
 The output directory must be new. `--prepare-only` records qualification,
@@ -251,23 +251,23 @@ This pilot demonstrates an automated execution path and agreement with stored
 MIDI declarations, not complete-map accuracy or real-world generalization.
 
 The preserved local output is
-`samples/experiments/metronome_benchmark_v1/20261006-babyslakh-pilot-v1/`.
+`data/research/runs/metronome_benchmark_v1/20261006-babyslakh-pilot-v1/`.
 An earlier preparation-only attempt relied on stale metadata flags and is
 retained separately. Source files and the two original 26-sample runs remain
 unchanged; the new dataset is not enrolled into their catalog or denominator.
 
 A fresh 2026-10-07 execution reproduced every saved prediction and the complete
 summary on the same 20-recording catalog. It is preserved at
-`samples/experiments/metronome_benchmark_v1/20261007-babyslakh-baseline-v1/`.
+`data/research/runs/metronome_benchmark_v1/20261007-babyslakh-baseline-v1/`.
 The execution review checked source/reference separation, preserved denominators
 and reporting before the first public-feature corpus expansion.
 
 ## Focused controls
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.controls \
-  --output samples/.benchmark-state/babyslakh-v1/controls.json
+  --output data/research/state/benchmark/babyslakh-v1/controls.json
 ```
 
 The 28 parser and metric cases use independently encoded SMF fixtures and known
@@ -318,12 +318,12 @@ and reserved inputs are outside the first development inference manifest.
 
 ```sh
 python3 -m experiments.metronome_benchmark_v1.acquire_gtzan \
-  --root samples/external/gtzan-beat-this-v1
+  --root data/samples/datasets/gtzan-beat-this-v1
 
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.run_gtzan \
-  --data-root samples/external/gtzan-beat-this-v1/inputs \
-  --output samples/experiments/metronome_benchmark_v1/RUN_ID \
+  --data-root data/samples/datasets/gtzan-beat-this-v1/inputs \
+  --output data/research/runs/metronome_benchmark_v1/RUN_ID \
   --role development --limit 100
 ```
 
@@ -348,9 +348,9 @@ the diagnostic tap after source inference completes.
 ### Focused feature controls
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.controls_gtzan \
-  --output samples/.benchmark-state/gtzan-v1/controls.json
+  --output data/research/state/benchmark/gtzan-v1/controls.json
 ```
 
 The 16 cases cover known pulse arithmetic, retained timestamps, coarse-reference
@@ -399,7 +399,7 @@ from constant-clock reconstruction. Its output contract remains a fixed
 metronome, whereas the baseline returns an unconstrained event sequence.
 
 The completed output is
-`samples/experiments/metronome_benchmark_v1/20261007-gtzan-development100-v1/`.
+`data/research/runs/metronome_benchmark_v1/20261007-gtzan-development100-v1/`.
 All 18 execution-contract review checks passed. The original references,
 protocol, role selection, predictions and source snapshots remain together in
 that run. No new neural training or reconstruction parameter tuning was used.
@@ -407,10 +407,10 @@ that run. No new neural training or reconstruction parameter tuning was used.
 ## Review a completed execution
 
 ```sh
-PYTHONPATH=samples/.benchmark-state/babyslakh-v1/python-deps \
+PYTHONPATH=data/research/state/benchmark/babyslakh-v1/python-deps \
   .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.review \
-  --run samples/experiments/metronome_benchmark_v1/RUN_ID \
-  --output samples/.benchmark-state/RUN_ID-review.json
+  --run data/research/runs/metronome_benchmark_v1/RUN_ID \
+  --output data/research/state/benchmark/RUN_ID-review.json
 ```
 
 The review reconciles the catalog, selected source-only inputs, worker receipt,
@@ -590,7 +590,7 @@ zero event F1. Simple conditions have no failed or abstained clocks.
 
 Predictor sources and settings were frozen at `2026-10-07T02:49:00.856229+00:00` before
 the first validation observation. Source correspondence was recorded in
-`samples/.benchmark-state/gtzan-v1/20261007-validation-method-freeze.json` and the
+`data/research/state/benchmark/gtzan-v1/20261007-validation-method-freeze.json` and the
 completed execution review; validation did not trigger another parameter change.
 
 ### Generated event scores and paired contrasts
@@ -664,7 +664,7 @@ versions remain preserved. New neural training, waveform-decoder evaluation
 for GTZAN, application integration, a new DAW audit and inference on the 98
 reserved groups are absent from this checkpoint.
 
-Preserved local outputs under `samples/experiments/metronome_benchmark_v1/`:
+Preserved local outputs under `data/research/runs/metronome_benchmark_v1/`:
 
 - `20261007-gtzan-development280-frozen-v1/`: unchanged predictions and complete traces.
 - `20261007-gtzan-development280-analysis-v1/`: 100/180/280 partitions and oracle-labeled decomposition.
@@ -674,5 +674,5 @@ Preserved local outputs under `samples/experiments/metronome_benchmark_v1/`:
 - `20261007-gtzan-validation87-comparison-v1/`: frozen-method validation comparison.
 
 Generated inputs and verification records are in
-`samples/external/generated-clock-contrast-v1/`. Existing samples, reference
+`data/samples/datasets/generated-clock-contrast-v1/`. Existing samples, reference
 coordinates and previous runs were preserved. No neural training was performed.

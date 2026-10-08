@@ -4,6 +4,7 @@ import argparse
 import importlib.metadata
 import json
 from pathlib import Path
+from tools.project_storage import resolve_path
 import time
 
 import numpy as np
@@ -45,7 +46,7 @@ def main():
         print(f"EXTRACT {index}/{len(manifest['samples'])} {row['id']}", flush=True)
         start = time.perf_counter()
         try:
-            signal, sr = sf.read(args.samples_root / row["audio_path"], dtype="float32", always_2d=True)
+            signal, sr = sf.read(resolve_path(args.samples_root / row["audio_path"]), dtype="float32", always_2d=True)
             # Necessary input geometry guards, not a source-file integrity audit.
             if sr != row["sample_rate"] or len(signal) != row["sample_frames"]:
                 raise ValueError("Decoded source geometry differs from the source manifest")

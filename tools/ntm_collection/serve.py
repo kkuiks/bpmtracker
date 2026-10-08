@@ -4,6 +4,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import mimetypes
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tools.project_storage import resolve_path, SAMPLES
 import re
 from urllib.parse import unquote,urlsplit
 
@@ -12,11 +15,13 @@ def run(root, port):
     catalog=json.loads((root/'index-data.json').read_text())
     allowed={'index.html':Path(__file__).with_name('review.html'),'index-data.json':root/'index-data.json'}
     for row in catalog['songs']:
-        allowed[row['review']]=root/row['review']
-        data=json.loads((root/row['review']).read_text())
+        allowed[row['review']]=resolve_path(SAMPLES/row['review'])
+        data=json.loads(resolve_path(SAMPLES/row['review']).read_text())
         for name in ['audio','original_audio','raw_clock','accepted_map','approved_click','approved_audition','acceptance_record']:
-            if data.get(name):allowed[data[name]]=root/data[name]
-        for item in data['clock_files']:allowed[item['path']]=root/item['path']
+            if data.get(name):allowed[data[name]]=resolve_path(SAMPLES/data[name])
+        for item in data['clock_files']:allowed[item['path']]=resolve_path(SAMPLES/item['path'])
+    for row in catalog.get('source_only_songs',[]):
+        allowed[row['audio']]=resolve_path(SAMPLES/row['audio'])
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args):pass
         def do_HEAD(self):self.send_asset(False)

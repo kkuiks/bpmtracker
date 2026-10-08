@@ -13,8 +13,11 @@ rate-only diagnostics; unresolved waveform origin precludes absolute boundaries.
 ## Recorded study
 
 Local evidence is in
-`samples/experiments/variable_tempo_step0/20261007-step0-v1/`. Media, reference maps,
-weights and result directories are excluded from source distribution.
+`data/research/runs/variable_tempo_step0/20261007-step0-v1/`. Media, reference maps,
+weights and result directories are excluded from source distribution. The retained
+constructed corpus is now physically at `data/samples/generated/variable-tempo-step0-v1/`;
+frozen run records remain under the run directory. Path-only relocation readers
+resolve their original identifiers without directory aliases.
 
 Thirty constructed inputs come from three parent compositions. Together with
 three primary real recordings, two rate-only secondary inputs and the existing
@@ -46,22 +49,26 @@ fixed false proposals and boundary ambiguity remain. Local `report.md`,
 ## Environment and entry points
 
 Use the existing [CPU estimator environment](../metronome_reconstruction_v1/README.md#environment)
-and local official final0 checkpoint. Outputs must be new. Example setup:
+and local official final0 checkpoint. Outputs must be new and require their own owner instruction. The commands below
+illustrate the original creation-stage pipeline: `prepare` expects `<run>/corpus`
+during preparation. This scratch convention is separate from the permanent
+sample library; the retained October 7 corpus uses the canonical location above.
+These examples do not start a new experiment. Creation-stage example:
 
 ```sh
 .venv-metronome-v1/bin/python -m experiments.variable_tempo_step0.inventory \
-  --output samples/experiments/variable_tempo_step0/NEW_RUN/inventory
+  --output data/research/runs/variable_tempo_step0/NEW_RUN/inventory
 .venv-metronome-v1/bin/python -m experiments.variable_tempo_step0.generated \
-  --output samples/experiments/variable_tempo_step0/NEW_RUN/corpus
+  --output data/research/runs/variable_tempo_step0/NEW_RUN/corpus
 .venv-metronome-v1/bin/python -m experiments.variable_tempo_step0.prepare \
-  --run samples/experiments/variable_tempo_step0/NEW_RUN
+  --run data/research/runs/variable_tempo_step0/NEW_RUN
 .venv-metronome-v1/bin/python -m experiments.metronome_benchmark_v1.inference prepare \
-  --source samples/experiments/variable_tempo_step0/NEW_RUN/source-inputs.json \
-  --config samples/experiments/variable_tempo_step0/NEW_RUN/model-config.json \
-  --checkpoint samples/.experiment-state/metronome-v1/final0.ckpt \
-  --output samples/experiments/variable_tempo_step0/NEW_RUN/original --trace
+  --source data/research/runs/variable_tempo_step0/NEW_RUN/source-inputs.json \
+  --config data/research/runs/variable_tempo_step0/NEW_RUN/model-config.json \
+  --checkpoint data/models/final0.ckpt \
+  --output data/research/runs/variable_tempo_step0/NEW_RUN/original --trace
 .venv-metronome-v1/bin/python -m experiments.variable_tempo_step0.candidate \
-  --run samples/experiments/variable_tempo_step0/NEW_RUN
+  --run data/research/runs/variable_tempo_step0/NEW_RUN
 ```
 
 Later modules expose stages through `--help`: `proposal`, `support`, `acoustic`,
@@ -95,7 +102,7 @@ contracts separately from musical accuracy.
 
 ```sh
 python3 -m http.server 8998 --bind 127.0.0.1 \
-  --directory samples/experiments/variable_tempo_step0/20261007-step0-v1/corpus
+  --directory data/samples/generated/variable-tempo-step0-v1
 ```
 
 Open `http://localhost:8998/`, forwarding the port for remote workspaces. Music

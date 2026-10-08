@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from tools.project_storage import resolve_path
 
 import numpy as np
 import soundfile as sf
@@ -45,7 +46,7 @@ def main():
     receipt = []
     for source in read_json(run / "source-inputs.json")["samples"]:
         ident = source["id"]
-        signal, rate = sf.read(source["audio_path"], dtype="float32", always_2d=True)
+        signal, rate = sf.read(resolve_path(source["audio_path"]), dtype="float32", always_2d=True)
         if rate != source["sample_rate"] or signal.shape != (source["sample_frames"], source["channels"]):
             raise ValueError("Source geometry differs from frozen manifest")
         with np.load(run / "original/evidence" / f"{ident}.npz", allow_pickle=False) as data:

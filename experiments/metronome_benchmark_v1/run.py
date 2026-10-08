@@ -131,7 +131,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--protocol", type=Path, default=PACKAGE / "protocol.json")
     parser.add_argument("--config", type=Path, default=MODEL / "config-tap-v2.json")
-    parser.add_argument("--checkpoint", type=Path, default=ROOT / "samples/.experiment-state/metronome-v1/final0.ckpt")
+    parser.add_argument("--checkpoint", type=Path, default=ROOT / "data/models/final0.ckpt")
     parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--resume", action="store_true", help="Continue an incomplete run with identical frozen inputs")
     args = parser.parse_args()
