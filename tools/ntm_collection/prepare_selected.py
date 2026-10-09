@@ -11,8 +11,10 @@ import numpy as np
 import soundfile as sf
 if __package__:
     from .storage import bind_selected, note_stage, assert_candidate_allowed, library_root, SAMPLES
+    from .prepare_daw_review import prepare_descriptor
 else:
     from storage import bind_selected, note_stage, assert_candidate_allowed, library_root, SAMPLES
+    from prepare_daw_review import prepare_descriptor
 
 
 def save(path,value):
@@ -279,12 +281,14 @@ def main():
     if rows and not prepared_any and not pending:
         print(json.dumps(dict(existing_owner_accepted_sources=len(rows),preparation_reused=True,owner_choices_and_cleanup_state_preserved=True)),flush=True);return
     save(batch/'index-data.json',dict(songs=rows,owner_acceptance_pending=pending))
-    # The canonical server/frontend serves this descriptor directly.
+    # The DAW consumes a separate candidate descriptor; catalog membership stays
+    # unchanged until the owner explicitly accepts a reference.
     active=[s for s in selection['songs'] if s.get('review_enabled',True)]
     save(batch/'batch.json',dict(status='ready_for_owner_listening' if pending else 'active_sources_owner_accepted',prepared_sources=len(rows),
                                archive_downloads_complete=all((library_root()/s['slug']/'collection/source.zip').exists() for s in selection['songs']),
                                excluded_sources=len(selection['songs'])-len(active),
                                tests_or_verification_run=False,owner_acceptance_pending=pending,source_cleanup_performed=False))
+    print(json.dumps(prepare_descriptor(batch),ensure_ascii=False),flush=True)
 
 
 if __name__=='__main__':main()

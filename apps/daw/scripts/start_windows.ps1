@@ -51,6 +51,7 @@ $manifest = @{ name = 'joljak-daw'; productName = 'Joljak'; version = $package.v
 [System.IO.File]::WriteAllText((Join-Path $target 'package.json'), $manifest, [System.Text.UTF8Encoding]::new($false))
 if ($Source -and $DevUrl) { $env:JOLJAK_DEV_URL = $DevUrl }
 else { Remove-Item Env:JOLJAK_DEV_URL -ErrorAction SilentlyContinue }
+$env:JOLJAK_SAMPLE_ROOT = Join-Path $repository 'data\samples'
 Write-Host 'Starting the current Joljak build.'
 # VS Code launches its tooling with Electron's Node mode. Do not inherit that
 # mode when starting the actual desktop application. This affects this child only.

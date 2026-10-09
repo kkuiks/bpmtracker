@@ -15,6 +15,7 @@ const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const readline = require("node:readline");
 const fsSync = require("node:fs");
+const sampleLibrary = require("./sample-library.cjs");
 
 let window;
 app.setName("Joljak");
@@ -62,6 +63,30 @@ const send = (name, data) => {
   if (window && !window.isDestroyed())
     window.webContents.send(`joljak:${name}`, data);
 };
+let sampleRoot = process.env.JOLJAK_SAMPLE_ROOT || null;
+async function sampleLibraryRoot(choose = false) {
+  if (choose) {
+    const result = await dialog.showOpenDialog(window, {
+      title: "Select the formal sample catalog", properties: ["openFile"],
+      filters: [{ name: "Sample catalog", extensions: ["json"] }],
+    });
+    if (result.canceled) return null;
+    const root = path.dirname(result.filePaths[0]);
+    if (path.basename(result.filePaths[0]) !== "catalog.json") throw new Error("Select data/samples/catalog.json");
+    await sampleLibrary.catalog(root);
+    sampleRoot = root;
+    await atomicJson(path.join(dataRoot, "sample-library.json"), { root });
+  }
+  if (!sampleRoot) {
+    try { sampleRoot = JSON.parse(await fs.readFile(path.join(dataRoot, "sample-library.json"), "utf8")).root; }
+    catch { /* First library selection. */ }
+  }
+  if (!sampleRoot && fsSync.existsSync(path.join(repository, "data/samples/catalog.json")))
+    sampleRoot = path.join(repository, "data/samples");
+  if (!sampleRoot) return null;
+  await sampleLibrary.catalog(sampleRoot);
+  return sampleRoot;
+}
 
 function validProject(value) {
   if (
@@ -129,13 +154,18 @@ function validProject(value) {
     )
       throw new Error("Invalid channel settings in project");
   if (value.version === 2) {
+    const hasWholeValues = value.bpm !== undefined || value.signature !== undefined;
+    if (hasWholeValues && (!Number.isFinite(value.bpm) || value.bpm < 1 || value.bpm > 1000 ||
+        !value.signature || !Number.isInteger(value.signature.numerator) ||
+        value.signature.numerator < 1 || value.signature.numerator > 32 ||
+        ![1, 2, 4, 8, 16, 32].includes(value.signature.denominator)))
+      throw new Error("Invalid whole-project tempo or signature");
     if (!Number.isFinite(value.projectDuration) || value.projectDuration <= 0 ||
         (value.timingPolicy !== undefined && value.timingPolicy !== "persistent") ||
         !["bars", "seconds"].includes(value.rulerFormat) ||
-        !Array.isArray(value.tempos) || !value.tempos.length ||
-        !Array.isArray(value.signatures) || !value.signatures.length ||
-        !value.tempos.some((tempo) => tempo.quarter === 0) ||
-        !value.signatures.some((signature) => signature.bar === 1))
+        !Array.isArray(value.tempos) || !Array.isArray(value.signatures) ||
+        (!hasWholeValues && (!value.tempos.some((tempo) => tempo.quarter === 0) ||
+                            !value.signatures.some((signature) => signature.bar === 1))))
       throw new Error("Invalid project duration or musical map");
     const positions = new Set(), bars = new Set(), mapIds = new Set();
     for (const event of [...value.tempos, ...value.signatures]) {
@@ -453,6 +483,35 @@ ipcMain.handle("joljak:choose-audio", async () => {
     filters: [{ name: "Audio", extensions: ["wav", "mp3", "flac"] }],
   });
   return result.canceled ? [] : result.filePaths;
+});
+ipcMain.handle("joljak:sample-library", async (_event, choose) => {
+  const root = await sampleLibraryRoot(choose === true);
+  return root ? sampleLibrary.list(root) : { root: null, tracks: [] };
+});
+ipcMain.handle("joljak:sample-reference", async (_event, id) => {
+  const root = await sampleLibraryRoot();
+  if (!root) throw new Error("Select the formal sample catalog first");
+  return sampleLibrary.reference(root, id);
+});
+ipcMain.handle("joljak:choose-candidate-review", async () => {
+  const root=await sampleLibraryRoot();
+  if(!root)throw new Error("Select the sample catalog before opening a candidate review");
+  const result=await dialog.showOpenDialog(window,{
+    title:"Open a prepared DAW candidate review",defaultPath:path.join(root,"intakes"),
+    properties:["openFile"],filters:[{name:"DAW review descriptor",extensions:["json"]}],
+  });
+  return result.canceled?null:sampleLibrary.candidateList(root,result.filePaths[0]);
+});
+ipcMain.handle("joljak:candidate-reference", async (_event, filename, id) => {
+  const root=await sampleLibraryRoot();
+  if(!root)throw new Error("Select the sample catalog first");
+  return sampleLibrary.candidateReference(root,filename,id);
+});
+ipcMain.handle("joljak:save-sample-draft", async (_event, input) => {
+  const project = validProject(input), root = await sampleLibraryRoot();
+  if (!root || project.sampleReview?.reference?.libraryRoot !== root)
+    throw new Error("Select the original library for this sample before saving its draft");
+  return sampleLibrary.saveDraft(root, project);
 });
 ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
   if (!Array.isArray(paths) || paths.length === 0 || paths.length > 32)

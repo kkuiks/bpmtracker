@@ -1,6 +1,6 @@
 {
   "name": "joljak-daw",
-  "version": "0.5.0",
+  "version": "0.6.6",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>표본 지도 재검증</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div><span class="eyebrow">BPMTRACKER · OWNER REVIEW</span><h1>표본 지도 재검증</h1></div>
+    <div class="overall"><strong id="progress">자료 준비 중</strong><span>기존 승인과 구분하여 이번 검토 결과를 기록합니다.</span></div>
+    <button id="export-all" class="quiet">전체 검토 기록 내려받기</button>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      <label for="group" class="label">검토 대상</label>
+      <select id="group"><option value="formal">정식 표본</option><option value="auxiliary">보조 표본</option><option value="candidate">미승인 후보</option></select>
+      <input id="search" type="search" placeholder="곡 이름 검색" aria-label="곡 이름 검색">
+      <select id="filter" aria-label="목록 필터"><option value="all">전체</option><option value="unreviewed">이번 검토 미완료</option><option value="attention">점검 항목 있음</option><option value="confirmed">이번 검토 완료</option><option value="needs">수정·자료 필요</option></select>
+      <p id="list-count" class="muted"></p>
+      <nav id="track-list" aria-label="표본 목록"></nav>
+    </aside>
+    <main id="main" aria-busy="true">
+      <section class="track-heading">
+        <div class="chips"><span id="role" class="chip"></span><span id="previous" class="chip"></span><span id="review-state" class="chip"></span></div>
+        <h2 id="title">곡을 불러오는 중…</h2>
+        <p id="summary" class="muted"></p>
+        <p id="notes" class="context-note"></p>
+      </section>
+      <section class="card player" aria-label="동기화된 음원과 클릭 청취">
+        <div class="transport">
+          <button id="play" class="primary">재생</button><button id="back">−5초</button><button id="forward">+5초</button>
+          <span class="time"><span id="position">0:00.000</span> / <span id="duration">0:00</span></span>
+          <span id="current-map" class="current-map"></span>
+        </div>
+        <input id="seek" type="range" min="0" max="1" step="0.001" value="0" aria-label="음원 위치">
+        <div class="row jumps"><button id="jump-intro">처음</button><button id="jump-middle">중간</button><button id="jump-end">끝부분</button><button id="jump-support-end">지도 끝</button></div>
+        <div class="audio-controls">
+          <label>음원 <input id="music-gain" type="range" min="0" max="1" step="0.01" value="0.8"></label>
+          <label>클릭 <input id="click-gain" type="range" min="0" max="1" step="0.01" value="0.55"></label>
+          <label><input id="click-enabled" type="checkbox" checked> 클릭 켜기</label>
+          <label><input id="accent" type="checkbox" checked> 마디 첫 박 강조</label>
+          <select id="click-mode" aria-label="클릭 단위"></select>
+        </div>
+        <div class="row loop-controls">
+          <label><input id="loop-enabled" type="checkbox"> 구간 반복</label>
+          <label>시작 <input id="loop-start" type="number" min="0" step="0.1" value="0"> 초</label>
+          <label>끝 <input id="loop-end" type="number" min="0" step="0.1" value="10"> 초</label>
+          <button id="loop-here">현재 위치 ±5초</button>
+        </div>
+        <div class="offset-controls">
+          <div><strong>비교 오프셋</strong><p class="muted">현재 표시 지도에서 클릭만 이동합니다. 이전 오프셋은 이미 지도에 반영되어 있습니다.</p></div>
+          <div class="row"><button data-offset="-10">−10</button><button data-offset="-1">−1</button><input id="offset" type="number" step="0.1" min="-600000" max="600000" value="0" aria-label="비교 오프셋 밀리초"><span>ms</span><button data-offset="1">+1</button><button data-offset="10">+10</button><button id="reset-offset">현재 지도 · 0 ms</button></div>
+          <p id="offset-note" class="muted"></p>
+          <div id="candidate-offset-options" class="row"></div>
+        </div>
+        <p id="player-status" class="status" role="status">재생을 누르면 선택한 음원을 불러옵니다.</p>
+      </section>
+      <section class="card timeline-card">
+        <div class="section-title"><h3>전체 지도</h3><span class="legend"><i class="supported"></i> 승인·제공 범위 <i class="unknown"></i> 범위 밖 미확인 <i class="free"></i> 승인된 격자 밖</span></div>
+        <canvas id="overview" height="180" aria-label="음원 전체의 템포와 박자 지도"></canvas>
+        <div id="scope-note" class="muted"></div>
+        <div class="section-title detail-title"><h3>현재 위치의 파형과 박</h3><span class="muted">파형: 회색 · 박: 청록색 · 마디 첫 박: 노란색</span></div>
+        <canvas id="detail" height="130" aria-label="현재 위치 주변의 파형과 클릭"></canvas>
+      </section>
+      <section class="card">
+        <div class="section-title"><h3>점검 항목</h3><span id="issue-count" class="muted"></span></div>
+        <p class="muted">구조상 중복, 짧은 구간, 원본 선언 충돌과 지원 범위를 확인합니다. 점검 항목이 있다는 사실만으로 정답 오류가 확정되지는 않습니다.</p>
+        <div id="issues"></div>
+      </section>
+      <section class="card events">
+        <div class="section-title"><h3>템포 선언</h3><button id="valid-tempos" class="quiet">청취 후 템포 항목 모두 유효로 표시</button></div>
+        <p class="muted">지도에 저장된 환산값과 명목 BPM을 구분합니다. MIDI의 정수 시간 저장으로 생긴 미세한 소수는 ‘저장 정밀도 차이’로 표시됩니다.</p>
+        <div class="table-scroll"><table><thead><tr><th>음원 시각</th><th>지도 BPM 기록값</th><th>명목값·분수 표현</th><th>판정</th><th>청취</th></tr></thead><tbody id="tempo-body"></tbody></table></div>
+        <div class="section-title meter-title"><h3>박자표 선언</h3><button id="valid-meters" class="quiet">청취 후 박자 항목 모두 유효로 표시</button></div>
+        <div class="table-scroll"><table><thead><tr><th>음원 시각</th><th>박자표</th><th>기록된 문맥</th><th>판정</th><th>청취</th></tr></thead><tbody id="meter-body"></tbody></table></div>
+      </section>
+      <section class="card decision">
+        <div class="section-title"><h3>이번 검토 결과</h3><span id="saved-at" class="muted"></span></div>
+        <p id="decision-scope"></p>
+        <div class="checks">
+          <label><input type="checkbox" id="check-listened"> 이 음원의 유효한 지도 범위를 모두 청취했습니다.</label>
+          <label><input type="checkbox" id="check-tempo"> BPM의 박 단위와 템포 변화가 음악에 맞는지 확인했습니다.</label>
+          <label><input type="checkbox" id="check-meter"> 박자표와 마디 첫 박이 음악에 맞는지 확인했습니다.</label>
+          <label><input type="checkbox" id="check-alignment"> 시작·중간·끝과 변화 구간의 클릭 정렬을 확인했습니다.</label>
+          <label><input type="checkbox" id="check-coverage"> 지도 지원 범위와 범위 밖·끝부분의 처리를 확인했습니다.</label>
+        </div>
+        <p id="played-note" class="muted"></p>
+        <label for="review-note" class="label">판정 근거 · 수정할 값 · 미확인 구간</label>
+        <textarea id="review-note" rows="4" placeholder="예: 167.015초의 145 BPM 구간은 실제 한 마디 전환으로 확인. / 중간부터 클릭이 늦어짐. / 끝부분의 근거 부족."></textarea>
+        <div class="decision-buttons"><button id="confirm" class="primary">현재 지도 확인 완료</button><button id="needs-correction">수정 필요로 저장</button><button id="insufficient">자료·판단 부족으로 저장</button><button id="save-draft" class="quiet">초안 저장</button></div>
+        <p id="save-status" class="status" role="status">이번 재검증은 아직 완료되지 않았습니다.</p>
+      </section>
+      <details class="card evidence"><summary>원본·이전 승인 기록·검토 대상 파일</summary><div id="evidence-summary"></div><div id="downloads" class="downloads"></div></details>
+    </main>
+  </div>
+</body>
+</html>

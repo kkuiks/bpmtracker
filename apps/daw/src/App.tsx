@@ -38,7 +38,13 @@ import Transport, { TimeField } from "./Transport";
 import ProjectMapEditor from "./ProjectMapEditor";
 import ImportAudioDialog, { type ImportStart } from "./ImportAudioDialog";
 import { AddAudioTrackDialog, RemoveTracksDialog } from "./TrackDialogs";
-import { clockPlacement, editProjectMap, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtQuarter, upgradeProject } from "./music";
+import SampleLibraryDialog from "./SampleLibrary";
+import { DEFAULT_CLICK_GAIN } from "./click-level";
+import SampleReviewPanel from "./SampleReviewPanel";
+import SelectionMove from "./SelectionMove";
+import { arrangementBounds, moveArrangement } from "./arrangement";
+import { sampleWorkspace, sampleClicks, type SampleReference } from "./samples";
+import { clockPlacement, editProjectMap, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
 import {
   applyAnalysis,
   addAudioTracks,
@@ -55,7 +61,6 @@ import {
   getAsset,
   importAssets,
   moveClips,
-  musicalPosition,
   projectEnd,
   relatedClips,
   removeClips,
@@ -81,8 +86,10 @@ import {
   type Tool,
   type Track,
   type MapSelection,
+  type ArrangementSelection,
   type TempoEvent,
   type SignatureEvent,
+  type TimeSignature,
   type AudioClock,
 } from "./model";
 
@@ -96,7 +103,7 @@ type AnalysisScope = {
   whole: boolean;
   name: string;
 };
-type Modal = "import" | "analyze" | "export" | "help" | "save-as" | "project-setup" | "add-track" | "remove-tracks" | null;
+type Modal = "import" | "samples" | "analyze" | "export" | "help" | "save-as" | "project-setup" | "add-track" | "remove-tracks" | null;
 function importPreferences(): { mode: ImportOptions["mode"]; copy: boolean } {
   try {
     const value = JSON.parse(localStorage.getItem("joljak.import-preferences") ?? "null");
@@ -152,8 +159,11 @@ export default function App() {
   projectRef.current = project;
   const [path, setPath] = useState<string | null>(null),
     [dirty, setDirty] = useState(false);
-  const [selection, setSelection] = useState<string[]>([]),
-    [activeTrack, setActiveTrack] = useState<string | null>(null);
+  const [arrangement,setArrangement]=useState<ArrangementSelection>({clips:[],maps:[]});
+  const selection=arrangement.clips, selectedMaps=arrangement.maps;
+  const setSelection=(ids:string[]|((previous:string[])=>string[]))=>setArrangement(previous=>
+    ({...previous,clips:typeof ids==="function"?ids(previous.clips):ids}));
+  const [activeTrack, setActiveTrack] = useState<string | null>(null);
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const trackSelection = useRef<{ ids: string[]; active: string | null; anchor: string | null }>({ ids: [], active: null, anchor: null });
   const [trackMenu, setTrackMenu] = useState<{ x: number; y: number; ids: string[] } | null>(null);
@@ -162,8 +172,14 @@ export default function App() {
     [selectedClock, setSelectedClock] = useState<string | null>(null);
   const [editorClipId, setEditorClipId] = useState<string | null>(null);
   const editorClip = project.clips.find((c) => c.id === editorClipId) ?? null;
-  const [selectedMap, setSelectedMap] = useState<MapSelection | null>(null);
+  const [selectedMap,setMapFocus]=useState<MapSelection|null>(null);
+  const setSelectedMap=(next:MapSelection|null)=>{
+    setMapFocus(next);
+    setArrangement(previous=>!next?{...previous,maps:[]}:selectedMap?
+      {...previous,maps:previous.maps.map(item=>item.id===selectedMap.id&&item.kind===selectedMap.kind?next:item)}:previous);
+  };
   const [previewing, setPreviewing] = useState(false);
+  const [referencePreview,setReferencePreview]=useState<"accepted"|"comparison"|null>(null);
   const previewClocks = useRef<AudioClock[] | undefined>(undefined);
   const [tool, setTool] = useState<Tool>("object"),
     [snap, setSnap] = useState<Snap>("beat"),
@@ -184,6 +200,8 @@ export default function App() {
     [message, setMessage] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobEvent[]>([]);
   const pendingImports = useRef(new Map<string, ImportOptions>());
+  const pendingSampleImports=useRef(new Map<string,{reference:SampleReference;comparison:boolean}>());
+  const [sampleBusy,setSampleBusy]=useState(false);
   const session = useRef(0);
   const jobSessions = useRef(new Map<string, { session: number; kind: string }>());
   const switchSession = () => {
@@ -196,6 +214,7 @@ export default function App() {
     trackSelection.current = { ids: [], active: null, anchor: null };
     setSelectedTracks([]); setActiveTrack(null);
     importRequest.current = null; setImportBusy(false);
+    setReferencePreview(null);setSampleBusy(false);
   };
   const [importPrefs] = useState(importPreferences);
   const confirmedImportPrefs = useRef(importPrefs);
@@ -227,6 +246,7 @@ export default function App() {
     projectRef.current = value;
     setProject(value);
     setPreviewing(false);
+    setReferencePreview(null);
     setDirty(true);
   };
   const change = (modify: (p: Project) => Project, label: string) =>
@@ -268,6 +288,8 @@ export default function App() {
     [...project.clocks].reverse().find((c) => c.clipId === selectedClip?.id && clockSourceScope(project, c));
   const mapTempo = selectedMap?.kind === "tempo" ? project.tempos.find((t) => t.id === selectedMap.id) : null;
   const mapSignature = selectedMap?.kind === "signature" ? project.signatures.find((s) => s.id === selectedMap.id) : null;
+  const arrangementInfo=arrangementBounds(project,arrangement,linked);
+  const groupMoveControls=selectedMaps.length>0||(arrangementInfo?.audioCount??0)>1;
   const activeJob = jobs.find(
     (j) => !["complete", "failed", "cancelled"].includes(j.stage),
   );
@@ -336,12 +358,14 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    engine.current?.updateProject(project, previewing ? previewClocks.current : undefined);
-  }, [project, previewing]);
+    engine.current?.updateProject(project, previewing ? previewClocks.current : undefined,
+      referencePreview ? sampleClicks(project,referencePreview==="comparison") : undefined);
+  }, [project, previewing,referencePreview]);
   useEffect(() => {
-    if (selectedMap && !(selectedMap.kind === "tempo" ? project.tempos : project.signatures).some((event) => event.id === selectedMap.id))
-      setSelectedMap(null);
-  }, [project.tempos, project.signatures, selectedMap]);
+    const valid=selectedMaps.filter(item=>(item.kind==="tempo"?project.tempos:project.signatures).some(event=>event.id===item.id));
+    if(valid.length!==selectedMaps.length)setArrangement(previous=>({...previous,maps:valid}));
+    if(selectedMap&&!valid.some(item=>item.id===selectedMap.id&&item.kind===selectedMap.kind))setMapFocus(valid[0]??null);
+  }, [project.tempos, project.signatures, selectedMap,selectedMaps]);
   useEffect(() => {
     if (api && project.assets.length) void loadPeaks(project.assets);
   }, [project.assets]);
@@ -356,7 +380,7 @@ export default function App() {
     engine.current?.setLoop(loop);
   }, [loop]);
   useEffect(() => {
-    engine.current?.setClick(metronome, project.clickGain ?? 0.7);
+    engine.current?.setClick(metronome, project.clickGain ?? DEFAULT_CLICK_GAIN);
   }, [metronome, project.clickGain]);
   useEffect(() => {
     if (!api || !dirty) return;
@@ -377,6 +401,7 @@ export default function App() {
       if (owner && owner.kind !== "export" && owner.session !== session.current) {
         if (["complete", "failed"].includes(event.stage)) {
           pendingImports.current.delete(event.id);
+          pendingSampleImports.current.delete(event.id);
           jobSessions.current.delete(event.id);
           if (event.kind === "decode") void api.finishImport(event.id, false).catch(() => {});
         }
@@ -390,6 +415,7 @@ export default function App() {
       });
       if (event.stage === "failed") {
         pendingImports.current.delete(event.id);
+        if(pendingSampleImports.current.delete(event.id))setSampleBusy(false);
         jobSessions.current.delete(event.id);
         tell(event.error || "Job failed");
       }
@@ -397,6 +423,26 @@ export default function App() {
       jobSessions.current.delete(event.id);
       if (event.kind === "decode") {
         const assets: Asset[] = event.result.assets;
+        const sample=pendingSampleImports.current.get(event.id);
+        if(sample){
+          pendingSampleImports.current.delete(event.id);setSampleBusy(false);
+          try{
+            const next=sampleWorkspace(sample.reference,assets[0],sample.comparison);
+            engine.current?.reset();switchSession();history.current.replace(next);
+            projectRef.current=next;setProject(next);setPath(null);setDirty(true);
+            const clip=next.clips[0];setSelection([clip.id]);selectTracks([clip.trackId]);
+            setRange(null);setSelectedClock(null);setSelectedMap(null);setPendingAnalysis(null);
+            const suppliedClock=sample.reference.availableClock!==false;
+            setPreviewing(false);setReferencePreview(suppliedClock?(sample.comparison?"comparison":"accepted"):null);setMetronome(suppliedClock);
+            setLoop({start:clip.start,end:clip.start+clip.duration,enabled:false});
+            engine.current?.reset(clip.start);setPosition(clip.start);peaks.current.clear();
+            void api.finishImport(event.id,true).catch(e=>tell(e.message));void loadPeaks(assets);
+            requestAnimationFrame(()=>timelineViewport.current?.setScale(
+              Math.max(.2,Math.min(1200,(document.querySelector(".timeline-scroll")?.clientWidth??900)/(next.projectDuration+5))),0));
+            tell("Sample workspace ready. Edit the project map and save a separate sample draft.");
+          }catch(e){tell(String(e));void api.finishImport(event.id,false).catch(()=>{});}
+          return;
+        }
         const options = pendingImports.current.get(event.id);
         if (options) {
           pendingImports.current.delete(event.id);
@@ -450,6 +496,40 @@ export default function App() {
     if (engine.current)
       void engine.current.seek(value).catch((e) => tell(e.message));
   };
+  const openSample=async(reference:SampleReference,comparison:boolean)=>{
+    if(!api||sampleBusy)return;
+    if(dirty&&!confirm("Open a sample workspace? Save the current project first if you want to keep it."))return;
+    setSampleBusy(true);
+    const owner=session.current,id=uid();
+    try{
+      // Read the selected catalog reference again before decode; the dialog is a
+      // viewing snapshot, not authority to use a changed reference version.
+      const current=reference.candidateDescriptorPath?
+        await api.candidateReference(reference.candidateDescriptorPath,reference.id):await api.sampleReference(reference.id);
+      if(owner!==session.current){setSampleBusy(false);return;}
+      pendingSampleImports.current.set(id,{reference:current,comparison});
+      jobSessions.current.set(id,{session:owner,kind:"decode"});
+      await api.decode([current.audioPath],false,id);
+    }catch(e){pendingSampleImports.current.delete(id);jobSessions.current.delete(id);setSampleBusy(false);tell(String(e));}
+  };
+  const auditionSample=(comparison=false)=>{
+    const p=projectRef.current,clicks=sampleClicks(p,comparison),audio=engine.current;
+    if(!clicks||!audio)return;
+    setPreviewing(false);setReferencePreview(comparison?"comparison":"accepted");
+    audio.updateProject(p,undefined,clicks);audio.setClick(true,p.clickGain);setMetronome(true);
+    const clip=p.clips.find(c=>c.id===p.sampleReview?.clipId)!;
+    if(!audio.playing)void audio.play(audio.position>=clip.start&&audio.position<clipEnd(clip)?audio.position:clip.start).catch(e=>tell(e.message));
+  };
+  const auditionSampleProject=()=>{
+    setReferencePreview(null);setPreviewing(false);
+    engine.current?.updateProject(projectRef.current);engine.current?.setClick(true,projectRef.current.clickGain);setMetronome(true);
+    startPlayback();
+  };
+  const saveSampleDraft=async()=>{
+    if(!api)return;
+    try{const filename=await api.saveSampleDraft(projectRef.current);tell(`Sample draft saved: ${filename}`);}
+    catch(e){tell(String(e));}
+  };
   const startPlayback = () => {
     if (!api) { tell("Open Joljak as a desktop app to play local audio."); return; }
     const audio = engine.current;
@@ -470,6 +550,7 @@ export default function App() {
   const selectionBounds = () => {
     if (range && range.end > range.start)
       return { start: range.start, end: range.end };
+    if(selectedMaps.length)return arrangementBounds(project,arrangement,linked);
     const clips = relatedClips(project, selection, linked);
     return clips.length
       ? {
@@ -504,6 +585,10 @@ export default function App() {
     if (editorClipId === clip.id) queueMicrotask(() => document.querySelector<HTMLElement>(".audio-editor")?.focus({ preventScroll: true }));
   };
   const move = (ids: string[], delta: number, targetTrack?: string, copy = false) => {
+    if(selectedMaps.length) {
+      if(copy){tell("Copy currently requires an audio-only selection.");return;}
+      moveSelectedArrangement(delta,{clips:ids,maps:selectedMaps});return;
+    }
     const p = projectRef.current, next = moveClips(p, ids, delta, linked, targetTrack, copy);
     commit(next, copy ? "Copy events" : "Move events");
     if (!copy && next !== p) {
@@ -541,7 +626,14 @@ export default function App() {
     setSelectedClock(null);
   };
   const remove = (ids = selection) => {
-    if (selectedMap && ids === selection) { removeMap(selectedMap); return; }
+    if (selectedMaps.length && ids === selection) {
+      const tempoIds=new Set(selectedMaps.filter(item=>item.kind==="tempo").map(item=>item.id));
+      const signatureIds=new Set(selectedMaps.filter(item=>item.kind==="signature").map(item=>item.id));
+      change(p=>editProjectMap(removeClips(p,selection,linked),
+        p.tempos.filter(event=>!tempoIds.has(event.id)),
+        p.signatures.filter(event=>!signatureIds.has(event.id))),"Delete selected arrangement items");
+      setArrangement({clips:[],maps:[]});setMapFocus(null);setSelectedClock(null);return;
+    }
     if (range && range.end > range.start && ids === selection) {
       change((p) => removeRange(p, range, linked), "Delete selected audio range");
     } else change((p) => removeClips(p, ids, linked), "Delete events");
@@ -558,8 +650,25 @@ export default function App() {
     const current = p.tracks.find((t) => t.id === id)!;
     return setTrackTimeBase(p, id, current.timeBase === "linear" ? "musical" : "linear");
   }, "Switch track time base");
-  const chooseMap = (selected: MapSelection) => {
-    setSelectedMap(selected); setSelectedClock(null); setSelection([]); setRange(null); selectTracks([]); setInspector(true);
+  const selectArrangement=(value:ArrangementSelection,primary?:MapSelection)=>{
+    const current=projectRef.current;
+    const clips=[...new Set(value.clips)].filter(id=>current.clips.some(clip=>clip.id===id));
+    const maps=value.maps.filter((item,index,items)=>items.findIndex(other=>other.id===item.id&&other.kind===item.kind)===index&&
+      (item.kind==="tempo"?current.tempos:current.signatures).some(event=>event.id===item.id));
+    setArrangement({clips,maps});setRange(null);setSelectedClock(null);setTrackMenu(null);
+    const focus=primary&&maps.some(item=>item.id===primary.id&&item.kind===primary.kind)?primary:clips.length?null:maps[0]??null;
+    setMapFocus(focus);
+    const tracks=[...new Set(clips.map(id=>current.clips.find(clip=>clip.id===id)!.trackId))];
+    selectTracks(focus?[]:tracks,focus?null:tracks[0]??null);setInspector(true);
+  };
+  const chooseMap = (selected: MapSelection,additive=false) => {
+    const exists=selectedMaps.some(item=>item.id===selected.id&&item.kind===selected.kind);
+    selectArrangement({clips:additive?selection:[],maps:additive?
+      exists?selectedMaps.filter(item=>item.id!==selected.id||item.kind!==selected.kind):[...selectedMaps,selected]:[selected]},selected);
+  };
+  const moveSelectedArrangement=(delta:number,value:ArrangementSelection=arrangement)=>{
+    try{commit(moveArrangement(projectRef.current,value,delta,linked),"Move arrangement selection");setRange(null);}
+    catch(e){tell(e instanceof Error?e.message:String(e));}
   };
   const updateTempo = (event: TempoEvent) => {
     const next = putTempo(projectRef.current, event);
@@ -587,28 +696,48 @@ export default function App() {
   };
   const removeMap = (selected: MapSelection) => {
     const event = selected.kind === "tempo" ? project.tempos.find((t) => t.id === selected.id) : project.signatures.find((s) => s.id === selected.id);
-    if (!event || ("quarter" in event ? event.quarter === 0 : event.bar === 1)) return;
+    if (!event) return;
     change((p) => selected.kind === "tempo" ? editProjectMap(p, p.tempos.filter((t) => t.id !== selected.id)) : editProjectMap(p, undefined, p.signatures.filter((s) => s.id !== selected.id)), "Remove project map event");
     setSelectedMap(null);
   };
   const moveMap = (selected: MapSelection, time: number, bpm?: number) => {
-    if (selected.kind === "tempo") {
-      const event = project.tempos.find((t) => t.id === selected.id);
-      if (event) updateTempo({ ...event, quarter: event.quarter === 0 ? 0 : quarterAtTime(project, time),
-        bpm: bpm ?? event.bpm, origin: "manual" });
-    } else {
-      const event = project.signatures.find((s) => s.id === selected.id);
-      if (event && event.bar !== 1) updateSignature({ ...event, bar: Math.max(1, positionAtQuarter(project, quarterAtTime(project, snapToProject(project, time, "bar"))).bar), origin: "manual" });
-    }
+    const current = projectRef.current;
+    const event = selected.kind === "tempo" ? current.tempos.find(t => t.id === selected.id) : current.signatures.find(s => s.id === selected.id);
+    if (!event) return;
+    const originalTime = "quarter" in event ? timeAtQuarter(current, event.quarter) : timeAtBar(current, event.bar);
+    try {
+      let next = moveArrangement(current, { clips: [], maps: [selected] }, time - originalTime, false);
+      if (selected.kind === "tempo" && bpm !== undefined) {
+        const moved = next.tempos.find(t => t.id === selected.id)!;
+        if (moved.bpm !== bpm) next = putTempo(next, { ...moved, bpm, origin: "manual" });
+      }
+      commit(next, "Move project map point");
+    } catch (e) { tell(e instanceof Error ? e.message : String(e)); }
   };
   const tempoFromCursor = (bpm: number) => {
-    const current = projectRef.current, quarter = quarterAtTime(current, engine.current?.position ?? position);
+    const current = projectRef.current;
+    if (!current.tempos.length) {
+      commit(editProjectMap(current, undefined, undefined, { bpm }), "Set whole-project tempo");
+      return;
+    }
+    const quarter = quarterAtTime(current, engine.current?.position ?? position);
     const existing = current.tempos.find((event) => Math.abs(event.quarter - quarter) < 1e-8);
-    // "From cursor" explicitly keeps the preceding segment, even when its value
-    // came from initialization. It is now a chosen working value, not a fallback.
-    const base = quarter > 1e-8 ? { ...current, tempos: current.tempos.map((event) =>
-      event.quarter < quarter && event.origin === "default" ? { ...event, origin: "manual" as const } : event) } : current;
-    commit(putTempo(base, { id: existing?.id ?? uid(), quarter, bpm, origin: "manual" }), "Set tempo from cursor");
+    commit(putTempo(current, { id: existing?.id ?? uid(), quarter, bpm, origin: "manual" }), "Declare tempo at cursor");
+  };
+  const signatureFromCursor = (signature: TimeSignature) => {
+    const current = projectRef.current;
+    if (!current.signatures.length) {
+      commit(editProjectMap(current, undefined, undefined, { signature }), "Set whole-project signature");
+      return;
+    }
+    const quarter = quarterAtTime(current, engine.current?.position ?? position);
+    const cursor = positionAtQuarter(current, quarter);
+    if (Math.abs(quarter - cursor.barStart) > 1e-8) {
+      tell("Move the cursor to a whole bar start (x.1.1.0) to declare a signature point.");
+      return;
+    }
+    const existing = current.signatures.find(event => event.bar === cursor.bar);
+    commit(putSignature(current, { id: existing?.id ?? uid(), bar: cursor.bar, ...signature, origin: "manual" }), "Declare signature at cursor");
   };
   const previewTrack = (id: string, fields: Partial<Track>) =>
     setProject((p) => ({
@@ -785,6 +914,10 @@ export default function App() {
     if (kind !== "custom") setImportStart(importSnapshot.current[kind]);
   };
   const closeModal = () => {
+    if(modal==="samples"){
+      for(const id of pendingSampleImports.current.keys())void api?.cancel(id);
+      pendingSampleImports.current.clear();setSampleBusy(false);
+    }
     if (modal === "import") {
       setImportMode(confirmedImportPrefs.current.mode);
       setCopyMedia(confirmedImportPrefs.current.copy);
@@ -995,6 +1128,7 @@ export default function App() {
     } catch (e) { tell(e instanceof Error ? e.message : String(e)); }
   };
   const audition = async () => {
+    setReferencePreview(null);
     if (!pendingAnalysis?.result.period_seconds || !engine.current) return;
     const preview = applyAnalysis(projectRef.current, pendingAnalysis),
       c = preview.clips.find((c) => c.id === pendingAnalysis.clipId);
@@ -1003,12 +1137,13 @@ export default function App() {
     previewClocks.current = geometry ? [geometry] : [];
     engine.current.updateProject(projectRef.current, previewClocks.current);
     setPreviewing(true);
-    engine.current.setClick(true, project.clickGain ?? 0.7);
+    engine.current.setClick(true, project.clickGain ?? DEFAULT_CLICK_GAIN);
     const start = c.start + pendingAnalysis.sourceStart - c.sourceStart;
     await engine.current.play(start).catch((e) => tell(e.message));
     setMetronome(true);
   };
   const auditionClock = async (saved: Clock) => {
+    setReferencePreview(null);
     const geometry = clockGeometry(project, saved);
     if (!geometry || !engine.current) return;
     previewClocks.current = [geometry];
@@ -1020,7 +1155,7 @@ export default function App() {
   };
   const clipboard = useRef<AudioClipboard | null>(null);
   const copy = () => {
-    if (selectedMap) { tell("Tempo/signature points use their own editing commands. Audio Copy and Cut are unavailable here."); return false; }
+    if (selectedMaps.length) { tell("Copy and Cut currently require an audio-only selection. Use Move Selection to move audio and clock points together."); return false; }
     const data = copyAudio(projectRef.current, selection, range, linked);
     if (!data) return false;
     clipboard.current = data;
@@ -1028,7 +1163,7 @@ export default function App() {
     return true;
   };
   const paste = () => {
-    if (selectedMap) { tell("Select an audio track before pasting audio."); return; }
+    if (selectedMaps.length) { tell("Select an audio track before pasting audio."); return; }
     const data = clipboard.current;
     if (!data) return;
     const result = pasteAudio(projectRef.current, data, engine.current?.position ?? position, activeTrack);
@@ -1114,16 +1249,18 @@ export default function App() {
     else if (command === "tracks-up") moveTrackSelection(-1);
     else if (command === "tracks-down") moveTrackSelection(1);
     else if (command === "delete") remove();
-    else if (command === "split")
+    else if (command === "split") {
+      if(selectedMaps.length){tell("Split currently requires an audio-only selection.");return;}
       split(
         selection.length
           ? selection
           : editorClip && document.activeElement?.closest(".audio-editor") ? [editorClip.id] : project.clips.map((c) => c.id),
         position,
       );
+    }
     else if (command === "duplicate") {
       const bounds = selectionBounds();
-      if (selectedMap) return;
+      if (selectedMaps.length) return;
       if (range && range.end > range.start) editRange(range, range.end - range.start, undefined, true);
       else if (bounds) move(selection, bounds.end - bounds.start, undefined, true);
     } else if (command === "locators") setLocators();
@@ -1318,15 +1455,13 @@ export default function App() {
       if (command === "group" || command === "ungroup")
         groupSelection(command === "group");
       else if (command === "select-all") {
-        if (selectedMap) return;
         if (editorClip && node.closest(".audio-editor")) {
-          setSelection([]); setRange({ start: editorClip.start, end: clipEnd(editorClip), trackIds: [editorClip.trackId] });
+          setArrangement({clips:[],maps:[]});setMapFocus(null);setRange({ start: editorClip.start, end: clipEnd(editorClip), trackIds: [editorClip.trackId] });
           return;
         }
-        setSelection(project.clips.map((c) => c.id));
-        setRange(null);
-        setSelectedClock(null);
-        setSelectedMap(null);
+        selectArrangement({clips:project.clips.map(clip=>clip.id),maps:[
+          ...project.tempos.map(event=>({kind:"tempo" as const,id:event.id})),
+          ...project.signatures.map(event=>({kind:"signature" as const,id:event.id}))]});
       } else if (command === "select-none") {
         setSelection([]);
         setRange(null);
@@ -1369,6 +1504,7 @@ export default function App() {
           </button>
           <button className={appMenu === "project" ? "active" : ""} onClick={() => { setTrackMenu(null); setAppMenu(appMenu === "project" ? null : "project"); }}>Project</button>
           <button onClick={() => beginAnalysis()}>Analysis</button>
+          <button onClick={()=>setModal("samples")}>Samples</button>
           <button onClick={() => editAudio()}>Audio Editor</button>
           <button onClick={() => { setMixer((value) => !value); setEditorClipId(null); }}>
             MixConsole
@@ -1502,7 +1638,7 @@ export default function App() {
         </button>
       </section>
       <section className="info-line" aria-label="Info Line">
-        {range && range.end > range.start ? <>
+        {groupMoveControls?<SelectionMove project={project} selection={arrangement} linked={linked} onMove={moveSelectedArrangement} compact/>:range && range.end > range.start ? <>
           <span className="info-name">Audio Range</span>
           <TimeField project={project} label="Range start" value={range.start} onChange={(start) => setRange({ ...range, start: Math.min(start, range.end - .001) })}/>
           <TimeField project={project} label="Range end" value={range.end} onChange={(end) => setRange({ ...range, end: Math.max(end, range.start + .001) })}/>
@@ -1514,9 +1650,9 @@ export default function App() {
           <TimeField project={project} label="Event end" value={clipEnd(selectedClip)} onChange={(end) => trim(selection, "end", end - clipEnd(selectedClip))}/>
           <span className="info-value">Length <b>{formatTime(selectedClip.duration)}</b></span>
           <span className="info-value">Source in <b>{formatTime(selectedClip.sourceStart)}</b></span>
-        </> : mapTempo ? <><span className="info-name">Tempo</span><span className="info-value">Position <b>{musicalPosition(project, timeAtQuarter(project, mapTempo.quarter))}</b></span>
+        </> : mapTempo ? <><span className="info-name">Tempo</span><TimeField project={project} label="Tempo position" value={timeAtQuarter(project,mapTempo.quarter)} onChange={(seconds)=>updateTempo({...mapTempo,quarter:quarterAtTime(project,seconds),origin:"manual"})}/>
           <NumberField label="Tempo BPM" commitEqual value={mapTempo.bpm} min={1} max={1000} step={.25} onChange={(bpm) => updateTempo({ ...mapTempo, bpm, origin: "manual" })}/>
-        </> : mapSignature ? <><span className="info-name">Signature</span><span className="info-value">Bar <b>{mapSignature.bar}</b></span><span className="info-value">Time signature <b>{mapSignature.numerator}/{mapSignature.denominator}</b></span></> : <span className="info-empty">No Object Selected</span>}
+        </> : mapSignature ? <><span className="info-name">Signature</span><TimeField project={project} label="Signature position" barStartOnly value={timeAtBar(project,mapSignature.bar)} onChange={(seconds)=>updateSignature({...mapSignature,bar:positionAtQuarter(project,quarterAtTime(project,seconds)).bar,origin:"manual"})}/><span className="info-value">Time signature <b>{mapSignature.numerator}/{mapSignature.denominator}</b></span></> : <span className="info-empty">No Object Selected</span>}
       </section>
       <main className="workspace">
         {inspector && (
@@ -1531,7 +1667,18 @@ export default function App() {
                 <PanelLeftClose size={15} />
               </button>
             </div>
-            {selectedMap && !track && <ProjectMapEditor project={project} selection={selectedMap} onSelect={chooseMap} onTempo={updateTempo} onSignature={updateSignature} onRemove={() => removeMap(selectedMap)}/>}
+            {project.sampleReview&&<SampleReviewPanel project={project}
+              onPreview={auditionSample} onProject={auditionSampleProject} onSave={()=>void saveSampleDraft()}
+              onNote={note=>change(p=>({...p,sampleReview:{...p.sampleReview!,note}}),"Edit sample draft note")}
+              onAlignment={milliseconds=>{
+                const review=projectRef.current.sampleReview!,clip=projectRef.current.clips.find(c=>c.id===review.clipId);
+                if(clip){const start=review.initialAudioOrigin+clip.sourceStart-milliseconds/1000;
+                  commit(moveClips(projectRef.current,[clip.id],start-clip.start,linked),"Adjust sample alignment");
+                  selectArrangement({clips:[clip.id],maps:[]});}
+              }}/>
+            }
+            {groupMoveControls&&<InspectorSection title="Move Selection"><SelectionMove project={project} selection={arrangement} linked={linked} onMove={moveSelectedArrangement}/></InspectorSection>}
+            {selectedMap && !track && <ProjectMapEditor project={project} selection={selectedMap} selectedMaps={selectedMaps} onSelect={chooseMap} onTempo={updateTempo} onSignature={updateSignature} onRemove={() => removeMap(selectedMap)}/>}
             {track ? (
               <>
                 <div
@@ -1575,9 +1722,8 @@ export default function App() {
             {selectedClip && (
               <InspectorSection title="Audio Event" key={selectedClip.id}>
                 <h4>{selectedClip.name}</h4>
+                <TimeField project={project} label="Audio position" value={selectedClip.start} onChange={(start)=>move(selection,start-selectedClip.start)}/>
                 <dl className="event-details">
-                  <dt>Start</dt>
-                  <dd>{formatTime(selectedClip.start)}</dd>
                   <dt>Length</dt>
                   <dd>{formatTime(selectedClip.duration)}</dd>
                   <dt>Source in</dt>
@@ -1690,6 +1836,7 @@ export default function App() {
           <Timeline
             project={project}
             selectedMap={selectedMap}
+            selectedMaps={selectedMaps}
             selection={selection}
             activeTrack={activeTrack}
             selectedTracks={selectedTracks}
@@ -1709,6 +1856,8 @@ export default function App() {
               setSelectedMap(null);
               setTrackMenu(null);
             }}
+            onArrangementSelect={selectArrangement}
+            onArrangementMove={(value,delta)=>moveSelectedArrangement(delta,value)}
             onTrackSelect={selectTrack}
             onTrackMenu={openTrackMenu}
             onTrackReorder={moveTracks}
@@ -1861,7 +2010,7 @@ export default function App() {
           )}
         </div>
       </main>
-      {previewing && <div className="preview-status"><Headphones size={13}/><span>Analysis preview</span><button onClick={() => { setPreviewing(false); engine.current?.updateProject(project); }}>Return to project</button></div>}
+      {(previewing||referencePreview) && <div className="preview-status"><Headphones size={13}/><span>{referencePreview?(referencePreview==="comparison"?"Sample comparison · 102 / 110 BPM":project.sampleReview?.reference.previouslyAccepted?"Approved sample click":"Original candidate click · unaccepted"):"Analysis preview"}</span><button onClick={() => { setPreviewing(false);setReferencePreview(null); engine.current?.updateProject(project); }}>Return to project</button></div>}
       {activeJob && <div className="job-status"><LoaderCircle size={13} className="spin"/><span>{activeJob.stage}</span>
         {activeJob.progress !== undefined && <span>{Math.round(activeJob.progress * 100)}%</span>}
         <button onClick={() => void api?.cancel(activeJob.id)}>Cancel</button></div>}
@@ -1869,9 +2018,13 @@ export default function App() {
         onStart={startPlayback} onStop={() => engine.current?.stop()} onSeek={seek} onLoop={setLoop}
         onClick={() => setMetronome((value) => !value)}
         onTempo={tempoFromCursor}
-        onSignature={() => chooseMap({ kind: "signature", id: positionAtQuarter(project, quarterAtTime(project, position)).signature.id })}
+        onSignature={signatureFromCursor}
         onClickPreview={(clickGain) => setProject((p) => ({ ...p, clickGain }))}
-        onClickCommit={(clickGain) => change((p) => ({ ...p, clickGain }), "Metronome volume")}/>
+        onClickCommit={(clickGain) => {
+          const referenceMode=referencePreview,analysisMode=previewing;
+          change((p) => ({ ...p, clickGain }), "Metronome volume");
+          setReferencePreview(referenceMode);setPreviewing(analysisMode);
+        }}/>
       {message && (
         <div className="toast" role="status" aria-live="polite">
           <span>{message}</span>
@@ -1927,8 +2080,8 @@ export default function App() {
             ).map(([label, command, key]) => (
               <button key={command} disabled={(appMenu === "project" && !["project-setup", "add-track"].includes(command) && !selectedTracks.length) ||
                 (command === "undo" && !history.current.undoLabel) || (command === "redo" && !history.current.redoLabel) ||
-                (command === "editor" && !selectedClip) || (["copy", "cut", "duplicate"].includes(command) && (!!selectedMap || (!range && !selection.length))) ||
-                (command === "paste" && (!clipboard.current || !!selectedMap))} onClick={() => commands.current(command)}>
+                (command === "editor" && !selectedClip) || (["copy", "cut", "duplicate"].includes(command) && (!!selectedMaps.length || (!range && !selection.length))) ||
+                (command === "paste" && (!clipboard.current || !!selectedMaps.length))} onClick={() => commands.current(command)}>
                 {label}
                 <kbd>{key}</kbd>
               </button>
@@ -1957,7 +2110,7 @@ export default function App() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className={`modal ${modal === "help" ? "help-modal" : ""}`}>
+          <div className={`modal ${modal === "help" ? "help-modal" : ""} ${modal==="samples"?"sample-modal":""}`}>
             <button
               className="modal-close icon-button"
               onClick={closeModal}
@@ -1972,6 +2125,7 @@ export default function App() {
               {projectEnd(project) > project.projectDuration && <p className="field-help">Some content is beyond the project end. Extend the project length to play it.</p>}
               <div className="modal-actions"><button className="primary-button" onClick={() => setModal(null)}>Done</button></div>
             </>}
+            {modal==="samples"&&<SampleLibraryDialog api={api} busy={sampleBusy} onOpen={(ref,comparison)=>void openSample(ref,comparison)} onClose={closeModal}/>}
             {modal === "add-track" && <AddAudioTrackDialog
               location={addBeforeTrack ? `Before ${project.tracks.find((track) => track.id === addBeforeTrack)?.name ?? "the chosen track"}` : "After the last audio track"}
               onAdd={addTracks} onCancel={() => setModal(null)}/>}

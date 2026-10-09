@@ -1,13 +1,21 @@
 import type { AudioClock, Clock, Project, Snap, SignatureEvent, TempoEvent } from "./model";
+import { CLICK_GAIN_POLICY, upgradedClickGain } from "./click-level";
 
 const id = () => crypto.randomUUID();
 const EPS = 1e-8;
 export const temposInOrder = (p: Project) => [...p.tempos].sort((a, b) => a.quarter - b.quarter);
 export const signaturesInOrder = (p: Project) => [...p.signatures].sort((a, b) => a.bar - b.bar);
 
+/** Calculation sections include the whole-project value; it is not a declared point. */
+export function tempoSections(p: Project): { id: string | null; quarter: number; bpm: number }[] {
+  const points = temposInOrder(p);
+  return points[0]?.quarter === 0 ? points : [{ id: null, quarter: 0, bpm: p.bpm }, ...points];
+}
 export function signatureSections(p: Project) {
-  let quarter = 0, previousBar = 1, previousLength = 4;
-  return signaturesInOrder(p).map((event) => {
+  const points: { id: string | null; bar: number; numerator: number; denominator: number }[] = signaturesInOrder(p);
+  if (points[0]?.bar !== 1) points.unshift({ id: null, bar: 1, ...p.signature });
+  let quarter = 0, previousBar = 1, previousLength = p.signature.numerator * 4 / p.signature.denominator;
+  return points.map((event) => {
     quarter += (event.bar - previousBar) * previousLength;
     previousBar = event.bar;
     previousLength = event.numerator * 4 / event.denominator;
@@ -30,7 +38,7 @@ export function positionAtQuarter(p: Project, quarter: number) {
     tick: Math.min(119, Math.max(0, Math.floor((withinBeat * 4 - sixteenth + EPS) * 120))), barStart, signature: section };
 }
 export function timeAtQuarter(p: Project, quarter: number): number {
-  const events = temposInOrder(p);
+  const events = tempoSections(p);
   let seconds = 0;
   if (quarter < 0) return quarter * 60 / events[0].bpm;
   for (let i = 0; i < events.length; i++) {
@@ -41,7 +49,7 @@ export function timeAtQuarter(p: Project, quarter: number): number {
   return seconds;
 }
 export function quarterAtTime(p: Project, seconds: number): number {
-  const events = temposInOrder(p);
+  const events = tempoSections(p);
   let at = 0;
   if (seconds < 0) return seconds * events[0].bpm / 60;
   for (let i = 0; i < events.length; i++) {
@@ -52,7 +60,7 @@ export function quarterAtTime(p: Project, seconds: number): number {
   return 0;
 }
 export const timeAtBar = (p: Project, bar: number) => timeAtQuarter(p, quarterAtBar(p, bar));
-export const tempoAtQuarter = (p: Project, quarter: number) => temposInOrder(p).filter((t) => t.quarter <= quarter + EPS).at(-1) ?? temposInOrder(p)[0];
+export const tempoAtQuarter = (p: Project, quarter: number) => tempoSections(p).filter((t) => t.quarter <= quarter + EPS).at(-1) ?? tempoSections(p)[0];
 export function musicalTime(p: Project, seconds: number) {
   const pos = positionAtQuarter(p, quarterAtTime(p, seconds));
   return `${pos.bar}.${pos.beat}.${pos.sixteenth}.${pos.tick}`;
@@ -88,7 +96,7 @@ export function projectClocks(p: Project, end = p.projectDuration): AudioClock[]
   return quarters.slice(0, -1).map((quarter, i) => {
     const tempo = tempoAtQuarter(p, quarter), pos = positionAtQuarter(p, quarter);
     const start = timeAtQuarter(p, quarter);
-    return { id: `${tempo.id}:${pos.signature.id}`, bpm: tempo.bpm, numerator: pos.signature.numerator, denominator: pos.signature.denominator,
+    return { id: `${tempo.id ?? "whole-tempo"}:${pos.signature.id ?? "whole-signature"}`, bpm: tempo.bpm, numerator: pos.signature.numerator, denominator: pos.signature.denominator,
       offset: 0, start, end: timeAtQuarter(p, quarters[i + 1]), phase: start - (quarter - pos.barStart) * 60 / tempo.bpm };
   });
 }
@@ -119,8 +127,9 @@ export function refreshMusicalAnchors(p: Project): Project {
   const musical = new Set(p.tracks.filter((t) => t.timeBase === "musical").map((t) => t.id));
   return { ...p, clips: p.clips.map((clip) => ({ ...clip, musicalStart: musical.has(clip.trackId) ? quarterAtTime(p, clip.start) : undefined })) };
 }
-export function editProjectMap(p: Project, tempos = p.tempos, signatures = p.signatures): Project {
-  const next = { ...p, tempos: [...tempos].sort((a, b) => a.quarter - b.quarter), signatures: [...signatures].sort((a, b) => a.bar - b.bar) };
+export function editProjectMap(p: Project, tempos = p.tempos, signatures = p.signatures,
+  whole: Partial<Pick<Project, "bpm" | "signature">> = {}): Project {
+  const next = { ...p, ...whole, tempos: [...tempos].sort((a, b) => a.quarter - b.quarter), signatures: [...signatures].sort((a, b) => a.bar - b.bar) };
   const musical = new Set(p.tracks.filter((t) => t.timeBase === "musical").map((t) => t.id));
   next.clips = p.clips.map((clip) => musical.has(clip.trackId)
     ? { ...clip, start: timeAtQuarter(next, clip.musicalStart ?? quarterAtTime(p, clip.start)) }
@@ -137,42 +146,45 @@ export function setTrackTimeBase(p: Project, trackId: string, timeBase: "linear"
 export function putTempo(p: Project, event: TempoEvent): Project {
   const quarter = Math.max(0, event.quarter);
   const collision = p.tempos.find((t) => Math.abs(t.quarter - quarter) < EPS);
-  let tempos = [...p.tempos.filter((t) => t.id !== event.id && t.id !== collision?.id), { ...event, id: collision?.id ?? event.id, quarter }];
-  if (event.origin !== "default" && p.tempos.every((t) => t.origin === "default"))
-    tempos = tempos.map((t) => t.quarter === 0 ? { ...t, bpm: event.bpm, origin: event.origin, analysisId: event.analysisId } : t);
+  const tempos = [...p.tempos.filter((t) => t.id !== event.id && t.id !== collision?.id), { ...event, id: collision?.id ?? event.id, quarter }];
   return editProjectMap({ ...p, timingPolicy: "persistent" }, tempos);
 }
 export function putSignature(p: Project, event: SignatureEvent): Project {
   const bar = Math.max(1, Math.round(event.bar)), collision = p.signatures.find((s) => s.bar === bar);
-  let signatures = [...p.signatures.filter((s) => s.id !== event.id && s.id !== collision?.id), { ...event, id: collision?.id ?? event.id, bar }];
-  if (event.origin !== "default" && p.signatures.every((s) => s.origin === "default"))
-    signatures = signatures.map((s) => s.bar === 1 ? { ...s, numerator: event.numerator, denominator: event.denominator, origin: event.origin, analysisId: event.analysisId } : s);
+  const signatures = [...p.signatures.filter((s) => s.id !== event.id && s.id !== collision?.id), { ...event, id: collision?.id ?? event.id, bar }];
   return editProjectMap({ ...p, timingPolicy: "persistent" }, undefined, signatures);
 }
 
 /** Migration keeps source-relative evidence intact; old scope clocks are not silently made global. */
 export function upgradeProject(input: Project): Project {
   const legacy = Number(input.version) === 1;
+  type OldTempo = Omit<TempoEvent, "origin"> & { origin: "default" | "manual" | "analysis"; retainedInitialFor?: string };
+  type OldSignature = Omit<SignatureEvent, "origin"> & { origin: "default" | "manual" | "analysis"; retainedInitialFor?: string };
+  const tempos: OldTempo[] = legacy ? [] : input.tempos ?? [];
+  const signatures: OldSignature[] = legacy ? [] : input.signatures ?? [];
+  const firstTempo = [...tempos].sort((a, b) => a.quarter - b.quarter)[0];
+  const firstSignature = [...signatures].sort((a, b) => a.bar - b.bar)[0];
+  const explicitTempo = [...tempos].sort((a, b) => a.quarter - b.quarter).find(t => t.origin !== "default");
+  const explicitSignature = [...signatures].sort((a, b) => a.bar - b.bar).find(s => s.origin !== "default");
+  const oldTempo = input.timingPolicy !== "persistent" && firstTempo?.origin === "default" ? explicitTempo ?? firstTempo : firstTempo;
+  const oldSignature = input.timingPolicy !== "persistent" && firstSignature?.origin === "default" ? explicitSignature ?? firstSignature : firstSignature;
+  const hasWholeValues = !legacy && Number.isFinite(input.bpm) && !!input.signature;
   const p: Project = { ...input, version: 2,
     tracks: input.tracks.map((track) => ({ ...track, timeBase: legacy ? "linear" : track.timeBase })),
-    tempos: !legacy && input.tempos?.length ? input.tempos : [{ id: id(), quarter: 0, bpm: 120, origin: "default" }],
-    signatures: !legacy && input.signatures?.length ? input.signatures : [{ id: id(), bar: 1, numerator: 4, denominator: 4, origin: "default" }],
+    bpm: hasWholeValues ? input.bpm : oldTempo?.bpm ?? 120,
+    signature: hasWholeValues ? input.signature : { numerator: oldSignature?.numerator ?? 4, denominator: oldSignature?.denominator ?? 4 },
+    // Only identified automatic points disappear. User/source/analysis declarations stay.
+    tempos: tempos.filter((t): t is OldTempo & { origin: "manual" | "analysis" } => t.origin !== "default" && !t.retainedInitialFor)
+      .map(({ retainedInitialFor, ...event }) => event),
+    signatures: signatures.filter((s): s is OldSignature & { origin: "manual" | "analysis" } => s.origin !== "default" && !s.retainedInitialFor)
+      .map(({ retainedInitialFor, ...event }) => event),
     projectDuration: legacy ? Math.max(1800, ...input.clips.map((c) => c.start + c.duration)) : input.projectDuration,
-    rulerFormat: legacy ? "bars" : input.rulerFormat, clickGain: input.clickGain ?? .7 };
-  if (input.timingPolicy !== "persistent") {
-    // v0.2 tagged initial values and identifiable automatic restores as default.
-    // Manual/analysis-origin events can be genuine edits; never guess-delete them.
-    p.tempos = p.tempos.filter((t) => t.quarter === 0 || t.origin !== "default");
-    p.signatures = p.signatures.filter((s) => s.bar === 1 || s.origin !== "default");
-    const firstTempo = temposInOrder(p).find((t) => t.origin !== "default");
-    const firstSignature = signaturesInOrder(p).find((s) => s.origin !== "default");
-    if (firstTempo) p.tempos = p.tempos.map((t) => t.quarter === 0 && t.origin === "default" ? { ...firstTempo, id: t.id, quarter: 0 } : t);
-    if (firstSignature) p.signatures = p.signatures.map((s) => s.bar === 1 && s.origin === "default" ? { ...firstSignature, id: s.id, bar: 1 } : s);
-    p.timingPolicy = "persistent";
-    // Migration changes the grid, preserving physical audio placement on open.
-    return refreshMusicalAnchors(p);
-  }
-  return legacy ? refreshMusicalAnchors(p) : p;
+    rulerFormat: legacy ? "bars" : input.rulerFormat,
+    timingPolicy: "persistent",
+    clickGain: upgradedClickGain(input.clickGain,input.clickGainPolicy),clickGainPolicy:CLICK_GAIN_POLICY };
+  // Opening migrates in memory and preserves physical audio and all source evidence.
+  return legacy || !hasWholeValues || p.tempos.length !== tempos.length || p.signatures.length !== signatures.length
+    ? refreshMusicalAnchors(p) : p;
 }
 
 /** A result is arranged onto a real project bar; source-relative evidence is unchanged. */
@@ -181,12 +193,18 @@ function mapForClock(p: Project, clock: Clock, bar: number, phaseOffset: number)
   const start = quarter - phaseOffset * clock.values.bpm / 60;
   if (start < -EPS) return null;
   const scopeStartQuarter = Math.max(0, Math.abs(start) < EPS ? 0 : start);
-  const analysisSignature: SignatureEvent = { id: p.signatures.find((s) => s.bar === bar)?.id ?? id(), bar, numerator: clock.values.numerator, denominator: clock.values.denominator, origin: "analysis", analysisId: clock.analysisId };
-  let tempos = p.tempos.filter((t) => Math.abs(t.quarter - scopeStartQuarter) >= EPS);
-  tempos.push({ id: p.tempos.find((t) => Math.abs(t.quarter - scopeStartQuarter) < EPS)?.id ?? id(), quarter: scopeStartQuarter,
-    bpm: clock.values.bpm, origin: "analysis", analysisId: clock.analysisId });
-  let signatures = p.signatures.filter((s) => s.bar !== bar);
-  signatures.push(analysisSignature);
+  let tempos = p.tempos;
+  if (tempos.length) {
+    tempos = tempos.filter((t) => Math.abs(t.quarter - scopeStartQuarter) >= EPS);
+    tempos.push({ id: p.tempos.find((t) => Math.abs(t.quarter - scopeStartQuarter) < EPS)?.id ?? id(), quarter: scopeStartQuarter,
+      bpm: clock.values.bpm, origin: "analysis", analysisId: clock.analysisId });
+  }
+  let signatures = p.signatures;
+  if (signatures.length) {
+    signatures = signatures.filter((s) => s.bar !== bar);
+    signatures.push({ id: p.signatures.find((s) => s.bar === bar)?.id ?? id(), bar,
+      numerator: clock.values.numerator, denominator: clock.values.denominator, origin: "analysis", analysisId: clock.analysisId });
+  }
   return { ...p, tempos, signatures, timingPolicy: "persistent" as const };
 }
 export function clockPlacement(p: Project, clock: Clock, linked = true) {
@@ -203,11 +221,13 @@ export function clockPlacement(p: Project, clock: Clock, linked = true) {
   if (phaseOffset >= clock.sourceEnd - clock.sourceStart - EPS)
     throw new Error("This scope contains no downbeat to align. Choose a longer analyzed range or edit its saved clock.");
   const phase = reference.start - reference.sourceStart + clock.sourceStart + phaseOffset;
-  // Establish missing initial values before choosing the bar. This prevents an
-  // old 120/4/4 placeholder from affecting the first analyzed song's alignment.
-  const base = { ...p,
-    tempos: p.tempos.every((t) => t.origin === "default") ? p.tempos.map((t) => ({ ...t, bpm: clock.values.bpm, origin: "analysis" as const, analysisId: clock.analysisId })) : p.tempos,
-    signatures: p.signatures.every((s) => s.origin === "default") ? p.signatures.map((s) => ({ ...s, numerator: clock.values.numerator, denominator: clock.values.denominator, origin: "analysis" as const, analysisId: clock.analysisId })) : p.signatures };
+  // Reapplication replaces only this analysis's untouched map declarations.
+  // Manual edits and other analyses remain real project points.
+  const tempos = p.tempos.filter(event => event.origin !== "analysis" || event.analysisId !== clock.analysisId);
+  const signatures = p.signatures.filter(event => event.origin !== "analysis" || event.analysisId !== clock.analysisId);
+  const base: Project = { ...p, tempos, signatures,
+    bpm: tempos.length ? p.bpm : clock.values.bpm,
+    signature: signatures.length ? p.signature : { numerator: clock.values.numerator, denominator: clock.values.denominator } };
   const affected = p.clips.filter((clip) => clip.id === reference.id || (linked && reference.groupId && clip.groupId === reference.groupId));
   const minimum = Math.min(...affected.map((clip) => clip.start));
   const pos = positionAtQuarter(base, quarterAtTime(base, Math.max(0, phase)));
@@ -228,7 +248,7 @@ export function clockPlacement(p: Project, clock: Clock, linked = true) {
 }
 export function placeClockOnProject(p: Project, clock: Clock, linked = true) {
   const { affected, bar, anchor, delta, mapped } = clockPlacement(p, clock, linked);
-  let next = editProjectMap(p, mapped.tempos, mapped.signatures);
+  let next = editProjectMap(p, mapped.tempos, mapped.signatures, { bpm: mapped.bpm, signature: mapped.signature });
   // Explicit alignment moves this song and its linked stems together. Each
   // track keeps its chosen time base; other Musical events follow the map edit.
   const ids = new Set(affected.map((clip) => clip.id));

@@ -1,4 +1,6 @@
 import { musicalTime, projectClocks, snapToProject } from "./music";
+import type { SampleReview, SampleLibrary, SampleReference } from "./samples";
+import { DEFAULT_CLICK_GAIN, CLICK_GAIN_POLICY } from "./click-level";
 
 export type Asset = {
   id: string;
@@ -71,18 +73,20 @@ export type TempoEvent = {
   id: string;
   quarter: number;
   bpm: number;
-  origin: "default" | "manual" | "analysis";
+  origin: "manual" | "analysis";
   analysisId?: string;
 };
+export type TimeSignature = { numerator: number; denominator: number };
 export type SignatureEvent = {
   id: string;
   bar: number;
   numerator: number;
   denominator: number;
-  origin: "default" | "manual" | "analysis";
+  origin: "manual" | "analysis";
   analysisId?: string;
 };
 export type MapSelection = { kind: "tempo" | "signature"; id: string };
+export type ArrangementSelection = { clips: string[]; maps: MapSelection[] };
 export type Project = {
   format: "joljak-project";
   version: 2;
@@ -95,13 +99,17 @@ export type Project = {
   analyses: Analysis[];
   masterGain: number;
   clickGain: number;
+  clickGainPolicy?: typeof CLICK_GAIN_POLICY;
   sampleRate: number;
   notes: string;
+  bpm: number;
+  signature: TimeSignature;
   tempos: TempoEvent[];
   signatures: SignatureEvent[];
   projectDuration: number;
   rulerFormat: "bars" | "seconds";
   timingPolicy?: "persistent";
+  sampleReview?: SampleReview;
 };
 export type TimeRange = { start: number; end: number; trackIds: string[] };
 export type AudioClipboard = {
@@ -163,6 +171,11 @@ export type AudioClock = ClockValues & {
 export interface DesktopApi {
   kind: "electron";
   chooseAudio(): Promise<string[]>;
+  sampleLibrary(choose?: boolean): Promise<SampleLibrary>;
+  sampleReference(id: string): Promise<SampleReference>;
+  chooseCandidateReview():Promise<SampleLibrary|null>;
+  candidateReference(filename:string,id:string):Promise<SampleReference>;
+  saveSampleDraft(project: Project): Promise<string>;
   decode(paths: string[], copy: boolean, requestId: string): Promise<string>;
   finishImport(id: string, keep: boolean): Promise<void>;
   peaks(asset: Asset): Promise<ArrayBuffer>;
@@ -230,11 +243,14 @@ export const createProject = (): Project => ({
   clocks: [],
   analyses: [],
   masterGain: 1,
-  clickGain: 0.7,
+  clickGain: DEFAULT_CLICK_GAIN,
+  clickGainPolicy: CLICK_GAIN_POLICY,
   sampleRate: 48000,
   notes: "",
-  tempos: [{ id: uid(), quarter: 0, bpm: 120, origin: "default" }],
-  signatures: [{ id: uid(), bar: 1, numerator: 4, denominator: 4, origin: "default" }],
+  bpm: 120,
+  signature: { numerator: 4, denominator: 4 },
+  tempos: [],
+  signatures: [],
   projectDuration: 1800,
   rulerFormat: "bars",
   timingPolicy: "persistent",

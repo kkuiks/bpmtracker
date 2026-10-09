@@ -19,6 +19,8 @@ import numpy as np
 import soundfile as sf
 import soxr
 
+DEFAULT_CLICK_GAIN = 0.7 * 10 ** (6 / 20)
+
 
 def emit(stage, **fields):
     print(json.dumps({"stage": stage, **fields}, allow_nan=False), flush=True)
@@ -160,8 +162,14 @@ def analysis_geometry(project):
 
 def musical_map(project):
     tempos = sorted(project['tempos'], key=lambda event: event['quarter'])
-    signatures, quarter, previous_bar, previous_length = [], 0.0, 1, 4.0
-    for event in sorted(project['signatures'], key=lambda event: event['bar']):
+    if not tempos or tempos[0]['quarter'] != 0:
+        tempos.insert(0, {'id': 'whole-project-tempo', 'quarter': 0, 'bpm': project.get('bpm', 120)})
+    points = sorted(project['signatures'], key=lambda event: event['bar'])
+    signature = project.get('signature', {'numerator': 4, 'denominator': 4})
+    if not points or points[0]['bar'] != 1:
+        points.insert(0, {'id': 'whole-project-signature', 'bar': 1, **signature})
+    signatures, quarter, previous_bar, previous_length = [], 0.0, 1, signature['numerator'] * 4 / signature['denominator']
+    for event in points:
         quarter += (event['bar'] - previous_bar) * previous_length
         previous_bar = event['bar']
         previous_length = event['numerator'] * 4 / event['denominator']
@@ -374,7 +382,7 @@ def export(job):
             for first in range(0, frames, 8192):
                 count = min(8192, frames - first)
                 times = start + np.arange(first, first + count, dtype=np.float64) / rate
-                block = click_block(regions, times) * project["masterGain"] * project.get("clickGain", .7) if is_click else mix_block(project, assets, times, track)
+                block = click_block(regions, times) * project["masterGain"] * project.get("clickGain", DEFAULT_CLICK_GAIN) if is_click else mix_block(project, assets, times, track)
                 destination.write(block)
                 if first % (8192 * 24) == 0:
                     emit(f"Rendering {name}", progress=(index + first / max(frames, 1)) / max(len(outputs), 1))
@@ -388,8 +396,11 @@ def export(job):
                     "analyses": project["analyses"], "audioWasTimeStretched": False}
         if project.get('version') == 2:
             tempos, signatures, seconds_at, quarter_at = musical_map(project)
-            document.update({'projectTempoEvents': [{**t, 'projectSeconds': seconds_at(t['quarter'])} for t in tempos],
-                             'projectSignatureEvents': [{**s, 'projectSeconds': seconds_at(s['quarter'])} for s in signatures],
+            declared_signatures = {s['id'] for s in project['signatures']}
+            document.update({'projectBpm': project.get('bpm', tempos[0]['bpm']),
+                             'projectSignature': project.get('signature', {'numerator': signatures[0]['numerator'], 'denominator': signatures[0]['denominator']}),
+                             'projectTempoEvents': [{**t, 'projectSeconds': seconds_at(t['quarter'])} for t in sorted(project['tempos'], key=lambda t: t['quarter'])],
+                             'projectSignatureEvents': [{**s, 'projectSeconds': seconds_at(s['quarter'])} for s in signatures if s['id'] in declared_signatures],
                              'originProjectQuarter': quarter_at(start), 'savedAnalysisScopes': project['clocks'],
                              'analysisClockRegions': analysis_geometry(project),
                              'tempoEventPersistence': 'until-next-event' if project.get('timingPolicy') == 'persistent' else 'legacy'})

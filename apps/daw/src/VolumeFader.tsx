@@ -21,8 +21,10 @@ function gainForTravel(travel: number) {
   }
   return 10 ** (6 / 20);
 }
-export function GainField({ gain, label, onChange }: { gain: number; label: string; onChange: (gain: number) => void }) {
-  const formatted = gain > 0 ? (20 * Math.log10(gain)).toFixed(2) : "−∞";
+export function GainField({ gain, label, onChange, referenceGain=1, maxDb=6 }: {
+  gain: number; label: string; onChange: (gain: number) => void; referenceGain?:number;maxDb?:number;
+}) {
+  const formatted = gain > 0 ? (20 * Math.log10(gain/referenceGain)).toFixed(2) : "−∞";
   const [text, setText] = useState(formatted);
   const focused = useRef(false), edited = useRef(false);
   useEffect(() => { if (!focused.current) setText(formatted); }, [formatted]);
@@ -33,7 +35,7 @@ export function GainField({ gain, label, onChange }: { gain: number; label: stri
       if (/^(?:-inf|-infinity|-∞|−∞)$/i.test(input)) onChange(0);
       else {
         const db = input ? Number(input) : NaN;
-        if (Number.isFinite(db) && db >= -96 && db <= 6) onChange(10 ** (db / 20));
+        if (Number.isFinite(db) && db >= -96 && db <= maxDb) onChange(referenceGain*10 ** (db / 20));
       }
     }
     edited.current = false;

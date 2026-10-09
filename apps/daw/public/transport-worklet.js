@@ -9,9 +9,10 @@ class JoljakTransport extends AudioWorkletProcessor {
     this.playing = false;
     this.clips = [];
     this.clocks = [];
+    this.referenceEvents = null;
     this.masterGain = 1;
     this.clickEnabled = false;
-    this.clickGain = .7;
+    this.clickGain = .7 * 10 ** (6 / 20);
     this.loop = { enabled: false, start: 0, end: 0 };
     this.end = 0;
     this.cache = new Map();
@@ -24,6 +25,12 @@ class JoljakTransport extends AudioWorkletProcessor {
           rightGain: clip.channels === 1 ? Math.sin((clip.pan + 1) * Math.PI / 4) * clip.gain : Math.min(1, 1 + clip.pan) * clip.gain,
         }));
         this.clocks = data.clocks.slice().reverse();
+        if (data.referenceClicks) {
+          const events = new Map();
+          for (const time of data.referenceClicks.beats) events.set(Math.round(time * sampleRate), false);
+          for (const time of data.referenceClicks.bars) events.set(Math.round(time * sampleRate), true);
+          this.referenceEvents = [...events].sort((a,b)=>a[0]-b[0]).map(([frame,strong])=>({time:frame/sampleRate,strong}));
+        } else this.referenceEvents = null;
         this.masterGain = data.masterGain; this.end = data.end;
       } else if (data.type === 'transport') {
         if (data.revision !== undefined && data.revision < this.revision) return;
@@ -59,6 +66,15 @@ class JoljakTransport extends AudioWorkletProcessor {
     stored.used = currentFrame;
     return stored.samples[(index - chunk * chunkFrames) * clip.channels + channel] || 0;
   }
+  referencePulse(time) {
+    let left=0, right=this.referenceEvents.length;
+    while (left<right) {
+      const middle=(left+right)>>>1;
+      if (this.referenceEvents[middle].time<=time+1e-9) left=middle+1;
+      else right=middle;
+    }
+    return left ? this.referenceEvents[left-1] : null;
+  }
   process(_inputs, outputs) {
     const out = outputs[0];
     if (!out || out.length < 2) return true;
@@ -93,6 +109,14 @@ class JoljakTransport extends AudioWorkletProcessor {
         }
         if (missing) { this.playing = false; this.port.postMessage({ type: 'buffering', revision: this.revision, position: time }); break; }
         if (this.clickEnabled) {
+          if (this.referenceEvents !== null) {
+            const pulse=this.referencePulse(time), age=pulse ? time-pulse.time : Infinity;
+            if (age>=-1e-9 && age<.035) {
+              const elapsed=Math.max(0,age), strong=pulse.strong;
+              const tone=Math.sin(2*Math.PI*(strong?1600:1050)*elapsed)*Math.exp(-elapsed/.006)*(strong ? .32 : .20)*this.clickGain;
+              l+=tone; r+=tone;
+            }
+          } else {
           // Most recently applied clock owns an overlapping scope.
           let clock = null;
           for (const candidate of this.clocks) if (time >= candidate.start && time < candidate.end) { clock = candidate; break; }
@@ -105,6 +129,7 @@ class JoljakTransport extends AudioWorkletProcessor {
               const tone = Math.sin(2 * Math.PI * (strong ? 1600 : 1050) * age) * Math.exp(-age / .006) * (strong ? .32 : .20) * this.clickGain;
               l += tone; r += tone;
             }
+          }
           }
         }
         l *= this.masterGain; r *= this.masterGain;

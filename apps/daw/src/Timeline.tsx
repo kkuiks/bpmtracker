@@ -23,13 +23,15 @@ import {
   type Clip,
   type ImportDestination,
   type MapSelection,
+  type ArrangementSelection,
   type Project,
   type Snap,
   type TimeRange,
   type Tool,
   type Track,
 } from "./model";
-import { gridLines, musicalTime, positionAtQuarter, quarterAtTime, signatureSections, snapToProject, temposInOrder, timeAtBar, timeAtQuarter } from "./music";
+import { gridLines, musicalTime, positionAtQuarter, quarterAtTime, snapToProject, tempoAtQuarter, tempoSections, timeAtBar, timeAtQuarter } from "./music";
+import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
 
 const ROW = 92;
 const RULER = 36;
@@ -56,6 +58,9 @@ type Props = {
   loop: { start: number; end: number; enabled: boolean };
   peaks: Map<string, Float32Array>;
   selectedMap: MapSelection | null;
+  selectedMaps: MapSelection[];
+  onArrangementSelect:(selection:ArrangementSelection,primary?:MapSelection)=>void;
+  onArrangementMove:(selection:ArrangementSelection,delta:number)=>void;
   onSelect: (ids: string[], track: string) => void;
   onTrackSelect: (id: string, modifiers?: { ctrl: boolean; shift: boolean }, preserve?: boolean) => string[];
   onTrackMenu: (id: string | null, x: number, y: number) => void;
@@ -79,7 +84,7 @@ type Props = {
   onAnalyze: (clip: Clip) => void;
   onEdit: (clip: Clip) => void;
   onRangeMove: (range: TimeRange, delta: number, targetTrack: string | undefined, copy: boolean) => void;
-  onMapSelect: (selection: MapSelection) => void;
+  onMapSelect: (selection: MapSelection,additive?:boolean) => void;
   onMapAdd: (kind: "tempo" | "signature", time: number) => void;
   onMapMove: (selection: MapSelection, time: number, bpm?: number) => void;
   onMapDelete: (selection: MapSelection) => void;
@@ -89,6 +94,7 @@ type Props = {
 type Drag = {
   mode:
     | "move"
+    | "objects"
     | "start"
     | "end"
     | "range"
@@ -115,6 +121,10 @@ type Drag = {
   axis?: "horizontal" | "vertical";
   additive?: boolean;
   initialSelection?: string[];
+  initialMaps?:MapSelection[];
+  items?:ArrangementSelection;
+  previewProject?:Project;
+  error?:string;
   contentY?: number;
   originalRange?: TimeRange;
   original?: { start: number; end: number };
@@ -125,7 +135,6 @@ type Drag = {
   currentY?: number;
   mapId?: string;
   mapTime?: number;
-  mapFixed?: boolean;
   originalBpm?: number;
   bpm?: number;
   bpmPerPixel?: number;
@@ -286,7 +295,8 @@ export default function Timeline(props: Props) {
   const [menu, setMenu] = useState<{ x: number; y: number; clip: Clip; time: number } | null>(
     null,
   );
-  const totalEnd = Math.max(project.projectDuration, projectEnd(project));
+  const displayProject=drag?.previewProject??project;
+  const totalEnd = Math.max(displayProject.projectDuration, projectEnd(displayProject));
   const totalWidth = Math.max(scroll.width, totalEnd * scale);
   const contentHeight = Math.max(scroll.height, HEADER + (project.tracks.length + 1) * ROW, project.clips.length ? 0 : 560);
   const effectiveSelection = new Set(
@@ -531,10 +541,10 @@ export default function Timeline(props: Props) {
       }
       const mapGesture = state.mode === "tempo" || state.mode === "signature";
       if (["move", "marquee", "range", "range-move"].includes(state.mode)) {
-        if (event.clientY < bounds.top + HEADER + 12) scroller.current.scrollTop = Math.max(0, scroller.current.scrollTop - 10);
+        if (event.clientY < bounds.top + (state.mode==="marquee"?RULER:HEADER) + 12) scroller.current.scrollTop = Math.max(0, scroller.current.scrollTop - 10);
         else if (event.clientY > bounds.bottom - 20) scroller.current.scrollTop += 10;
       }
-      const edgeScroll = !mapGesture || (!state.mapFixed && (state.horizontalMoved || Math.abs(event.clientX - state.x) > 4));
+      const edgeScroll = !mapGesture || state.horizontalMoved || Math.abs(event.clientX - state.x) > 4;
       if (edgeScroll && event.clientX < bounds.left + 25)
         scroller.current.scrollLeft = Math.max(
           0,
@@ -553,7 +563,16 @@ export default function Timeline(props: Props) {
         currentY: event.clientY,
       };
       const mode = event.ctrlKey ? "off" : snap;
-      if (state.mode === "cursor") {
+      if (state.mode === "objects") {
+        const items=state.items!,anchor=arrangementBounds(project,items,linked)!.start;
+        const grid=arrangementDestination(project,items);
+        const signatureTimes=items.maps.filter(item=>item.kind==="signature").map(item=>timeAtBar(project,project.signatures.find(event=>event.id===item.id)!.bar));
+        const snapAnchor=signatureTimes.length?Math.min(...signatureTimes):anchor;
+        const destination=snapToProject(grid,Math.max(0,snapAnchor+currentTime-state.time),signatureTimes.length?"bar":mode);
+        next.delta=destination-snapAnchor;
+        try{next.previewProject=moveArrangement(project,items,next.delta,linked);next.error=undefined;}
+        catch(e){next.previewProject=undefined;next.error=e instanceof Error?e.message:String(e);}
+      } else if (state.mode === "cursor") {
         next.delta = snapToProject(project, currentTime + (state.cursorOffset ?? 0), mode);
         scheduleSeek(next.delta);
       } else if (state.mode === "move") {
@@ -642,12 +661,20 @@ export default function Timeline(props: Props) {
         next.horizontalMoved = state.horizontalMoved || Math.abs(event.clientX - state.x) > 4;
         next.verticalMoved = state.verticalMoved || Math.abs(event.clientY - state.y) > 4;
         const originalTime = state.mapTime ?? state.time;
-        next.delta = state.mapFixed || !next.horizontalMoved ? originalTime
+        next.delta = !next.horizontalMoved ? originalTime
           : snapToProject(project, originalTime + currentTime - state.time, state.mode === "signature" ? "bar" : mode);
         if (state.mode === "tempo") {
           next.bpm = next.verticalMoved
             ? Math.max(1, Math.min(1000, Math.round((state.originalBpm! + (state.y - event.clientY) * state.bpmPerPixel!) * 4) / 4))
             : state.originalBpm;
+          if(next.horizontalMoved&&Math.abs(event.clientX-state.x)>Math.abs(event.clientY-state.y)) {
+            next.mode="objects";next.bpm=state.originalBpm;
+            const items=state.items!,anchor=arrangementBounds(project,items,linked)!.start;
+            const grid=arrangementDestination(project,items);
+            next.delta=snapToProject(grid,Math.max(0,anchor+currentTime-state.time),mode)-anchor;
+            try{next.previewProject=moveArrangement(project,items,next.delta,linked);next.error=undefined;}
+            catch(e){next.previewProject=undefined;next.error=e instanceof Error?e.message:String(e);}
+          }
         }
       }
       setDragging(next);
@@ -655,7 +682,7 @@ export default function Timeline(props: Props) {
     const onUp = (event: PointerEvent) => {
       let state = dragRef.current;
       if (!state) return;
-      if (state.moved && ["move", "start", "end", "range-move", "range-start", "range-end"].includes(state.mode)) {
+      if (state.moved && ["move", "objects", "start", "end", "range-move", "range-start", "range-end"].includes(state.mode)) {
         onMove(event); state = dragRef.current!;
       }
       if (state.mode === "track") {
@@ -665,6 +692,8 @@ export default function Timeline(props: Props) {
         if (state.moved) flushSeek(snapToProject(project, timeAt(event.clientX) + (state.cursorOffset ?? 0), event.ctrlKey ? "off" : snap));
         else if (pendingSeek.current !== null) flushSeek();
       }
+      else if (state.mode === "objects"&&state.moved)
+        props.onArrangementMove(state.items!,state.delta??0);
       else if (state.mode === "move" && state.moved)
         props.onMove(
           state.ids!,
@@ -690,7 +719,6 @@ export default function Timeline(props: Props) {
       else if (state.mode === "marquee" && state.moved) {
         const first = Math.min(state.time, timeAt(event.clientX)),
           last = Math.max(state.time, timeAt(event.clientX));
-        const a = project.tracks.find((t) => t.id === state.trackId) ?? boundedTrackAt(state.y);
         const lastY = event.clientY - scroller.current!.getBoundingClientRect().top + scroller.current!.scrollTop;
         const top = Math.min(state.contentY!, lastY), bottom = Math.max(state.contentY!, lastY);
         const selected = project.clips
@@ -701,7 +729,20 @@ export default function Timeline(props: Props) {
             },
           )
           .map((c) => c.id);
-        props.onSelect(state.additive ? [...new Set([...state.initialSelection!, ...selected])] : selected, a?.id ?? "");
+        const pointElements=scroller.current!.querySelectorAll<HTMLElement>("[data-map-kind][data-map-id]");
+        const visible=new Map([...pointElements].map(element=>[`${element.dataset.mapKind}:${element.dataset.mapId}`,element]));
+        const maps:MapSelection[]=[];
+        const points=[...project.tempos.map(event=>({kind:"tempo" as const,id:event.id,time:timeAtQuarter(project,event.quarter),y:RULER+tempoY(event.bpm)-10,height:20})),
+          ...project.signatures.map(event=>({kind:"signature" as const,id:event.id,time:timeAtBar(project,event.bar),y:RULER+TEMPO_ROW+8,height:23}))];
+        for(const point of points) {
+          const element=visible.get(`${point.kind}:${point.id}`),rect=element?.getBoundingClientRect(),node=scroller.current!,viewportRect=node.getBoundingClientRect();
+          const x=rect?rect.left-viewportRect.left+node.scrollLeft:point.time*scale;
+          const y=rect?rect.top-viewportRect.top+node.scrollTop:point.y;
+          if(x<=last*scale&&x+(rect?.width??1)>=first*scale&&y<bottom&&y+(rect?.height??point.height)>top)
+            maps.push({kind:point.kind,id:point.id});
+        }
+        props.onArrangementSelect({clips:state.additive?[...new Set([...state.initialSelection!,...selected])]:selected,
+          maps:state.additive?[...(state.initialMaps??[]),...maps]:maps});
       } else if (state.mode.startsWith("locator") && !state.moved)
         props.onSeek(state.time);
       setDragging(null);
@@ -715,7 +756,7 @@ export default function Timeline(props: Props) {
         setFileDrop(null);
       } else if (["Control", "Alt"].includes(event.key)) {
         const state = dragRef.current;
-        if (state && ["move", "start", "end", "range-move"].includes(state.mode))
+        if (state && ["move", "objects", "start", "end", "range-move"].includes(state.mode))
           onMove(new PointerEvent("pointermove", { clientX: state.currentX ?? state.x, clientY: state.currentY ?? state.y,
             ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey }));
       }
@@ -792,16 +833,18 @@ export default function Timeline(props: Props) {
       }
       if (!event.shiftKey)
         ids = [clip.id, ...ids.filter((id) => id !== clip.id)];
-      props.onSelect(ids, clip.trackId);
+      const maps=!edge&&(event.shiftKey||effectiveSelection.has(clip.id))?props.selectedMaps:[];
+      props.onArrangementSelect({clips:ids,maps});
       props.onRange(null);
       if (!ids.includes(clip.id)) return;
       setDragging({
-        mode: edge ?? "move",
+        mode: !edge&&maps.length?"objects":edge??"move",
         x: event.clientX,
         y: event.clientY,
         time: at,
         id: clip.id,
         ids,
+        items:{clips:ids,maps},
         copy: !edge && event.altKey,
         ctrl: !edge && event.ctrlKey,
       });
@@ -815,6 +858,7 @@ export default function Timeline(props: Props) {
         time: at,
         additive: event.shiftKey,
         initialSelection: selection,
+        initialMaps:props.selectedMaps,
         trackId: boundedTrackAt(event.clientY)?.id,
         contentY: event.clientY - scroller.current!.getBoundingClientRect().top + scroller.current!.scrollTop,
       });
@@ -834,32 +878,37 @@ export default function Timeline(props: Props) {
     t += secondStep
   )
     ticks.push(t);
-  const lines = gridLines(project, startTime, endTime, scale);
-  const tempos = temposInOrder(project), signatures = signatureSections(project);
+  const lines = gridLines(displayProject, startTime, endTime, scale);
+  const tempos = tempoSections(displayProject), signatures = displayProject.signatures;
   const minTempo = Math.min(80, ...tempos.map((t) => t.bpm)) - 15;
   const maxTempo = Math.max(160, ...tempos.map((t) => t.bpm)) + 15;
   const tempoY = (bpm: number) => 16 + (maxTempo - bpm) / (maxTempo - minTempo) * (TEMPO_ROW - 30);
-  const mapPointer = (event: React.PointerEvent, selected: MapSelection, fixed: boolean) => {
+  const mapPointer = (event: React.PointerEvent, selected: MapSelection) => {
     event.stopPropagation();
     if (event.button !== 0) return;
-    if (tool === "erase") { if (!fixed) props.onMapDelete(selected); return; }
-    props.onMapSelect(selected);
-    if (fixed && selected.kind === "signature") return;
+    if (tool === "erase") { props.onMapDelete(selected); return; }
+    const already=props.selectedMaps.some(item=>item.id===selected.id&&item.kind===selected.kind);
+    const maps=event.shiftKey?(already?props.selectedMaps.filter(item=>item.id!==selected.id||item.kind!==selected.kind):[...props.selectedMaps,selected]):already?props.selectedMaps:[selected];
+    const clips=event.shiftKey||already?selection:[];
+    props.onArrangementSelect({clips,maps},selected);
+    if(!maps.some(item=>item.id===selected.id&&item.kind===selected.kind))return;
     const tempo = selected.kind === "tempo" ? project.tempos.find((point) => point.id === selected.id) : null;
     const signature = selected.kind === "signature" ? project.signatures.find((point) => point.id === selected.id) : null;
     if (!tempo && !signature) return;
     const mapTime = tempo ? timeAtQuarter(project, tempo.quarter) : timeAtBar(project, signature!.bar);
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setDragging({ mode: selected.kind, x: event.clientX, y: event.clientY, time: timeAt(event.clientX), mapId: selected.id,
-      mapTime, mapFixed: fixed, originalBpm: tempo?.bpm, bpm: tempo?.bpm,
+    const objects=clips.length>0||maps.length>1||selected.kind==="signature";
+    setDragging({ mode: objects?"objects":selected.kind, x: event.clientX, y: event.clientY, time: timeAt(event.clientX), mapId: selected.id,
+      items:{clips,maps},
+      mapTime, originalBpm: tempo?.bpm, bpm: tempo?.bpm,
       bpmPerPixel: (maxTempo - minTempo) / (TEMPO_ROW - 30) });
   };
   const eventPreview = !drag?.moved || !drag.ids ? [] : drag.mode === "move"
     ? movePreview(project, drag.ids, drag.delta ?? 0, linked, drag.targetTrack)
     : drag.mode === "start" || drag.mode === "end" ? trimPreview(project, drag.ids, drag.mode, drag.delta ?? 0, linked) : [];
   const previewById = new Map(eventPreview.map((c) => [c.id, c]));
-  const displayedClips = drag?.copy ? project.clips : project.clips.map((c) => previewById.get(c.id) ?? c);
+  const displayedClips = drag?.previewProject?displayProject.clips:drag?.copy ? project.clips : project.clips.map((c) => previewById.get(c.id) ?? c);
   const movingRange = drag?.mode === "range-move" && drag.moved
     ? rangePreview(project, drag.originalRange!, drag.delta ?? 0, drag.targetTrack, linked) : null;
   const displayedRange = movingRange?.range ?? props.range;
@@ -904,13 +953,13 @@ export default function Timeline(props: Props) {
           </button>
         </div>
         <div style={{ transform: `translateY(${-scroll.y}px)` }}>
-          <div className={`map-track-head tempo-head ${props.selectedMap?.kind === "tempo" ? "active" : ""}`} style={{ height: TEMPO_ROW }}
-            onClick={() => props.onMapSelect({ kind: "tempo", id: tempos.filter((t) => t.quarter <= quarterAtTime(project, position)).at(-1)!.id })}>
+          <div className={`map-track-head tempo-head ${props.selectedMaps.some(item=>item.kind === "tempo") ? "active" : ""}`} style={{ height: TEMPO_ROW }}
+            onClick={e => { const id=tempoAtQuarter(project,quarterAtTime(project,position)).id; if(id)props.onMapSelect({kind:"tempo",id},e.shiftKey); }}>
             <div><Activity size={15}/><strong>Tempo</strong><button className="icon-button small" title="Add tempo event at cursor" onClick={(e) => { e.stopPropagation(); props.onMapAdd("tempo", position); }}><Plus size={14}/></button></div>
             <small>PROJECT TEMPO · STEP</small>
           </div>
-          <div className={`map-track-head signature-head ${props.selectedMap?.kind === "signature" ? "active" : ""}`} style={{ height: SIGNATURE_ROW }}
-            onClick={() => props.onMapSelect({ kind: "signature", id: positionAtQuarter(project, quarterAtTime(project, position)).signature.id })}>
+          <div className={`map-track-head signature-head ${props.selectedMaps.some(item=>item.kind === "signature") ? "active" : ""}`} style={{ height: SIGNATURE_ROW }}
+            onClick={e => { const id=positionAtQuarter(project,quarterAtTime(project,position)).signature.id; if(id)props.onMapSelect({kind:"signature",id},e.shiftKey); }}>
             <div><span className="signature-icon">♯</span><strong>Signature</strong><button className="icon-button small" title="Add signature event at cursor bar" onClick={(e) => { e.stopPropagation(); props.onMapAdd("signature", position); }}><Plus size={14}/></button></div>
           </div>
           {project.tracks.map((track, i) => (
@@ -1049,31 +1098,33 @@ export default function Timeline(props: Props) {
             <div className="ruler-playhead" title="Drag project cursor" onPointerDown={(e) => beginCursor(e, true)} style={{ left: cursorPosition * scale }}/>
           </div>
           <div className="tempo-track-lane" style={{ top: RULER, height: TEMPO_ROW }}
+            onPointerDown={e=>{if(tool==="object")pointerDown(e);}}
             onDoubleClick={(e) => props.onMapAdd("tempo", snapToProject(project, timeAt(e.clientX), snap))}>
             {tempos.map((tempo, index) => {
-              const start = timeAtQuarter(project, tempo.quarter), end = index + 1 < tempos.length ? timeAtQuarter(project, tempos[index + 1].quarter) : totalEnd;
+              const start = timeAtQuarter(displayProject, tempo.quarter), end = index + 1 < tempos.length ? timeAtQuarter(displayProject, tempos[index + 1].quarter) : totalEnd;
               if (end < startTime || start > endTime) return null;
               const from = Math.max(start, startTime), to = Math.min(end, endTime);
               const moving = drag?.mode === "tempo" && drag.mapId === tempo.id && drag.moved;
               const x = moving ? drag.delta ?? start : start;
               const bpm = moving ? drag.bpm ?? tempo.bpm : tempo.bpm;
-              return <div key={tempo.id}>
+              return <div key={tempo.id ?? "whole-tempo"}>
                 <i className="tempo-step" style={{ left: (moving ? Math.max(x, startTime) : from) * scale, width: Math.max(0, to - (moving ? Math.max(x, startTime) : from)) * scale, top: tempoY(bpm) }}/>
-                {start >= startTime - 5 && <button className={`tempo-point ${props.selectedMap?.id === tempo.id ? "selected" : ""}`} style={{ left: x * scale, top: tempoY(bpm) }}
-                  title={musicalTime(project, x) + " · " + bpm + " BPM"}
-                  onDoubleClick={(e) => e.stopPropagation()} onPointerDown={(e) => mapPointer(e, { kind: "tempo", id: tempo.id }, tempo.quarter === 0)}>
+                {tempo.id !== null && start >= startTime - 5 && <button data-map-kind="tempo" data-map-id={tempo.id} className={`tempo-point ${props.selectedMaps.some(item=>item.kind==="tempo"&&item.id===tempo.id) ? "selected" : ""}`} style={{ left: x * scale, top: tempoY(bpm) }}
+                  title={musicalTime(displayProject, x) + " · " + bpm + " BPM"}
+                  onDoubleClick={(e) => e.stopPropagation()} onPointerDown={(e) => mapPointer(e, { kind: "tempo", id: tempo.id! })}>
                   <i/><span>{Number(bpm.toFixed(3))}</span>
                 </button>}
               </div>;
             })}
           </div>
           <div className="signature-track-lane" style={{ top: RULER + TEMPO_ROW, height: SIGNATURE_ROW }}
+            onPointerDown={e=>{if(tool==="object")pointerDown(e);}}
             onDoubleClick={(e) => props.onMapAdd("signature", snapToProject(project, timeAt(e.clientX), "bar"))}>
-            {signatures.filter((signature) => timeAtBar(project, signature.bar) <= endTime && timeAtBar(project, signature.bar) >= startTime - 5).map((signature) => {
-              const time = timeAtBar(project, signature.bar), x = drag?.mode === "signature" && drag.mapId === signature.id && drag.moved ? drag.delta ?? time : time;
-              return <button key={signature.id} className={`signature-point ${props.selectedMap?.id === signature.id ? "selected" : ""}`} style={{ left: x * scale }}
-                title={`Bar ${signature.bar}`} onDoubleClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => mapPointer(e, { kind: "signature", id: signature.id }, signature.bar === 1)}>
+            {signatures.filter((signature) => timeAtBar(displayProject, signature.bar) <= endTime && timeAtBar(displayProject, signature.bar) >= startTime - 5).map((signature) => {
+              const time = timeAtBar(displayProject, signature.bar), x = drag?.mode === "signature" && drag.mapId === signature.id && drag.moved ? drag.delta ?? time : time;
+              return <button key={signature.id} data-map-kind="signature" data-map-id={signature.id} className={`signature-point ${props.selectedMaps.some(item=>item.kind==="signature"&&item.id===signature.id) ? "selected" : ""}`} style={{ left: x * scale }}
+                title={`${signature.bar}.1.1.0`} onDoubleClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => mapPointer(e, { kind: "signature", id: signature.id })}>
                 {signature.numerator}/{signature.denominator}
               </button>;
             })}
@@ -1216,6 +1267,9 @@ export default function Timeline(props: Props) {
               }}
             />
           )}
+          {drag?.mode==="objects"&&drag.moved&&<div className={`arrangement-drag-status ${drag.error?"blocked":""}`} style={{left:scroll.x+12,top:scroll.y+HEADER+8}}>
+            {drag.error??`Move selection · ${musicalTime(displayProject,arrangementBounds(displayProject,drag.items!,linked)!.start)}`}
+          </div>}
           {ghosts.map((clip) => <div key={clip.id} className="copy-ghost"
             style={{ left: clip.start * scale, width: Math.max(3, clip.duration * scale),
               top: HEADER + project.tracks.findIndex((t) => t.id === clip.trackId) * ROW + 9 }}>

@@ -8,6 +8,11 @@ const subscribe = (name, callback) => {
 contextBridge.exposeInMainWorld("joljak", {
   kind: "electron",
   chooseAudio: () => invoke("choose-audio"),
+  sampleLibrary: (choose = false) => invoke("sample-library", choose),
+  sampleReference: (id) => invoke("sample-reference", id),
+  chooseCandidateReview: () => invoke("choose-candidate-review"),
+  candidateReference: (filename,id) => invoke("candidate-reference",filename,id),
+  saveSampleDraft: (project) => invoke("save-sample-draft", project),
   decode: (paths, copy, id) => invoke("decode", paths, copy, id),
   finishImport: (id, keep) => invoke("finish-import", id, keep),
   peaks: (asset) => invoke("peaks", asset.id),
