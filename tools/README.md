@@ -1,28 +1,29 @@
-# Project tools
+# Maintained project operations
 
-These tools manage local storage and owner review. The application and estimator
-live in `apps/daw/` and `experiments/`, respectively.
+Current development status is in [project-state.json](../project-state.json).
+The variable entry is [algorithms/variable](../algorithms/README.md), the app is
+[apps/daw](../apps/daw/README.md), and previous studies are in
+[reference](../reference/README.md).
 
 | Area | Start here | Purpose |
 | --- | --- | --- |
-| Sample acquisition and preparation | [NTM workflow](ntm_collection/README.md) | Requested collection, canonical session storage, supplied-clock preparation and DAW review descriptors |
-| Formal reference review | [Sample review](sample_review/README.md) | Owner-saved DAW edits, reference materialization and retained browser compatibility |
-| Historical path resolution | [project_storage.py](project_storage.py) | Translate retained historical paths without changing clocks, annotations or frozen records |
+| Repository navigation/audit | [repository](repository/README.md) | Current status, complete metadata inventory and source/document layout checks |
+| Requested sample collection | [NTM workflow](ntm_collection/README.md) | Canonical originals, supplied clocks, owner offset/scope and DAW review descriptors |
+| Sample/reference review | [sample review](sample_review/README.md) | Drafts, accepted-map materialization and shared native geometry conversion |
+| Historical path resolution | [project_storage.py](project_storage.py) | Resolve retained old data identifiers without changing clocks or frozen records |
+| Local storage | [LOCAL_DATA.md](LOCAL_DATA.md) | Samples, research results, models, receipts and private runtime boundaries |
 
-The [local data layout guide](LOCAL_DATA.md) describes recordings, research,
-models and storage receipts. The current membership and accepted-reference authority is
-`data/samples/catalog.json`. Acquisition and saving a DAW draft do not enroll or
-approve a recording. Use the owner's explicitly selected working map and scope
-when finalizing a reference. `ntm_collection/finalize_selected.py` handles an
-unchanged supplied map with an approved offset; manually edited maps require
-DAW-geometry materialization.
+The completed dated `confirm_daw_maps.mjs`, `enroll_daw_candidates.mjs` and
+`audit_offset_declarations.py` scripts moved to
+[reference/sample_operations](../reference/sample_operations/README.md).
+Current shared geometry remains `sample_review/daw_map_reference.mjs`.
+The old browser experiment listening tool moved to
+[reference/bpm_experiment_listening](../reference/bpm_experiment_listening/README.md).
+Native separate reference/current `.joljak` audition is the current standard.
 
-The dated `sample_review/confirm_daw_maps.mjs`, `enroll_daw_candidates.mjs` and
-`audit_offset_declarations.py` operations have completed receipts. They are
-examples and historical operations, not commands to replay for new recordings.
-`sample_review/daw_map_reference.mjs` contains the shared geometry conversion.
-New revisions need their own inputs, owner decision and receipt paths.
-
-Review new candidates in Joljak by default. Browser servers are explicit opt-in.
-Paid acquisition, inference, tests, cleanup and source Git publication each follow
-the applicable owner request; a directory or recorded experiment is not a task queue.
+`data/samples/catalog.json` governs sample membership and accepted references.
+Acquisition or draft saving does not enroll a recording. Offset-only finalization
+must preserve owner-edited maps; changed maps require DAW-geometry materialization.
+New revisions need their own owner decision and receipt paths. Browser review
+servers remain explicit opt-in. Paid acquisition, experiments, runtime tests,
+cleanup and source Git publication each follow the applicable owner request.

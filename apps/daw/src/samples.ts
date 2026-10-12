@@ -1,5 +1,5 @@
 import { createProject, importAssets, uid, type Asset, type Project } from "./model";
-import { positionAtQuarter, refreshMusicalAnchors, timeAtQuarter } from "./music";
+import { positionAtQuarter, putSignature, refreshMusicalAnchors, timeAtQuarter } from "./music";
 
 export type ReferenceTempo = { seconds: number; bpm: number };
 export type ReferenceMeter = { seconds: number; numerator: number; denominator: number };
@@ -79,19 +79,18 @@ export function sampleWorkspace(ref: SampleReference, asset: Asset, comparison =
   project.signature={numerator:initialMeter.numerator,denominator:initialMeter.denominator};
   project.tempos=[{id:uid(),quarter:0,bpm:initialRate,origin:"manual"},
     ...changes.map(e=>({id:uid(),quarter:quarter(e.seconds)-originQuarter,bpm:e.bpm,origin:"manual" as const}))];
-  project.signatures=[{id:uid(),bar:1,numerator:initialMeter.numerator,denominator:initialMeter.denominator,origin:"manual"}];
+  project.signatures=[{id:uid(),quarter:0,bar:1,numerator:initialMeter.numerator,denominator:initialMeter.denominator,origin:"manual"}];
   let warning="";
   for (const [index,event] of meter.entries()) {
     if (event.seconds<=0 || index===0 || event.numerator===meter[index-1]?.numerator&&event.denominator===meter[index-1]?.denominator) continue;
     const q=quarter(event.seconds)-originQuarter, pos=positionAtQuarter(project,q);
-    if (Math.abs(q-pos.barStart)>EPS) {
-      warning=`A stored signature boundary is between whole project bars. The ${ref.previouslyAccepted?"approved":"original supplied"} click remains available; review this boundary before editing the project signature map.`;
+    const beats=(q-pos.barStart)*pos.signature.denominator/4;
+    if (Math.abs(beats-Math.round(beats))>EPS) {
+      warning=`A stored signature boundary is between existing beats. The ${ref.previouslyAccepted?"approved":"original supplied"} click remains available; review this boundary before editing the project signature map.`;
       break;
     }
-    const existing=project.signatures.find(e=>e.bar===pos.bar);
-    project.signatures=project.signatures.filter(e=>e.bar!==pos.bar);
-    project.signatures.push({id:existing?.id??uid(),bar:pos.bar,numerator:event.numerator,denominator:event.denominator,origin:"manual"});
-    project.signatures.sort((a,b)=>a.bar-b.bar);
+    const existing=project.signatures.find(e=>Math.abs((e.quarter??0)-q)<EPS);
+    project=putSignature(project,{id:existing?.id??uid(),quarter:q,bar:pos.bar,numerator:event.numerator,denominator:event.denominator,origin:"manual"});
   }
   const audioOrigin=timeAtQuarter(project,-originQuarter);
   project=importAssets(project,[asset],{mode:"sequence",copy:false,start:audioOrigin,targetTrackId:null,beforeTrackId:null});

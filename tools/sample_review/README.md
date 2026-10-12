@@ -1,5 +1,10 @@
 # Owner sample-map revalidation
 
+Current shared map conversion remains in `daw_map_reference.mjs`. The completed
+dated confirmation, enrollment and offset-audit scripts below now live in
+[reference/sample_operations](../../reference/sample_operations/README.md);
+their original receipt paths and accepted maps were preserved.
+
 **Current owner workflow — 2026-10-10:** sample listening and map correction use
 the existing Windows DAW by default. Use **Samples** for formal recordings and
 the [DAW candidate-review workflow](../ntm_collection/README.md#prepare-and-review-a-batch-in-joljak)

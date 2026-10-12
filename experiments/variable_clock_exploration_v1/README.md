@@ -1,5 +1,7 @@
 # Variable clock exploration after Step 0
 
+**Current role:** retained source/family observation helpers used downstream. Its earlier clock directions are historical. The current standard is [L2](../beat_event_stability_v1/README.md).
+
 An isolated directional experiment in source-only pulse-clock proposals for
 piecewise stable tempo. It compares locally indexed affine compression,
 multiscale clock witnesses, source phase transport, a physical phasor bank, and

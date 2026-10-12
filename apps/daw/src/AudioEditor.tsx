@@ -3,6 +3,7 @@ import { Minus, Plus, Maximize2, X } from "lucide-react";
 import { Waveform } from "./Timeline";
 import { clipEnd, formatTime, getAsset, trimPreview, type Clip, type Project, type Snap, type TimeRange } from "./model";
 import { gridLines, musicalTime, snapToProject } from "./music";
+import type { ArrangementContext } from "./ContextMenu";
 
 type Props = {
   project: Project;
@@ -18,6 +19,8 @@ type Props = {
   onSplit: (ids: string[], time: number) => void;
   onAnalyze: () => void;
   onClose: () => void;
+  paneHeight?: number;
+  onContext: (context: ArrangementContext) => void;
 };
 type Gesture = { mode: "range" | "start" | "end"; x: number; time: number; moved: boolean; delta: number; previous?: TimeRange };
 
@@ -27,7 +30,8 @@ export default function AudioEditor(props: Props) {
   const asset = getAsset(project, clip), track = project.tracks.find((t) => t.id === clip.trackId)!;
   const node = useRef<HTMLDivElement>(null), latest = useRef(props); latest.current = props;
   const [mode, setMode] = useState<"range" | "trim" | "split">("range");
-  const [height, setHeight] = useState(260);
+  const [localHeight, setHeight] = useState(260);
+  const height = props.paneHeight ?? localHeight;
   const [view, setView] = useState({ scale: Math.min(1200, 800 / (clip.duration + .4)), x: 0, width: 800 });
   const viewport = useRef(view), pending = useRef(false);
   const requestView = (next: typeof view) => { viewport.current = next; pending.current = true; setView(next); };
@@ -140,14 +144,14 @@ export default function AudioEditor(props: Props) {
   const resized = gesture && gesture.mode !== "range" ? trimPreview(project, [clip.id], gesture.mode, gesture.delta, props.linked).find((c) => c.id === clip.id) ?? clip : clip;
   const visibleRange = range?.trackIds.includes(clip.trackId) ? range : null;
   const lines = gridLines(project, view.x / view.scale, (view.x + view.width) / view.scale, view.scale);
-  return <section className="audio-editor" tabIndex={0} aria-label="Audio Editor" style={{ height, maxHeight: "55%" }}>
-    <div className="editor-resize" title="Resize Audio Editor" onPointerDown={(event) => {
+  return <section className="audio-editor" tabIndex={0} aria-label="Audio Editor" style={{ height, maxHeight: props.paneHeight === undefined ? "55%" : "none" }}>
+    {props.paneHeight === undefined && <div className="editor-resize" title="Resize Audio Editor" onPointerDown={(event) => {
       if (event.button !== 0) return;
       event.preventDefault(); const top = event.clientY, original = height;
       const resize = (e: PointerEvent) => setHeight(Math.max(180, Math.min(450, original + top - e.clientY)));
       const end = () => { window.removeEventListener("pointermove", resize); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
       window.addEventListener("pointermove", resize); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
-    }}/>
+    }}/>}
     <div className="editor-heading">
       <strong>AUDIO EDITOR</strong><span className="editor-name" title={clip.name}>{clip.name}</span>
       <div className="editor-tools">{(["range", "trim", "split"] as const).map((name) => <button key={name} className={mode === name ? "active" : ""} onClick={() => setMode(name)}>{name === "range" ? "Range" : name === "trim" ? "Trim" : "Split"}</button>)}</div>
@@ -156,13 +160,20 @@ export default function AudioEditor(props: Props) {
       <button className="icon-button small" title="Fit event" onClick={() => fit(clip.start, clipEnd(clip))}><Maximize2 size={14}/></button>
       <button className="secondary-button" disabled={!visibleRange || visibleRange.end <= visibleRange.start} onClick={() => { if (visibleRange) fit(visibleRange.start, visibleRange.end); }}>Fit Range</button>
       <button className="secondary-button" onClick={props.onAnalyze}>Analyze Audio…</button>
-      <button className="icon-button small" title="Close Audio Editor" onClick={props.onClose}><X size={15}/></button>
+      {props.paneHeight === undefined && <button className="icon-button small" title="Close Audio Editor" onClick={props.onClose}><X size={15}/></button>}
     </div>
     <div className={`editor-scroll mode-${mode}`} ref={node} onScroll={() => {
       if (pending.current) return;
       const value = { ...viewport.current, x: node.current!.scrollLeft }; viewport.current = value; setView(value);
     }}>
-      <div className="editor-source" style={{ width: totalWidth }} onPointerDown={(e) => down(e)} onDoubleClick={(e) => {
+      <div className="editor-source" style={{ width: totalWidth }} onContextMenu={event => {
+        event.preventDefault(); event.stopPropagation();
+        if (gestures.current) { if (gestures.current.mode === "range") props.onRange(gestures.current.previous ?? null); changeGesture(null); }
+        props.onContext({ domain: "editor", x: event.clientX, y: event.clientY, time: snapToProject(project, timeAt(event.clientX), props.snap),
+          clipId: clip.id, trackId: clip.trackId, selection: { clips: [clip.id], maps: [] },
+          range: visibleRange ? { ...visibleRange, trackIds: [clip.trackId] } : null,
+          invoker: event.currentTarget.closest<HTMLElement>(".audio-editor") });
+      }} onPointerDown={(e) => down(e)} onDoubleClick={(e) => {
         if (mode !== "range") return; e.preventDefault(); props.onRange({ start: clip.start, end: clipEnd(clip), trackIds: [clip.trackId] });
       }}>
         {lines.map((line, i) => <div className={`editor-grid ${line.strong ? "bar" : ""}`} key={i} style={{ left: line.time * view.scale }}>

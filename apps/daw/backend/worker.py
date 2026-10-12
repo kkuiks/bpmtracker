@@ -164,16 +164,23 @@ def musical_map(project):
     tempos = sorted(project['tempos'], key=lambda event: event['quarter'])
     if not tempos or tempos[0]['quarter'] != 0:
         tempos.insert(0, {'id': 'whole-project-tempo', 'quarter': 0, 'bpm': project.get('bpm', 120)})
-    points = sorted(project['signatures'], key=lambda event: event['bar'])
     signature = project.get('signature', {'numerator': 4, 'denominator': 4})
-    if not points or points[0]['bar'] != 1:
-        points.insert(0, {'id': 'whole-project-signature', 'bar': 1, **signature})
+    legacy = sorted(project['signatures'], key=lambda event: event['bar'])
+    positions, old_quarter, old_bar, old_length = {}, 0.0, 1, signature['numerator'] * 4 / signature['denominator']
+    for event in legacy:
+        old_quarter += (event['bar'] - old_bar) * old_length
+        positions[event['id']] = old_quarter
+        old_bar, old_length = event['bar'], event['numerator'] * 4 / event['denominator']
+    points = sorted([{**event, 'quarter': event.get('quarter', positions[event['id']])} for event in project['signatures']], key=lambda event: event['quarter'])
+    if not points or points[0]['quarter'] != 0:
+        points.insert(0, {'id': 'whole-project-signature', 'bar': 1, 'quarter': 0, **signature})
     signatures, quarter, previous_bar, previous_length = [], 0.0, 1, signature['numerator'] * 4 / signature['denominator']
-    for event in points:
-        quarter += (event['bar'] - previous_bar) * previous_length
-        previous_bar = event['bar']
+    for index, event in enumerate(points):
+        position = float(event['quarter'])
+        bar = 1 if index == 0 else previous_bar + math.ceil((position - quarter) / previous_length - 1e-8)
+        quarter, previous_bar = position, bar
         previous_length = event['numerator'] * 4 / event['denominator']
-        signatures.append({**event, 'quarter': quarter, 'barLength': previous_length})
+        signatures.append({**event, 'bar': bar, 'quarter': quarter, 'barLength': previous_length})
     def seconds_at(position):
         seconds = 0.0
         for index, tempo in enumerate(tempos):
@@ -390,11 +397,11 @@ def export(job):
         files.append(str(path))
     if options["maps"]:
         map_path = folder / 'Tempo Map.json'
-        document = {"schemaVersion": 2 if project.get('version') == 2 else 1,
+        document = {"schemaVersion": project.get('version', 1),
                     "originProjectSeconds": start, "durationSeconds": end - start,
                     "clockRegions": [r for r in regions if r["end"] > start and r["start"] < end],
                     "analyses": project["analyses"], "audioWasTimeStretched": False}
-        if project.get('version') == 2:
+        if project.get('version', 1) >= 2:
             tempos, signatures, seconds_at, quarter_at = musical_map(project)
             declared_signatures = {s['id'] for s in project['signatures']}
             document.update({'projectBpm': project.get('bpm', tempos[0]['bpm']),

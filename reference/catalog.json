@@ -1,0 +1,163 @@
+{
+  "format": "joljak-reference-source-catalog",
+  "version": 1,
+  "experimental_packages": [
+    "audio_metrical_discriminator_v1",
+    "bpm_continuity_v1",
+    "bpm_initialization_v1",
+    "clock_continuation_repair_v1",
+    "metrical_clock_roles_v1",
+    "octave_fold_confirmation_v1",
+    "variable_tempo_step0"
+  ],
+  "directory_moves": [
+    {
+      "from": "experiments/audio_metrical_discriminator_v1",
+      "to": "reference/audio_metrical_discriminator_v1"
+    },
+    {
+      "from": "experiments/bpm_continuity_v1",
+      "to": "reference/bpm_continuity_v1"
+    },
+    {
+      "from": "experiments/bpm_initialization_v1",
+      "to": "reference/bpm_initialization_v1"
+    },
+    {
+      "from": "experiments/clock_continuation_repair_v1",
+      "to": "reference/clock_continuation_repair_v1"
+    },
+    {
+      "from": "experiments/metrical_clock_roles_v1",
+      "to": "reference/metrical_clock_roles_v1"
+    },
+    {
+      "from": "experiments/octave_fold_confirmation_v1",
+      "to": "reference/octave_fold_confirmation_v1"
+    },
+    {
+      "from": "experiments/variable_tempo_step0",
+      "to": "reference/variable_tempo_step0"
+    },
+    {
+      "from": "tools/bpm_experiment_listening",
+      "to": "reference/bpm_experiment_listening"
+    },
+    {
+      "from": "Listen BPM Experiment.cmd",
+      "to": "reference/bpm_experiment_listening/Listen BPM Experiment.cmd"
+    },
+    {
+      "from": "apps/daw/design-review",
+      "to": "apps/daw/reference/design-review"
+    },
+    {
+      "from": "apps/daw/design-review.html",
+      "to": "apps/daw/reference/design-review.html"
+    },
+    {
+      "from": "apps/daw/scripts/install_remote_preview.ps1",
+      "to": "apps/daw/reference/remote-preview/install_remote_preview.ps1"
+    },
+    {
+      "from": "apps/daw/audit/README.md",
+      "to": "apps/daw/reference/audits/README.md"
+    },
+    {
+      "from": "apps/daw/audit/backend.py",
+      "to": "apps/daw/reference/audits/backend.py"
+    },
+    {
+      "from": "apps/daw/audit/core.cjs",
+      "to": "apps/daw/reference/audits/core.cjs"
+    },
+    {
+      "from": "apps/daw/audit/fixtures.py",
+      "to": "apps/daw/reference/audits/fixtures.py"
+    },
+    {
+      "from": "apps/daw/audit/launch.cjs",
+      "to": "apps/daw/reference/audits/launch.cjs"
+    },
+    {
+      "from": "apps/daw/audit/project-contract.cjs",
+      "to": "apps/daw/reference/audits/project-contract.cjs"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u1-feedback-windows.cjs",
+      "to": "apps/daw/reference/audits/refinement-u1-feedback-windows.cjs"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u1-feedback-windows.ps1",
+      "to": "apps/daw/reference/audits/refinement-u1-feedback-windows.ps1"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u1-fixtures.py",
+      "to": "apps/daw/reference/audits/refinement-u1-fixtures.py"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u1-windows.cjs",
+      "to": "apps/daw/reference/audits/refinement-u1-windows.cjs"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u1-windows.ps1",
+      "to": "apps/daw/reference/audits/refinement-u1-windows.ps1"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u2-windows.cjs",
+      "to": "apps/daw/reference/audits/refinement-u2-windows.cjs"
+    },
+    {
+      "from": "apps/daw/audit/refinement-u2-windows.ps1",
+      "to": "apps/daw/reference/audits/refinement-u2-windows.ps1"
+    },
+    {
+      "from": "apps/daw/audit/session-routing.cjs",
+      "to": "apps/daw/reference/audits/session-routing.cjs"
+    },
+    {
+      "from": "apps/daw/audit/timeline-viewport-windows.cjs",
+      "to": "apps/daw/reference/audits/timeline-viewport-windows.cjs"
+    },
+    {
+      "from": "apps/daw/audit/timeline-viewport-windows.ps1",
+      "to": "apps/daw/reference/audits/timeline-viewport-windows.ps1"
+    },
+    {
+      "from": "apps/daw/audit/windows-extended.cjs",
+      "to": "apps/daw/reference/audits/windows-extended.cjs"
+    },
+    {
+      "from": "apps/daw/audit/windows-smoke.cjs",
+      "to": "apps/daw/reference/audits/windows-smoke.cjs"
+    },
+    {
+      "from": "apps/daw/audit/windows-support.cjs",
+      "to": "apps/daw/reference/audits/windows-support.cjs"
+    },
+    {
+      "from": "apps/daw/audit/windows.cjs",
+      "to": "apps/daw/reference/audits/windows.cjs"
+    },
+    {
+      "from": "tools/sample_review/confirm_daw_maps.mjs",
+      "to": "reference/sample_operations/confirm_daw_maps.mjs"
+    },
+    {
+      "from": "tools/sample_review/enroll_daw_candidates.mjs",
+      "to": "reference/sample_operations/enroll_daw_candidates.mjs"
+    },
+    {
+      "from": "tools/sample_review/audit_offset_declarations.py",
+      "to": "reference/sample_operations/audit_offset_declarations.py"
+    }
+  ],
+  "historical_protocol_replay_requires_original_source_snapshot": true,
+  "private_document_moves": [
+    {
+      "from": "BPMTracker_BPM_Continuity_Experiment_Plan_2026-10-10.md",
+      "to": "_local/docs/research-plans/20261010-continuity/BPMTracker_BPM_Continuity_Experiment_Plan_2026-10-10.md",
+      "contents_identical": true
+    }
+  ]
+}

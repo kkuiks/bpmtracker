@@ -19,6 +19,29 @@ const sampleLibrary = require("./sample-library.cjs");
 
 let window;
 app.setName("Joljak");
+if (process.env.JOLJAK_DATA) {
+  // Custom workspaces, including explicit UX audits, also isolate browser preferences/cache.
+  app.setPath("userData", path.join(path.resolve(process.env.JOLJAK_DATA), "electron-profile"));
+}
+const projectArgument = (args, cwd) => {
+  const file = args.find(value => typeof value === "string" && !value.startsWith("--") && /\.joljak$/i.test(value));
+  return file ? path.resolve(cwd, file) : null;
+};
+const initialProject = projectArgument(process.argv.slice(1), process.cwd());
+if (!app.requestSingleInstanceLock({ project: initialProject })) { app.quit(); return; }
+let rendererReady = false;
+const pendingProjects = initialProject ? [initialProject] : [];
+app.on("second-instance", (_event, args, cwd, extra) => {
+  const file = typeof extra?.project === "string" ? extra.project : projectArgument(args, cwd);
+  if (window && !window.isDestroyed()) {
+    if (window.isMinimized()) window.restore();
+    window.focus();
+  }
+  if (file) {
+    pendingProjects.push(file);
+    if (rendererReady) send("open-project", null);
+  }
+});
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "joljak",
@@ -92,7 +115,7 @@ function validProject(value) {
   if (
     !value ||
     value.format !== "joljak-project" ||
-    ![1, 2].includes(value.version) ||
+    ![1, 2, 3].includes(value.version) ||
     !Array.isArray(value.assets) ||
     !Array.isArray(value.clips) ||
     !Array.isArray(value.tracks) ||
@@ -153,7 +176,7 @@ function validProject(value) {
       Math.abs(track.pan) > 1
     )
       throw new Error("Invalid channel settings in project");
-  if (value.version === 2) {
+  if (value.version >= 2) {
     const hasWholeValues = value.bpm !== undefined || value.signature !== undefined;
     if (hasWholeValues && (!Number.isFinite(value.bpm) || value.bpm < 1 || value.bpm > 1000 ||
         !value.signature || !Number.isInteger(value.signature.numerator) ||
@@ -181,11 +204,13 @@ function validProject(value) {
       positions.add(tempo.quarter);
     }
     for (const signature of value.signatures) {
-      if (!Number.isInteger(signature.bar) || signature.bar < 1 || bars.has(signature.bar) ||
+      const position = value.version >= 3 ? signature.quarter : signature.bar;
+      if ((value.version >= 3 ? !Number.isFinite(position) || position < 0 : !Number.isInteger(position) || position < 1) || bars.has(position) ||
+          !Number.isInteger(signature.bar) || signature.bar < 1 ||
           !Number.isInteger(signature.numerator) || signature.numerator < 1 || signature.numerator > 32 ||
           ![1, 2, 4, 8, 16, 32].includes(signature.denominator))
         throw new Error("Invalid signature event in project");
-      bars.add(signature.bar);
+      bars.add(position);
     }
     for (const track of value.tracks)
       if (!["linear", "musical"].includes(track.timeBase))
@@ -226,6 +251,40 @@ function requireAsset(id) {
   const asset = assets.get(id);
   if (!asset) throw new Error("Audio is not registered in this project");
   return asset;
+}
+function playbackCachePaths(asset, cacheFolder) {
+  // Decoder playback PCM is always 48 kHz. Saved projects can contain only the
+  // original geometry, so do not carry its rate into a restored playback buffer.
+  asset.pcmPath = path.join(cacheFolder, "audio.f32");
+  asset.peaksPath = path.join(cacheFolder, "peaks.f32");
+  asset.playbackPath = asset.sampleRate === 48000
+    ? asset.pcmPath : path.join(cacheFolder, "playback.f32");
+  asset.playbackRate = 48000;
+  asset.playbackFrames = Math.round(asset.frames * 48000 / asset.sampleRate);
+}
+async function restoreCachedAsset(asset, cacheFolder) {
+  const cached = JSON.parse(await fs.readFile(path.join(cacheFolder, "asset.json"), "utf8"));
+  if (cached.id !== asset.id || cached.sampleRate !== asset.sampleRate ||
+      cached.channels !== asset.channels || cached.frames !== asset.frames)
+    throw new Error("Cached audio geometry differs from the saved original");
+  const playbackRate = cached.playbackRate ?? (asset.sampleRate === 48000 ? 48000 : null);
+  const playbackFrames = cached.playbackFrames ?? (asset.sampleRate === 48000 ? asset.frames : null);
+  if (playbackRate !== 48000 || !Number.isSafeInteger(playbackFrames) || playbackFrames <= 0 ||
+      Math.abs(playbackFrames / playbackRate - asset.duration) > 1 / playbackRate + 1e-8 ||
+      !Number.isSafeInteger(cached.peakBinFrames) || cached.peakBinFrames <= 0 ||
+      cached.peakBins !== Math.ceil(asset.frames / cached.peakBinFrames))
+    throw new Error("Cached playback metadata is incomplete or inconsistent");
+  const [pcm, playback, peaks] = await Promise.all([
+    fs.stat(asset.pcmPath), fs.stat(asset.playbackPath), fs.stat(asset.peaksPath),
+  ]);
+  if (pcm.size !== asset.frames * asset.channels * 4 ||
+      playback.size !== playbackFrames * asset.channels * 4 ||
+      peaks.size !== cached.peakBins * 2 * 4)
+    throw new Error("Cached audio data is incomplete");
+  // Only local decoded-buffer metadata is restored. Preserve the saved original
+  // rate/frames, source path, clip placement and every project-map declaration.
+  Object.assign(asset, { playbackRate, playbackFrames,
+    peakBinFrames: cached.peakBinFrames, peakBins: cached.peakBins });
 }
 async function finishImport(id, keep = false) {
   const record = imports.get(id);
@@ -355,10 +414,10 @@ app.whenReady().then(async () => {
     minWidth: 1000,
     minHeight: 660,
     autoHideMenuBar: true,
-    backgroundColor: "#101318",
+    backgroundColor: "#202426",
     title: "Joljak",
     titleBarStyle: "hidden",
-    titleBarOverlay: { color: "#12161d", symbolColor: "#bec8d8", height: 34 },
+    titleBarOverlay: { color: "#202426", symbolColor: "#cbd4da", height: 32 },
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -367,6 +426,17 @@ app.whenReady().then(async () => {
       backgroundThrottling: false,
     },
   });
+  window.webContents.on("context-menu", (_event, params) => {
+    if (!params.isEditable) return;
+    const flags = params.editFlags;
+    Menu.buildFromTemplate([
+      { role: "undo", enabled: flags.canUndo }, { role: "redo", enabled: flags.canRedo },
+      { type: "separator" },
+      { role: "cut", enabled: flags.canCut }, { role: "copy", enabled: flags.canCopy },
+      { role: "paste", enabled: flags.canPaste }, { role: "selectAll", enabled: flags.canSelectAll },
+    ]).popup({ window });
+  });
+  window.webContents.on("did-start-loading", () => { rendererReady = false; });
   const command = (name) => () => send("command", name);
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -619,25 +689,26 @@ ipcMain.handle("joljak:save", async (_event, input, previous, copy) => {
   }
   return { path: target, project };
 });
-ipcMain.handle("joljak:open", async () => {
-  const selected = await dialog.showOpenDialog(window, {
+ipcMain.handle("joljak:pending-projects", () => {
+  rendererReady = true;
+  return pendingProjects.splice(0);
+});
+ipcMain.handle("joljak:open", async (_event, requested) => {
+  if (requested !== undefined && (typeof requested !== "string" || !path.isAbsolute(requested) || !/\.joljak$/i.test(requested)))
+    throw new Error("Choose a valid .joljak project file.");
+  const selected = requested ? null : await dialog.showOpenDialog(window, {
     title: "Open Project",
     properties: ["openFile"],
     filters: [{ name: "Joljak Project", extensions: ["joljak"] }],
   });
-  if (selected.canceled) return null;
-  const filename = selected.filePaths[0];
+  if (selected?.canceled) return null;
+  const filename = requested ?? selected.filePaths[0];
   const project = validProject(JSON.parse(await fs.readFile(filename, "utf8")));
   const missing = [];
   for (const asset of project.assets) {
     asset.sourcePath = path.resolve(path.dirname(filename), asset.sourcePath);
     const cacheFolder = path.join(dataRoot, "audio-cache", asset.id);
-    asset.pcmPath = path.join(cacheFolder, "audio.f32");
-    asset.peaksPath = path.join(cacheFolder, "peaks.f32");
-    asset.playbackPath =
-      asset.sampleRate === 48000
-        ? asset.pcmPath
-        : path.join(cacheFolder, "playback.f32");
+    playbackCachePaths(asset, cacheFolder);
     try {
       await fs.access(asset.sourcePath);
     } catch {
@@ -654,9 +725,7 @@ ipcMain.handle("joljak:open", async () => {
     }
     assets.set(asset.id, asset);
     try {
-      await fs.access(asset.pcmPath);
-      await fs.access(asset.peaksPath);
-      await fs.access(asset.playbackPath);
+      await restoreCachedAsset(asset, cacheFolder);
     } catch {
       await startJob("decode", {
         files: [
@@ -685,7 +754,14 @@ ipcMain.handle("joljak:recovery", async () => {
     const recovery = JSON.parse(
       await fs.readFile(path.join(dataRoot, "recovery.joljak"), "utf8"),
     );
-    return { ...recovery, project: validProject(recovery.project) };
+    const project = validProject(recovery.project);
+    for (const asset of project.assets) {
+      const cacheFolder = path.join(dataRoot, "audio-cache", asset.id);
+      playbackCachePaths(asset, cacheFolder);
+      try { await restoreCachedAsset(asset, cacheFolder); }
+      catch { /* Ordinary project opening regenerates an unavailable cache. */ }
+    }
+    return { ...recovery, project };
   } catch {
     return null;
   }

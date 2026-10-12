@@ -1,0 +1,71 @@
+{
+  "format": "joljak-project-state",
+  "version": 1,
+  "owner_decision_date": "2026-10-13",
+  "development_baseline": {
+    "id": "variable-L2-20261013",
+    "status": "owner-selected-development-standard",
+    "method": "L2_DENSE_PROPOSALS",
+    "entry_point": "algorithms/variable/baseline.py",
+    "implementation": "experiments/beat_event_stability_v1/core.py",
+    "configuration": "experiments/beat_event_stability_v1/common.py",
+    "primary_recorded_run": "data/research/runs/beat_event_stability_v1/20261012-full-v2",
+    "broader_fixed_verification": "data/research/runs/linear_validation_v1/20261012-frozen-L2-v1",
+    "owner_native_listening": "data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects",
+    "selection_basis": "Owner listening found current quality usable as the next development comparison, despite remaining fixed and variable errors.",
+    "old_approximately_99_percent_fixed_gate_is_not_a_current_development_blocker": true,
+    "measurement_scores_and_evaluation_rules_unchanged": true,
+    "accepted_reference_authority": "data/samples/catalog.json",
+    "fixed_comparator": "experiments/metronome_reconstruction_v1"
+  },
+  "next_objective": {
+    "status": "planned-not-executed-by-reorganization",
+    "primary_recording": "Spiritbox - Circle With Me",
+    "sample_id": "legacy_circle",
+    "recorded_run_id": "r003",
+    "goal": "Track all three genuine small tempo changes while preserving bar phase and avoiding the erroneous final 2/4 declaration.",
+    "reference_transition_source_seconds": [147.60216277313233, 184.1735548324585, 205.24670072861764],
+    "baseline_successful_tempo_boundaries": 0,
+    "baseline_eligible_tempo_boundaries": 3,
+    "baseline_pulse_valid_fraction": 0.7876068376068376,
+    "baseline_joint_stable_map_fraction": 0.6307692307692307,
+    "additional_small_change_comparisons": ["Underoath - Desperate Times, Desperate Measures", "Bullet For My Valentine - Over It"],
+    "fixed_regression_listening": ["Real Friends - Waiting Room", "In Flames - Meet Your Maker", "Maxime Solemn - Breathe Fire", "Mick Gordon - BFG Division"]
+  },
+  "application": {
+    "path": "apps/daw",
+    "version_authority": "apps/daw/package.json",
+    "launch": "Start Joljak.cmd",
+    "analyzer": "fixed-quarter-bpm-meter-offset",
+    "automatic_variable_analysis_deployed": false,
+    "playback_cache_rate_fix_version": "0.6.15"
+  },
+  "contracts": {
+    "source_candidates_precede_tap": true,
+    "initial_tap_proxy_offsets_percent": [-3, 0, 3],
+    "numeric_tap_discarded_after_discrete_initial_unit_selection": true,
+    "initial_phase_parameters": 1,
+    "independent_phase_resets_after_start": false,
+    "change_declarations": "Existing notated beat boundaries; partial-bar declarations allowed.",
+    "known_clicks_continue_during_uncertainty": true,
+    "equivalent_readings_do_not_excuse_unnecessary_changes": true,
+    "reference_and_prediction_projects_are_separate": true,
+    "listening_uses_original_audio_and_project_metronome": true
+  },
+  "source_areas": {
+    "current_algorithm_entry": "algorithms/variable",
+    "measured_implementation_and_shared_dependencies": "experiments",
+    "reference_only_studies_and_completed_operations": "reference",
+    "application": "apps/daw",
+    "application_reference_material": "apps/daw/reference",
+    "maintained_operations": "tools",
+    "navigation_and_historical_results": "docs",
+    "originals_and_research_evidence": "data"
+  },
+  "authorization": {
+    "source_commits_and_pushes": "owner-operated",
+    "new_experiments": "require an applicable owner request",
+    "private_notes": "standing exact-path main-only publication delegation",
+    "documentation_or_current_status_does_not_start_pending_work": true
+  }
+}

@@ -79,6 +79,8 @@ export type TempoEvent = {
 export type TimeSignature = { numerator: number; denominator: number };
 export type SignatureEvent = {
   id: string;
+  /** Canonical position in v3; bar is the derived display number. */
+  quarter?: number;
   bar: number;
   numerator: number;
   denominator: number;
@@ -89,7 +91,7 @@ export type MapSelection = { kind: "tempo" | "signature"; id: string };
 export type ArrangementSelection = { clips: string[]; maps: MapSelection[] };
 export type Project = {
   format: "joljak-project";
-  version: 2;
+  version: 3;
   id: string;
   name: string;
   assets: Asset[];
@@ -186,7 +188,9 @@ export interface DesktopApi {
     path: string | null,
     copy: boolean,
   ): Promise<{ path: string; project: Project } | null>;
-  open(): Promise<{ path: string; project: Project; missing: string[] } | null>;
+  open(filename?: string): Promise<{ path: string; project: Project; missing: string[] } | null>;
+  pendingProjects(): Promise<string[]>;
+  onOpenProject(callback: () => void): () => void;
   autosave(project: Project): Promise<void>;
   closingProject(project: Project): boolean;
   recovery(): Promise<{ project: Project; savedAt: string } | null>;
@@ -234,7 +238,7 @@ export const colors = [
 ];
 export const createProject = (): Project => ({
   format: "joljak-project",
-  version: 2,
+  version: 3,
   id: uid(),
   name: "Untitled project",
   assets: [],

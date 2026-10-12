@@ -1,5 +1,7 @@
 # Fixed-metronome reconstruction
 
+**Current role:** the fixed-only DAW analyzer and retained fixed comparison. Variable development now uses the owner-selected [L2 entry](../../algorithms/README.md); its adoption does not change this app analyzer or the original frozen cohorts.
+
 Estimate one constant quarter-note BPM, one constant time signature and one global downbeat offset from audio. Beat This supplies beat/downbeat observations; the estimator fits an ideal metronome grid across the input.
 
 The current domain is **30–400 quarter BPM**, using integers or reduced fractions with denominator at most four, and **3/4 or 4/4**. Tempo ramps, tempo changes and meter changes are outside this model. Candidate search uses spectral seeds, phase folding and refinement; exhaustive global optimality is not guaranteed. Confidence flags describe uncalibrated evidence diagnostics.

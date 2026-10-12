@@ -4,7 +4,8 @@ import { CLICK_GAIN_POLICY, upgradedClickGain } from "./click-level";
 const id = () => crypto.randomUUID();
 const EPS = 1e-8;
 export const temposInOrder = (p: Project) => [...p.tempos].sort((a, b) => a.quarter - b.quarter);
-export const signaturesInOrder = (p: Project) => [...p.signatures].sort((a, b) => a.bar - b.bar);
+export const signaturesInOrder = (p: Project): SignatureEvent[] => signatureSections(p)
+  .filter((s) => s.id !== null).map((s) => ({ ...p.signatures.find((e) => e.id === s.id)!, quarter: s.quarter, bar: s.bar }));
 
 /** Calculation sections include the whole-project value; it is not a declared point. */
 export function tempoSections(p: Project): { id: string | null; quarter: number; bpm: number }[] {
@@ -12,14 +13,26 @@ export function tempoSections(p: Project): { id: string | null; quarter: number;
   return points[0]?.quarter === 0 ? points : [{ id: null, quarter: 0, bpm: p.bpm }, ...points];
 }
 export function signatureSections(p: Project) {
-  const points: { id: string | null; bar: number; numerator: number; denominator: number }[] = signaturesInOrder(p);
-  if (points[0]?.bar !== 1) points.unshift({ id: null, bar: 1, ...p.signature });
-  let quarter = 0, previousBar = 1, previousLength = p.signature.numerator * 4 / p.signature.denominator;
-  return points.map((event) => {
-    quarter += (event.bar - previousBar) * previousLength;
-    previousBar = event.bar;
+  // Legacy bar-only declarations are resolved once, without moving old maps.
+  const legacy = [...p.signatures].sort((a, b) => a.bar - b.bar);
+  const oldPositions = new Map<string, number>();
+  let oldQuarter = 0, oldBar = 1, oldLength = p.signature.numerator * 4 / p.signature.denominator;
+  for (const event of legacy) {
+    oldQuarter += (event.bar - oldBar) * oldLength;
+    oldPositions.set(event.id, oldQuarter); oldBar = event.bar;
+    oldLength = event.numerator * 4 / event.denominator;
+  }
+  const points: { id: string | null; quarter: number; numerator: number; denominator: number }[] = p.signatures
+    .map((event) => ({ ...event, quarter: event.quarter ?? oldPositions.get(event.id)! }))
+    .sort((a, b) => a.quarter - b.quarter);
+  if (points[0]?.quarter !== 0) points.unshift({ id: null, quarter: 0, ...p.signature });
+  let previousQuarter = 0, previousBar = 1, previousLength = p.signature.numerator * 4 / p.signature.denominator;
+  return points.map((event, index) => {
+    // A signature at an old beat inside a bar closes that partial bar.
+    const bar = index === 0 ? 1 : previousBar + Math.ceil((event.quarter - previousQuarter) / previousLength - EPS);
+    previousQuarter = event.quarter; previousBar = bar;
     previousLength = event.numerator * 4 / event.denominator;
-    return { ...event, quarter, barLength: previousLength };
+    return { ...event, bar, barLength: previousLength };
   });
 }
 export function quarterAtBar(p: Project, bar: number): number {
@@ -74,7 +87,10 @@ export function parseMusicalTime(p: Project, text: string): number | null {
   if (beat > signature.numerator) return null;
   const remainder = (sixteenth - 1 + tick / 120) / 4;
   if (remainder >= 4 / signature.denominator - EPS) return null;
-  return timeAtQuarter(p, quarter + (beat - 1) * 4 / signature.denominator + remainder);
+  const target = quarter + (beat - 1) * 4 / signature.denominator + remainder;
+  // Positions beyond the end of a partial bar belong to its successor.
+  if (positionAtQuarter(p, target).bar !== bar) return null;
+  return timeAtQuarter(p, target);
 }
 export function snapToProject(p: Project, seconds: number, mode: Snap): number {
   if (mode === "off") return Math.max(0, seconds);
@@ -129,7 +145,10 @@ export function refreshMusicalAnchors(p: Project): Project {
 }
 export function editProjectMap(p: Project, tempos = p.tempos, signatures = p.signatures,
   whole: Partial<Pick<Project, "bpm" | "signature">> = {}): Project {
-  const next = { ...p, ...whole, tempos: [...tempos].sort((a, b) => a.quarter - b.quarter), signatures: [...signatures].sort((a, b) => a.bar - b.bar) };
+  const positioned = signatures.map((s) => s.quarter === undefined && Number(p.version) >= 3
+    ? { ...s, quarter: quarterAtBar(p, s.bar) } : s);
+  const next: Project = { ...p, ...whole, version: 3, tempos: [...tempos].sort((a, b) => a.quarter - b.quarter), signatures: positioned };
+  next.signatures = signaturesInOrder(next);
   const musical = new Set(p.tracks.filter((t) => t.timeBase === "musical").map((t) => t.id));
   next.clips = p.clips.map((clip) => musical.has(clip.trackId)
     ? { ...clip, start: timeAtQuarter(next, clip.musicalStart ?? quarterAtTime(p, clip.start)) }
@@ -150,8 +169,13 @@ export function putTempo(p: Project, event: TempoEvent): Project {
   return editProjectMap({ ...p, timingPolicy: "persistent" }, tempos);
 }
 export function putSignature(p: Project, event: SignatureEvent): Project {
-  const bar = Math.max(1, Math.round(event.bar)), collision = p.signatures.find((s) => s.bar === bar);
-  const signatures = [...p.signatures.filter((s) => s.id !== event.id && s.id !== collision?.id), { ...event, id: collision?.id ?? event.id, bar }];
+  const quarter = Math.max(0, event.quarter ?? quarterAtBar(p, Math.max(1, Math.round(event.bar))));
+  const existing = signaturesInOrder(p), collision = existing.find((s) => Math.abs(s.quarter! - quarter) < EPS);
+  const before = { ...p, signatures: existing.filter((s) => s.id !== event.id && s.id !== collision?.id) };
+  const pos = positionAtQuarter(before, quarter), beats=(quarter-pos.barStart)*pos.signature.denominator/4;
+  if (Math.abs(beats-Math.round(beats))>EPS) throw new Error("Place the signature on an existing beat boundary.");
+  const signatures = [...existing.filter((s) => s.id !== event.id && s.id !== collision?.id),
+    { ...event, id: collision?.id ?? event.id, quarter }];
   return editProjectMap({ ...p, timingPolicy: "persistent" }, undefined, signatures);
 }
 
@@ -169,7 +193,7 @@ export function upgradeProject(input: Project): Project {
   const oldTempo = input.timingPolicy !== "persistent" && firstTempo?.origin === "default" ? explicitTempo ?? firstTempo : firstTempo;
   const oldSignature = input.timingPolicy !== "persistent" && firstSignature?.origin === "default" ? explicitSignature ?? firstSignature : firstSignature;
   const hasWholeValues = !legacy && Number.isFinite(input.bpm) && !!input.signature;
-  const p: Project = { ...input, version: 2,
+  const p: Project = { ...input, version: 3,
     tracks: input.tracks.map((track) => ({ ...track, timeBase: legacy ? "linear" : track.timeBase })),
     bpm: hasWholeValues ? input.bpm : oldTempo?.bpm ?? 120,
     signature: hasWholeValues ? input.signature : { numerator: oldSignature?.numerator ?? 4, denominator: oldSignature?.denominator ?? 4 },
@@ -182,6 +206,7 @@ export function upgradeProject(input: Project): Project {
     rulerFormat: legacy ? "bars" : input.rulerFormat,
     timingPolicy: "persistent",
     clickGain: upgradedClickGain(input.clickGain,input.clickGainPolicy),clickGainPolicy:CLICK_GAIN_POLICY };
+  p.signatures = signaturesInOrder(p);
   // Opening migrates in memory and preserves physical audio and all source evidence.
   return legacy || !hasWholeValues || p.tempos.length !== tempos.length || p.signatures.length !== signatures.length
     ? refreshMusicalAnchors(p) : p;

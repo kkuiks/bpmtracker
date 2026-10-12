@@ -10,7 +10,8 @@ export function arrangementDestination(p: Project, selection: ArrangementSelecti
   const tempoIds = selectedIds(selection, "tempo"), signatureIds = selectedIds(selection, "signature");
   const tempos = p.tempos.filter(event => !tempoIds.has(event.id));
   const signatures = p.signatures.filter(event => !signatureIds.has(event.id));
-  return { ...p, tempos: tempos.sort((a,b) => a.quarter-b.quarter), signatures: signatures.sort((a,b) => a.bar-b.bar) };
+  const grid = { ...p, tempos: tempos.sort((a,b) => a.quarter-b.quarter), signatures };
+  return { ...grid, signatures: signaturesInOrder(grid) };
 }
 
 export function arrangementBounds(p: Project, selection: ArrangementSelection, linked: boolean) {
@@ -70,27 +71,20 @@ function movedTempos(p: Project, grid: Project, selected: Set<string>, delta: nu
 
 function movedSignatures(p: Project, grid: Project, selected: Set<string>, delta: number) {
   const fixed = signaturesInOrder(grid);
-  const moving = p.signatures.filter(event => selected.has(event.id))
+  const moving = signaturesInOrder(p).filter(event => selected.has(event.id))
     .map(event => ({ event, quarter: quarterAtTime(grid,timeAtBar(p,event.bar)+delta) }))
     .sort((a,b) => a.quarter-b.quarter);
-  const result: SignatureEvent[] = [];
-  let i=0,j=0,bar=1,quarter=0,length=grid.signature.numerator*4/grid.signature.denominator;
-  while (i<fixed.length || j<moving.length) {
-    const stationary=fixed[i], translated=moving[j];
-    const stationaryQuarter=stationary ? quarter+(stationary.bar-bar)*length : Infinity;
-    if (translated && Math.abs(translated.quarter-stationaryQuarter)<=EPS) {
+  const result = [...fixed, ...moving.map(({event,quarter}) => ({ ...event, quarter, origin: "manual" as const }))]
+    .sort((a,b) => a.quarter!-b.quarter!);
+  let quarter=0, denominator=grid.signature.denominator;
+  for (let index=0; index<result.length; index++) {
+    const event=result[index], target=event.quarter!;
+    if (index && Math.abs(target-result[index-1].quarter!)<=EPS)
       throw new Error("The move overlaps an unselected signature point. Select that point too or choose another destination.");
-    } else if (translated && translated.quarter<stationaryQuarter) {
-      const bars=(translated.quarter-quarter)/length;
-      if (bars < -EPS || Math.abs(bars-Math.round(bars))>1e-7)
-        throw new Error("This move puts a signature between whole bars. Use a compatible bar destination or include its clock context.");
-      bar+=Math.round(bars);quarter=translated.quarter;
-      result.push({ ...translated.event,bar,origin:"manual" });
-      length=translated.event.numerator*4/translated.event.denominator;j++;
-    } else {
-      result.push(stationary);bar=stationary.bar;quarter=stationaryQuarter;
-      length=stationary.numerator*4/stationary.denominator;i++;
-    }
+    const beats=(target-quarter)*denominator/4;
+    if (selected.has(event.id) && (target < -EPS || Math.abs(beats-Math.round(beats))>1e-7))
+      throw new Error("Place the signature on an existing beat boundary.");
+    quarter=target;denominator=event.denominator;
   }
   return result;
 }

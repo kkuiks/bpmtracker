@@ -5,10 +5,14 @@ import {
   Volume2,
   AudioLines,
   MoreHorizontal,
+  Link2,
+  Maximize2,
+  Minus,
   Plus,
   Clock3,
   Music2,
 } from "lucide-react";
+import { registerValueGesture } from "./valueGesture";
 import {
   clipEnd,
   formatTime,
@@ -32,12 +36,13 @@ import {
 } from "./model";
 import { gridLines, musicalTime, positionAtQuarter, quarterAtTime, snapToProject, tempoAtQuarter, tempoSections, timeAtBar, timeAtQuarter } from "./music";
 import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
+import ResizablePane from "./ResizablePane";
+import { editableText, type ArrangementContext } from "./ContextMenu";
 
-const ROW = 92;
-const RULER = 36;
-const TEMPO_ROW = 72;
-const SIGNATURE_ROW = 40;
-const HEADER = RULER + TEMPO_ROW + SIGNATURE_ROW;
+const ROW = 88;
+const RULER = 32;
+const TEMPO_ROW = 48;
+const SIGNATURE_ROW = 28;
 export type TimelineViewportControl = {
   zoom: (factor: number, pointerPixel?: number) => void;
   setScale: (scale: number, left?: number) => void;
@@ -56,6 +61,10 @@ type Props = {
   viewportControl: RefObject<TimelineViewportControl | null>;
   follow: boolean;
   loop: { start: number; end: number; enabled: boolean };
+  showMaps: boolean;
+  layoutRevision?: number;
+  onContext: (context: ArrangementContext) => void;
+  onMenuClose: () => void;
   peaks: Map<string, Float32Array>;
   selectedMap: MapSelection | null;
   selectedMaps: MapSelection[];
@@ -140,7 +149,7 @@ type Drag = {
   bpmPerPixel?: number;
   horizontalMoved?: boolean;
   verticalMoved?: boolean;
-  capture?: { element: HTMLElement; pointerId: number };
+  capture?: { element: Element; pointerId: number };
   cursorOffset?: number;
   insertionIndex?: number;
 };
@@ -155,6 +164,7 @@ export const Waveform = memo(function Waveform({
   samples,
   color,
   height = 52,
+  displayGain = 1,
 }: {
   asset: Asset;
   clip: Clip;
@@ -164,6 +174,7 @@ export const Waveform = memo(function Waveform({
   samples?: Float32Array;
   color: string;
   height?: number;
+  displayGain?: number;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const visibleFrom = Math.max(0, left - clip.start * scale - 4);
@@ -204,9 +215,9 @@ export const Waveform = memo(function Waveform({
       }
       ctx.fillRect(
         x,
-        height / 2 - maximum * height * .44,
+        height / 2 - maximum * height * .44 * displayGain,
         1,
-        Math.max(1, (maximum - minimum) * height * .44),
+        Math.max(1, (maximum - minimum) * height * .44 * displayGain),
       );
     }
   }, [
@@ -219,6 +230,7 @@ export const Waveform = memo(function Waveform({
     asset.id,
     color,
     height,
+    displayGain,
   ]);
   return (
     <canvas
@@ -277,8 +289,10 @@ function TrackName({
 }
 
 export default function Timeline(props: Props) {
+  const interactionRoot = useRef<HTMLDivElement>(null);
   const { project, selection, tool, snap, linked, position, peaks } =
     props;
+  const HEADER = RULER + (props.showMaps ? TEMPO_ROW + SIGNATURE_ROW : 0);
   const scroller = useRef<HTMLDivElement>(null),
     headerScroller = useRef<HTMLDivElement>(null);
   const [scroll, setScroll] = useState<Viewport>({ x: 0, y: 0, width: 900, height: 0, scale: 12, revision: 0 });
@@ -290,11 +304,9 @@ export default function Timeline(props: Props) {
   const dragRef = useRef<Drag | null>(null);
   const [fileDrop, setFileDrop] = useState<FileDrop | null>(null);
   const seekFrame = useRef<number | null>(null), pendingSeek = useRef<number | null>(null);
+  const cancelGestureRef = useRef<(restoreRange?: boolean) => void>(() => {});
   const seekCallback = useRef(props.onSeek);
   seekCallback.current = props.onSeek;
-  const [menu, setMenu] = useState<{ x: number; y: number; clip: Clip; time: number } | null>(
-    null,
-  );
   const displayProject=drag?.previewProject??project;
   const totalEnd = Math.max(displayProject.projectDuration, projectEnd(displayProject));
   const totalWidth = Math.max(scroll.width, totalEnd * scale);
@@ -302,6 +314,14 @@ export default function Timeline(props: Props) {
   const effectiveSelection = new Set(
     relatedClips(project, selection, linked).map((c) => c.id),
   );
+  const openContext = (event: React.MouseEvent, domain: ArrangementContext["domain"], fields: Partial<ArrangementContext> = {}) => {
+    if (editableText(event.target)) return;
+    event.preventDefault(); event.stopPropagation(); cancelGestureRef.current();
+    props.onContext({ domain, x: event.clientX, y: event.clientY,
+      time: snapToProject(project, timeAt(event.clientX), snap),
+      invoker: (event.target as HTMLElement).closest<HTMLElement>(".audio-clip,.track-head,button,.arrangement"), ...fields });
+  };
+  const insideRange = (time: number, track: string | undefined) => props.range && track && props.range.trackIds.includes(track) && time >= props.range.start && time <= props.range.end;
   const startTime = scroll.x / scale,
     endTime = (scroll.x + scroll.width) / scale;
   const requestViewport = (next: Viewport) => {
@@ -363,14 +383,17 @@ export default function Timeline(props: Props) {
   const setDragging = (value: Drag | null) => {
     dragRef.current = value;
     setDrag(value);
+    registerValueGesture(interactionRoot.current, value ? () => cancelGestureRef.current() : null);
   };
-  const timeAt = (clientX: number) =>
+  useLayoutEffect(() => { setDragging(null); }, [project.id]);
+  useEffect(() => { const node = interactionRoot.current; return () => registerValueGesture(node, null); }, []);
+  const timeAt = (clientX: number, offset = 0) =>
     Math.max(
       0,
       (clientX -
         scroller.current!.getBoundingClientRect().left +
         scroller.current!.scrollLeft) /
-        scale,
+        scale + offset,
     );
   const flushSeek = (time?: number) => {
     if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
@@ -399,7 +422,7 @@ export default function Timeline(props: Props) {
     if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
     seekFrame.current = null; pendingSeek.current = null;
     setDragging(null);
-    setFileDrop(null); setMenu(null);
+    setFileDrop(null); props.onMenuClose();
     requestViewport({ ...viewport.current, x: 0, y: 0, revision: viewport.current.revision + 1 });
   }, [project.id]);
   const trackAt = (clientY: number) =>
@@ -429,7 +452,7 @@ export default function Timeline(props: Props) {
       props.onTrackSelect(id, { ctrl: false, shift: false }, true);
       return;
     }
-    event.preventDefault(); setMenu(null);
+    event.preventDefault(); props.onMenuClose();
     if (event.ctrlKey || event.metaKey || event.shiftKey) {
       props.onTrackSelect(id, { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey }); return;
     }
@@ -568,12 +591,12 @@ export default function Timeline(props: Props) {
         const grid=arrangementDestination(project,items);
         const signatureTimes=items.maps.filter(item=>item.kind==="signature").map(item=>timeAtBar(project,project.signatures.find(event=>event.id===item.id)!.bar));
         const snapAnchor=signatureTimes.length?Math.min(...signatureTimes):anchor;
-        const destination=snapToProject(grid,Math.max(0,snapAnchor+currentTime-state.time),signatureTimes.length?"bar":mode);
+        const destination=snapToProject(grid,Math.max(0,snapAnchor+currentTime-state.time),signatureTimes.length?"beat":mode);
         next.delta=destination-snapAnchor;
         try{next.previewProject=moveArrangement(project,items,next.delta,linked);next.error=undefined;}
         catch(e){next.previewProject=undefined;next.error=e instanceof Error?e.message:String(e);}
       } else if (state.mode === "cursor") {
-        next.delta = snapToProject(project, currentTime + (state.cursorOffset ?? 0), mode);
+        next.delta = snapToProject(project, timeAt(event.clientX, state.cursorOffset ?? 0), mode);
         scheduleSeek(next.delta);
       } else if (state.mode === "move") {
         const clip = project.clips.find((c) => c.id === state.id);
@@ -662,7 +685,7 @@ export default function Timeline(props: Props) {
         next.verticalMoved = state.verticalMoved || Math.abs(event.clientY - state.y) > 4;
         const originalTime = state.mapTime ?? state.time;
         next.delta = !next.horizontalMoved ? originalTime
-          : snapToProject(project, originalTime + currentTime - state.time, state.mode === "signature" ? "bar" : mode);
+          : snapToProject(project, originalTime + currentTime - state.time, state.mode === "signature" ? "beat" : mode);
         if (state.mode === "tempo") {
           next.bpm = next.verticalMoved
             ? Math.max(1, Math.min(1000, Math.round((state.originalBpm! + (state.y - event.clientY) * state.bpmPerPixel!) * 4) / 4))
@@ -689,7 +712,7 @@ export default function Timeline(props: Props) {
         if (state.moved) props.onTrackReorder(state.ids!, project.tracks[insertionAt(event.clientY)]?.id ?? null);
         else props.onTrackSelect(state.trackId!);
       } else if (state.mode === "cursor") {
-        if (state.moved) flushSeek(snapToProject(project, timeAt(event.clientX) + (state.cursorOffset ?? 0), event.ctrlKey ? "off" : snap));
+        if (state.moved) flushSeek(snapToProject(project, timeAt(event.clientX, state.cursorOffset ?? 0), event.ctrlKey ? "off" : snap));
         else if (pendingSeek.current !== null) flushSeek();
       }
       else if (state.mode === "objects"&&state.moved)
@@ -747,13 +770,23 @@ export default function Timeline(props: Props) {
         props.onSeek(state.time);
       setDragging(null);
     };
-    const onCancel = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+    const cancelGesture = (restoreRange = true) => {
+      const state = dragRef.current;
+      if (!state) return;
         if (seekFrame.current !== null) cancelAnimationFrame(seekFrame.current);
         seekFrame.current = null; pendingSeek.current = null;
-        if (dragRef.current?.mode.startsWith("range")) props.onRange(dragRef.current.originalRange ?? null);
+        if (state.mode.startsWith("range") || state.mode === "marquee") {
+          if (state.initialSelection) props.onArrangementSelect({ clips: state.initialSelection, maps: state.initialMaps ?? [] });
+          props.onRange(restoreRange ? state.originalRange ?? null : null);
+        }
+        if (state.mode.startsWith("locator") && state.original) props.onLoop(state.original.start, state.original.end);
         setDragging(null);
         setFileDrop(null);
+    };
+    cancelGestureRef.current = cancelGesture;
+    const onCancel = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && dragRef.current) {
+        event.preventDefault(); event.stopPropagation(); cancelGesture();
       } else if (["Control", "Alt"].includes(event.key)) {
         const state = dragRef.current;
         if (state && ["move", "objects", "start", "end", "range-move"].includes(state.mode))
@@ -761,20 +794,25 @@ export default function Timeline(props: Props) {
             ctrlKey: event.ctrlKey, altKey: event.altKey, shiftKey: event.shiftKey }));
       }
     };
-    const cancelPointer = () => { if (dragRef.current?.mode === "cursor") flushSeek(); setDragging(null); };
+    const cancelPointer = () => cancelGesture();
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
-    window.addEventListener("keydown", onCancel);
+    window.addEventListener("keydown", onCancel, true);
     window.addEventListener("keyup", onCancel);
     window.addEventListener("pointercancel", cancelPointer);
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("keydown", onCancel);
+      window.removeEventListener("keydown", onCancel, true);
       window.removeEventListener("keyup", onCancel);
       window.removeEventListener("pointercancel", cancelPointer);
     };
   }, [project, snap, props]);
+  const previousTool = useRef(tool);
+  useEffect(() => {
+    if (previousTool.current !== tool) cancelGestureRef.current(false);
+    previousTool.current = tool;
+  }, [tool]);
 
   const pointerDown = (
     event: React.PointerEvent,
@@ -783,7 +821,7 @@ export default function Timeline(props: Props) {
   ) => {
     if (event.button !== 0) return;
     event.preventDefault();
-    setMenu(null);
+    props.onMenuClose();
     event.currentTarget.setPointerCapture(event.pointerId);
     const at = timeAt(event.clientX),
       track = clip
@@ -810,7 +848,9 @@ export default function Timeline(props: Props) {
         y: event.clientY,
         time,
         trackId: track?.id,
-        originalRange: previous ?? undefined,
+        originalRange: props.range ?? undefined,
+        initialSelection: selection,
+        initialMaps: props.selectedMaps,
       });
       return;
     }
@@ -859,6 +899,7 @@ export default function Timeline(props: Props) {
         additive: event.shiftKey,
         initialSelection: selection,
         initialMaps:props.selectedMaps,
+        originalRange: props.range ?? undefined,
         trackId: boundedTrackAt(event.clientY)?.id,
         contentY: event.clientY - scroller.current!.getBoundingClientRect().top + scroller.current!.scrollTop,
       });
@@ -929,21 +970,29 @@ export default function Timeline(props: Props) {
     if (event.button !== 0 || tool !== "range" || !props.range) return;
     event.stopPropagation(); event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setMenu(null);
+    props.onMenuClose();
     setDragging({ mode, x: event.clientX, y: event.clientY, time: timeAt(event.clientX),
       originalRange: structuredClone(props.range), trackId: boundedTrackAt(event.clientY)?.id, copy: event.altKey });
   };
   const cursorPosition = drag?.mode === "cursor" ? drag.delta ?? position : position;
+  // Both cursor sections use the same painted coordinate; timing remains unrounded.
+  const cursorPixel = Math.round(cursorPosition * scale * window.devicePixelRatio) / window.devicePixelRatio;
 
   return (
-    <div className="arrangement">
+    <div className="arrangement" ref={interactionRoot} tabIndex={0} aria-label="Project timeline"
+      onPointerDownCapture={event => {
+        if (!(event.target as HTMLElement).closest("input,textarea,select,button,[contenteditable=true]"))
+          interactionRoot.current?.focus({ preventScroll: true });
+      }}>
+      <div className="arrangement-body">
+      <ResizablePane axis="x" initialSize={216} minSize={176} maxSize={430} storageKey="joljak.ui.track-list-width" label="Track list width" className="track-pane" resetKey={props.layoutRevision}>
       <div className="track-list" ref={headerScroller} style={{ height: scroll.height || "100%" }}
         onDragOver={(event) => filesOver(event, true)} onDragLeave={filesLeave} onDrop={(event) => filesDrop(event, true)}
         onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest(".track-head,.map-track-head,.track-list-ruler")) props.onAddTrack(); }}
-        onContextMenu={(event) => { event.preventDefault(); if (!(event.target as HTMLElement).closest(".map-track-head,.track-list-ruler")) { setMenu(null); props.onTrackMenu(null, event.clientX, event.clientY); } }}>
+        onContextMenu={(event) => { if (editableText(event.target)) return; event.preventDefault(); if (!(event.target as HTMLElement).closest(".map-track-head,.track-list-ruler")) { props.onMenuClose(); props.onTrackMenu(null, event.clientX, event.clientY); } }}>
         <div className="track-list-ruler">
-          <span>TRACKS</span>
-          <span className="track-count">{project.tracks.length + 2}</span>
+          <span>Tracks</span>
+          <span className="track-count">{project.tracks.length}</span>
           <button
             className="icon-button small"
             title="Add audio track (T)"
@@ -953,22 +1002,24 @@ export default function Timeline(props: Props) {
           </button>
         </div>
         <div style={{ transform: `translateY(${-scroll.y}px)` }}>
-          <div className={`map-track-head tempo-head ${props.selectedMaps.some(item=>item.kind === "tempo") ? "active" : ""}`} style={{ height: TEMPO_ROW }}
+          {props.showMaps && <><div className={`map-track-head tempo-head ${props.selectedMaps.some(item=>item.kind === "tempo") ? "active" : ""}`} style={{ height: TEMPO_ROW }}
+            onContextMenu={event => openContext(event, "map-lane", { mapKind: "tempo", time: position })}
             onClick={e => { const id=tempoAtQuarter(project,quarterAtTime(project,position)).id; if(id)props.onMapSelect({kind:"tempo",id},e.shiftKey); }}>
-            <div><Activity size={15}/><strong>Tempo</strong><button className="icon-button small" title="Add tempo event at cursor" onClick={(e) => { e.stopPropagation(); props.onMapAdd("tempo", position); }}><Plus size={14}/></button></div>
-            <small>PROJECT TEMPO · STEP</small>
+            <div><span className="map-index-space"/><AudioLines size={14}/><strong>Tempo</strong></div>
           </div>
           <div className={`map-track-head signature-head ${props.selectedMaps.some(item=>item.kind === "signature") ? "active" : ""}`} style={{ height: SIGNATURE_ROW }}
+            onContextMenu={event => openContext(event, "map-lane", { mapKind: "signature", time: position })}
             onClick={e => { const id=positionAtQuarter(project,quarterAtTime(project,position)).signature.id; if(id)props.onMapSelect({kind:"signature",id},e.shiftKey); }}>
-            <div><span className="signature-icon">♯</span><strong>Signature</strong><button className="icon-button small" title="Add signature event at cursor bar" onClick={(e) => { e.stopPropagation(); props.onMapAdd("signature", position); }}><Plus size={14}/></button></div>
-          </div>
+            <div><span className="map-index-space"/><span className="signature-icon">♯</span><strong>Signature</strong></div>
+          </div></>}
           {project.tracks.map((track, i) => (
             <div
               key={track.id}
+              data-track-id={track.id} tabIndex={0}
               className={`track-head ${props.activeTrack === track.id ? "active" : ""} ${props.selectedTracks.includes(track.id) ? "selected" : ""} ${drag?.mode === "track" && drag.moved && drag.ids?.includes(track.id) ? "track-moving" : ""}`}
               style={{ "--track-color": track.color } as React.CSSProperties}
               onPointerDown={(event) => beginTrack(event, track.id)}
-              onContextMenu={(event) => { event.preventDefault(); event.stopPropagation(); setMenu(null); props.onTrackMenu(track.id, event.clientX, event.clientY); }}
+              onContextMenu={(event) => { if (editableText(event.target)) return; event.preventDefault(); event.stopPropagation(); cancelGestureRef.current(); props.onTrackMenu(track.id, event.clientX, event.clientY); }}
             >
               <div className="track-heading">
                 <span className="track-index">
@@ -984,7 +1035,7 @@ export default function Timeline(props: Props) {
                   title="Track actions"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setMenu(null);
+                    props.onMenuClose();
                     const bounds = e.currentTarget.getBoundingClientRect();
                     props.onTrackMenu(track.id, bounds.left, bounds.bottom + 4);
                   }}
@@ -1023,7 +1074,6 @@ export default function Timeline(props: Props) {
                     : "−∞"}{" "}
                   dB
                 </span>
-                <Volume2 size={12} />
                 <span className="track-pan">
                   {track.pan === 0
                     ? "C"
@@ -1042,6 +1092,7 @@ export default function Timeline(props: Props) {
           </div>
         )}
       </div>
+      </ResizablePane>
       <div
         className={`timeline-scroll tool-${tool}`}
         ref={scroller}
@@ -1065,7 +1116,7 @@ export default function Timeline(props: Props) {
           }}
         >
           <div className="timeline-ruler" style={{ width: totalWidth }}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={event => openContext(event, "ruler")}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
               if (e.clientY - e.currentTarget.getBoundingClientRect().top > 15) { beginCursor(e); return; }
@@ -1075,7 +1126,7 @@ export default function Timeline(props: Props) {
               if (e.altKey) { props.onLoop(Math.min(time, props.loop.start), time); return; }
               e.preventDefault();
               e.currentTarget.setPointerCapture(e.pointerId);
-              setDragging({ mode: "locator-create", x: e.clientX, y: e.clientY, time });
+              setDragging({ mode: "locator-create", x: e.clientX, y: e.clientY, time, original: props.loop });
             }}>
             {props.loop.end > props.loop.start && <div className={`locator-range ${props.loop.enabled ? "enabled" : ""}`}
               style={{ left: props.loop.start * scale, width: (props.loop.end - props.loop.start) * scale }}
@@ -1095,9 +1146,10 @@ export default function Timeline(props: Props) {
             </div>}
             {(project.rulerFormat === "bars" ? lines.filter((line) => line.strong) : ticks.map((time) => ({ time, strong: true, bar: 0, beat: 0 }))).map((tick) =>
               <div className="ruler-tick" key={tick.time} style={{ left: tick.time * scale }}><span>{project.rulerFormat === "bars" ? tick.bar : formatTime(tick.time).slice(0, 5) + (secondStep < 1 ? "." + formatTime(tick.time).slice(-3) : "")}</span></div>)}
-            <div className="ruler-playhead" title="Drag project cursor" onPointerDown={(e) => beginCursor(e, true)} style={{ left: cursorPosition * scale }}/>
+            <div className="ruler-playhead" title="Drag project cursor" onPointerDown={(e) => beginCursor(e, true)} style={{ left: cursorPixel }}/>
           </div>
-          <div className="tempo-track-lane" style={{ top: RULER, height: TEMPO_ROW }}
+          {props.showMaps && <><div className="tempo-track-lane" style={{ top: RULER, height: TEMPO_ROW }}
+            onContextMenu={event => openContext(event, "map-lane", { mapKind: "tempo" })}
             onPointerDown={e=>{if(tool==="object")pointerDown(e);}}
             onDoubleClick={(e) => props.onMapAdd("tempo", snapToProject(project, timeAt(e.clientX), snap))}>
             {tempos.map((tempo, index) => {
@@ -1109,26 +1161,32 @@ export default function Timeline(props: Props) {
               const bpm = moving ? drag.bpm ?? tempo.bpm : tempo.bpm;
               return <div key={tempo.id ?? "whole-tempo"}>
                 <i className="tempo-step" style={{ left: (moving ? Math.max(x, startTime) : from) * scale, width: Math.max(0, to - (moving ? Math.max(x, startTime) : from)) * scale, top: tempoY(bpm) }}/>
+                {tempo.id === null && <span className="map-base-value" style={{ left: scroll.x + 9, top: tempoY(bpm) - 15 }}>{bpm.toFixed(3)}</span>}
                 {tempo.id !== null && start >= startTime - 5 && <button data-map-kind="tempo" data-map-id={tempo.id} className={`tempo-point ${props.selectedMaps.some(item=>item.kind==="tempo"&&item.id===tempo.id) ? "selected" : ""}`} style={{ left: x * scale, top: tempoY(bpm) }}
+                  onContextMenu={event => openContext(event, "map", { map: { kind: "tempo", id: tempo.id! }, selection: props.selectedMaps.some(item => item.kind === "tempo" && item.id === tempo.id) ? { clips: selection, maps: props.selectedMaps } : { clips: [], maps: [{ kind: "tempo", id: tempo.id! }] } })}
                   title={musicalTime(displayProject, x) + " · " + bpm + " BPM"}
                   onDoubleClick={(e) => e.stopPropagation()} onPointerDown={(e) => mapPointer(e, { kind: "tempo", id: tempo.id! })}>
-                  <i/><span>{Number(bpm.toFixed(3))}</span>
+                  <i/><span>{bpm.toFixed(3)}</span>
                 </button>}
               </div>;
             })}
           </div>
           <div className="signature-track-lane" style={{ top: RULER + TEMPO_ROW, height: SIGNATURE_ROW }}
+            onContextMenu={event => openContext(event, "map-lane", { mapKind: "signature" })}
             onPointerDown={e=>{if(tool==="object")pointerDown(e);}}
-            onDoubleClick={(e) => props.onMapAdd("signature", snapToProject(project, timeAt(e.clientX), "bar"))}>
+            onDoubleClick={(e) => props.onMapAdd("signature", snapToProject(project, timeAt(e.clientX), "beat"))}>
+            {!signatures.some(point => point.bar === 1) && <span className="map-base-value" style={{ left: scroll.x + 9, top: 7 }}>{project.signature.numerator}/{project.signature.denominator}</span>}
             {signatures.filter((signature) => timeAtBar(displayProject, signature.bar) <= endTime && timeAtBar(displayProject, signature.bar) >= startTime - 5).map((signature) => {
               const time = timeAtBar(displayProject, signature.bar), x = drag?.mode === "signature" && drag.mapId === signature.id && drag.moved ? drag.delta ?? time : time;
               return <button key={signature.id} data-map-kind="signature" data-map-id={signature.id} className={`signature-point ${props.selectedMaps.some(item=>item.kind==="signature"&&item.id===signature.id) ? "selected" : ""}`} style={{ left: x * scale }}
+                onContextMenu={event => openContext(event, "map", { map: { kind: "signature", id: signature.id }, selection: props.selectedMaps.some(item => item.kind === "signature" && item.id === signature.id) ? { clips: selection, maps: props.selectedMaps } : { clips: [], maps: [{ kind: "signature", id: signature.id }] } })}
                 title={`${signature.bar}.1.1.0`} onDoubleClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => mapPointer(e, { kind: "signature", id: signature.id })}>
                 {signature.numerator}/{signature.denominator}
               </button>;
             })}
           </div>
+          </>}
           <div
             className="grid-lines"
             style={{
@@ -1158,6 +1216,10 @@ export default function Timeline(props: Props) {
               key={track.id}
               className={`track-lane ${track.mute ? "muted" : ""}`}
               style={{ top: HEADER + i * ROW, height: ROW }}
+              onContextMenu={event => {
+                const time = snapToProject(project, timeAt(event.clientX), snap), inRange = insideRange(time, track.id);
+                openContext(event, inRange ? "range" : "lane", { trackId: inRange ? props.activeTrack ?? track.id : track.id, range: inRange ? props.range : null });
+              }}
               onPointerDown={(e) => pointerDown(e)}
             >
               {displayedClips
@@ -1175,6 +1237,7 @@ export default function Timeline(props: Props) {
                   return (
                     <div
                       key={clip.id}
+                      data-clip-id={clip.id} tabIndex={0}
                       className={`audio-clip ${selected ? "selected" : ""}`}
                       style={
                         {
@@ -1189,16 +1252,15 @@ export default function Timeline(props: Props) {
                       }}
                       onDoubleClick={(e) => eventDoubleClick(e, original)}
                       onContextMenu={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        props.onSelect(effectiveSelection.has(original.id) ? [original.id, ...selection.filter((id) => id !== original.id)] : [original.id], track.id);
-                        setMenu({ x: e.clientX, y: e.clientY, clip: original, time: timeAt(e.clientX) });
+                        const time = snapToProject(project, timeAt(e.clientX), snap);
+                        if (insideRange(time, track.id)) openContext(e, "range", { trackId: props.activeTrack ?? track.id, range: props.range });
+                        else openContext(e, "audio", { clipId: original.id, trackId: track.id,
+                          selection: effectiveSelection.has(original.id) ? { clips: selection, maps: props.selectedMaps } : { clips: [original.id], maps: [] } });
                       }}
                     >
                       <div className="clip-label">
-                        <AudioLines size={12} />
                         <span>{clip.name}</span>
-                        {clip.groupId && <GripVertical size={12} />}
+                        {clip.groupId && <Link2 size={12} />}
                       </div>
                       <Waveform
                         asset={asset}
@@ -1208,6 +1270,7 @@ export default function Timeline(props: Props) {
                         viewport={scroll.width}
                         samples={peaks.get(asset.id)}
                         color={track.color}
+                        height={53} displayGain={4}
                       />
                       {tool === "object" && <><div
                         className="trim-handle left"
@@ -1239,13 +1302,13 @@ export default function Timeline(props: Props) {
               style={{ left: displayedRange.start * scale, width: Math.max(1, (displayedRange.end - displayedRange.start) * scale),
                 top: HEADER + Math.max(0, project.tracks.findIndex((t) => t.id === displayedRange.trackIds[0])) * ROW,
                 height: Math.max(1, displayedRange.trackIds.length) * ROW }}
+              onContextMenu={event => openContext(event, "range", { range: props.range, trackId: props.activeTrack ?? displayedRange.trackIds[0] })}
               onPointerDown={(e) => rangePointer(e, "range-move")}
               onDoubleClick={(e) => {
                 const track = boundedTrackAt(e.clientY), time = timeAt(e.clientX);
                 const clip = [...project.clips].reverse().find((c) => c.trackId === track?.id && c.start <= time && clipEnd(c) > time);
                 if (clip) eventDoubleClick(e, clip);
               }}>
-              <span>{formatTime(displayedRange.end - displayedRange.start)} · Drag to move · Alt to copy</span>
               {tool === "range" && <>
                 <div className="range-handle left" title="Resize range start" onPointerDown={(e) => rangePointer(e, "range-start")}/>
                 <div className="range-handle right" title="Resize range end" onPointerDown={(e) => rangePointer(e, "range-end")}/>
@@ -1280,116 +1343,31 @@ export default function Timeline(props: Props) {
           <div
             className="playhead"
             style={{
-              transform: `translateX(${cursorPosition * scale}px)`,
-              height: "100%",
+              transform: `translateX(${cursorPixel}px)`,
             }}
-          >
-            <span />
-          </div>
+          />
           {!project.clips.length && (
-            <div
-              className="timeline-empty"
-              style={{ left: scroll.x, width: scroll.width }}
-            >
-              <div className="empty-wave">
-                <AudioLines size={44} strokeWidth={1.2} />
-              </div>
-              <h2>A place for your next set.</h2>
-              <p>
-                Bring in a song or aligned stems.
-                <br />
-                Arrange on the project grid. Analyze its tempo and signature.
-              </p>
-              <button
-                className="primary-button"
-                onClick={() => props.onImport()}
-              >
-                Import Audio <span>WAV · MP3 · FLAC</span>
-              </button>
-              <small>WAV, MP3 & FLAC · Original audio stays unchanged</small>
+            <div className="timeline-empty-hint" style={{ left: scroll.x + 16, top: HEADER + 12, maxWidth: Math.max(0, scroll.width - 32) }}>
+              Drop audio here
             </div>
           )}
         </div>
       </div>
-      {menu && (
-        <>
-          <div className="menu-dismiss" onPointerDown={() => setMenu(null)} />
-          <div
-            className="context-menu"
-            style={{
-              left: Math.min(menu.x, innerWidth - 230),
-              top: Math.max(40, Math.min(menu.y, innerHeight - 420)),
-            }}
-          >
-            <button onClick={() => { props.onEdit(menu.clip); setMenu(null); }}>Open Audio Editor <kbd>Ctrl E</kbd></button>
-            <button
-              onClick={() => {
-                props.onAnalyze(menu.clip);
-                setMenu(null);
-              }}
-            >
-              Analyze Audio…
-            </button>
-            <button
-              onClick={() => {
-                props.onLoop(menu.clip.start, clipEnd(menu.clip));
-                setMenu(null);
-              }}
-            >
-              Locators to Selection <kbd>P</kbd>
-            </button>
-            <button
-              onClick={() => {
-                props.onSplit(selection, position);
-                setMenu(null);
-              }}
-            >
-              Split at Cursor <kbd>Alt X</kbd>
-            </button>
-            <button
-              onClick={() => {
-                props.onMove(
-                  selection,
-                  Math.max(...relatedClips(project, selection, linked).map(clipEnd)) - Math.min(...relatedClips(project, selection, linked).map((c) => c.start)),
-                  undefined,
-                  true,
-                );
-                setMenu(null);
-              }}
-            >
-              Duplicate <kbd>Ctrl D</kbd>
-            </button>
-            <button
-              onClick={() => {
-                props.onFront(selection);
-                setMenu(null);
-              }}
-            >
-              Move to Front <kbd>U</kbd>
-            </button>
-            <button onClick={() => { props.onBack(selection); setMenu(null); }}>Move to Back <kbd>Shift U</kbd></button>
-            {project.clips.filter((c) => c.trackId === menu.clip.trackId && c.start <= menu.time && clipEnd(c) > menu.time).length > 1 && <>
-              <hr/><small>Overlapping events at pointer</small>
-              <div className="overlap-choices">
-                {[...project.clips].reverse().filter((c) => c.trackId === menu.clip.trackId && c.start <= menu.time && clipEnd(c) > menu.time).map((clip, i) =>
-                  <button key={clip.id} className={clip.id === menu.clip.id ? "active" : ""}
-                    onClick={() => { props.onSelect([clip.id], clip.trackId); setMenu({ ...menu, clip }); }}>
-                    <span>{clip.name}</span><small>{i === 0 ? "Front" : "Behind"} · {formatTime(clip.start)}</small>
-                  </button>)}
-              </div>
-            </>}
-            <hr />
-            <button
-              onClick={() => {
-                props.onDelete(selection);
-                setMenu(null);
-              }}
-            >
-              Delete <kbd>Del</kbd>
-            </button>
-          </div>
-        </>
-      )}
+
+      </div>
+      <div className="timeline-controls">
+        <div className="timeline-controls-spacer" style={{ width: scroller.current && interactionRoot.current ? scroller.current.getBoundingClientRect().left - interactionRoot.current.getBoundingClientRect().left : 216 }}/>
+        <input className="timeline-hscroll" aria-label="Timeline horizontal scroll" type="range" min={0} max={Math.max(0, totalWidth - scroll.width)} step={1} value={Math.min(scroll.x, Math.max(0, totalWidth - scroll.width))}
+          style={{ "--thumb-width": `${Math.max(24, Math.min(280, scroll.width / totalWidth * Math.max(1, scroll.width - 154)))}px` } as React.CSSProperties}
+          onChange={event => { if (scroller.current) { scroller.current.scrollLeft = Number(event.target.value); syncViewport(); } }}/>
+        <div className="timeline-zoom-controls">
+          <button className="icon-button small" aria-label="Zoom out" title="Zoom out (G)" onClick={() => viewportControls.current?.zoom(1 / 1.25)}><Minus size={13}/></button>
+          <input aria-label="Timeline zoom" type="range" min={Math.log2(.2)} max={Math.log2(1200)} step={.02} value={Math.log2(scale)}
+            onChange={event => { const next = 2 ** Number(event.target.value); changeScale(next, viewport.current.x / viewport.current.scale * next); }}/>
+          <button className="icon-button small" aria-label="Zoom in" title="Zoom in (H)" onClick={() => viewportControls.current?.zoom(1.25)}><Plus size={13}/></button>
+          <button className="icon-button small" aria-label="Fit project" title="Fit project (Shift F)" onClick={() => { const end = projectEnd(project); if (end > 0) changeScale(Math.min(1200, Math.max(.2, (scroll.width - 28) / end)), 0); }}><Maximize2 size={13}/></button>
+        </div>
+      </div>
     </div>
   );
 }

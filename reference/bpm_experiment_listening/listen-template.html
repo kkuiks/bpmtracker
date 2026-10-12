@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src 'self' file:; img-src data:; connect-src 'none'; base-uri 'none'; object-src 'none'">
+  <title>BPM 실험 직접 듣기</title>
+  <style>
+    :root { color-scheme: dark; --bg:#11151c; --panel:#1b212b; --muted:#aeb7c7; --accent:#9ab7ff; --line:#354050; --green:#69c9a2; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:#edf1f8; font:16px/1.65 system-ui,sans-serif; }
+    main { max-width:1020px; margin:auto; padding:36px 24px 64px; }
+    h1 { font-size:clamp(27px,4vw,38px); margin:0 0 8px; letter-spacing:-.05em; }
+    h2 { font-size:23px; margin:6px 0; letter-spacing:-.025em; }
+    p { margin:8px 0 18px; }
+    .muted,small { color:var(--muted); }
+    .intro { max-width:760px; }
+    .layout { display:grid; grid-template-columns:225px minmax(0,1fr); gap:20px; margin-top:26px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px; }
+    aside { display:flex; flex-direction:column; gap:9px; }
+    button,select { font:inherit; }
+    button { color:#edf1f8; background:#252e3d; border:1px solid #445064; border-radius:10px; padding:10px 13px; cursor:pointer; }
+    button:hover { background:#344157; }
+    button:focus-visible,a:focus-visible,input:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+    button[aria-pressed="true"] { background:#344f78; border-color:#adc6ff; box-shadow:inset 0 0 0 1px #adc6ff; }
+    .case-button { text-align:left; padding:12px 14px; min-height:83px; }
+    .case-button strong { display:block; font-size:16px; }
+    .case-button small { display:block; line-height:1.4; padding-top:4px; font-size:12px; }
+    .topic { color:var(--accent); font-size:14px; }
+    .buttons { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 14px; }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:14px 0; }
+    label { display:inline-flex; align-items:center; gap:7px; }
+    input[type="checkbox"] { width:18px; height:18px; accent-color:#a9c3ff; }
+    audio { width:100%; margin:8px 0; }
+    .now { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:13px 15px; background:#111922; border-radius:10px; margin-top:16px; }
+    #clock { font-variant-numeric:tabular-nums; }
+    #state { font-weight:600; }
+    #seed { margin:10px 0 0; font-size:14px; color:var(--muted); }
+    canvas { display:block; width:100%; height:185px; margin-top:15px; }
+    .legend { font-size:13px; margin-top:5px; color:var(--muted); }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; }
+    a { color:#bfd1ff; text-decoration-thickness:1px; text-underline-offset:3px; }
+    #download { display:inline-block; margin-top:14px; font-size:14px; }
+    #error { color:#ffd397; margin:8px 0; min-height:26px; font-size:14px; }
+    .foot { margin-top:22px; font-size:14px; color:var(--muted); }
+    .instructions { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:22px; }
+    .instructions div { background:#161e28; border-radius:12px; padding:17px; font-size:14px; }
+    .instructions strong { display:block; color:#edf1f8; margin-bottom:6px; }
+    [hidden] { display:none !important; }
+    @media(max-width:750px) { .layout { grid-template-columns:1fr; } aside { display:grid; grid-template-columns:repeat(2,1fr); } .instructions { grid-template-columns:1fr; } main { padding:24px 15px; } .panel { padding:17px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>BPM 실험 직접 듣기</h1>
+  <p class="intro muted">같은 음악 위치에서 방법을 바꿔보세요. 저장된 실험에서 실제로 출력한 클릭을 들려줍니다. 보류된 클릭은 채워 넣지 않았습니다.</p>
+  <div class="layout">
+    <aside id="cases" aria-label="체험 구간"></aside>
+    <section class="panel" aria-label="청취 비교">
+      <div id="topic" class="topic"></div>
+      <h2 id="title"></h2>
+      <small id="scope"></small>
+      <p id="guide"></p>
+      <div class="buttons" id="methods" aria-label="클릭 방법"></div>
+      <div class="controls">
+        <label><input id="clickOnly" type="checkbox">클릭만</label>
+        <label><input id="repeat" type="checkbox">구간 반복</label>
+        <button id="restart" type="button">처음부터</button>
+        <button id="pair" type="button" hidden>좌우 클릭 비교</button>
+      </div>
+      <audio id="audio" controls preload="metadata"></audio>
+      <div class="now"><span id="state">재생 준비</span><span id="clock"></span></div>
+      <div id="seed"></div>
+      <canvas id="timeline" aria-label="방법별 실제 클릭 출력 구간"></canvas>
+      <div class="legend"><span class="dot" style="background:#69c9a2"></span>클릭 출력　<span class="dot" style="background:#384351"></span>출력 보류　세로선: 현재 위치</div>
+      <a id="download" download>현재 청취 WAV</a>
+      <div id="error" role="status"></div>
+    </section>
+  </div>
+  <div class="instructions">
+    <div><strong>1 · 두 실패곡의 회복</strong>DIE 4 U와 Meet Your Maker에서 숫자 <b>1 / 2</b>로 기존 방식과 전체 곡 방식을 바꿔보세요. 재생 위치가 유지됩니다.</div>
+    <div><strong>2 · 기다리는 시간</strong>San Quentin을 처음부터 재생하고 숫자 <b>1 / 3 / 4</b>로 비교하세요. 같은 BPM을 골라도 클릭이 시작되는 시각이 다릅니다.</div>
+    <div><strong>3 · 클릭 위치</strong>Nocturne의 <b>좌우 클릭 비교</b>를 헤드폰으로 들어보세요. 왼쪽 참조와 오른쪽 실험 클릭의 시간 차이를 확대하지 않았습니다.</div>
+  </div>
+  <p class="foot">모든 방법의 음악·클릭 음량과 클릭 소리는 같습니다. 참조는 실험 당시의 저장된 승인 참조이며 청취 비교용입니다. 이 다섯 발췌는 결과를 설명하는 체험 구간입니다. 전체 성능 수치는 고정곡 8개에 대한 원래 보고서를 따릅니다.</p>
+  <p class="foot">DAW에서 음량을 따로 조절하려면 각 곡 폴더의 <b>music.wav</b>와 <b>stems</b> 안의 클릭 WAV를 같은 시작점에 서로 다른 트랙으로 가져오세요. 음악과 클릭 트랙 하나만 켜고 프로젝트 메트로놈은 끕니다.</p>
+</main>
+<script type="application/json" id="manifest">__LISTEN_MANIFEST__</script>
+<script>
+  'use strict';
+  const data=JSON.parse(document.getElementById('manifest').textContent);
+  const order=['MUSIC','I0_LOCAL6','I1_WHOLE_RATE_LOCAL6','I2_LOCAL12','I3_LOCAL24','REFERENCE'];
+  const timelineOrder=order.slice(1);
+  const el=id=>document.getElementById(id);
+  const audio=el('audio'); audio.volume=.75;
+  let index=0, method='I1_WHOLE_RATE_LOCAL6', mode='mix', change=0, pendingPosition=null;
+  const buttons=new Map(), caseButtons=[];
+  const current=()=>data.cases[index];
+  function time(value) {
+    const m=Math.floor(value/60), s=(value-m*60).toFixed(1).padStart(4,'0');
+    return `${m}:${s}`;
+  }
+  function rate(value) { return Number(value).toFixed(3).replace(/\.?0+$/,''); }
+  data.cases.forEach((c,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.className='case-button';
+    const title=document.createElement('strong'); title.textContent=c.title.split(' — ').pop();
+    const sub=document.createElement('small'); sub.textContent=c.topic;
+    b.append(title,sub); b.addEventListener('click',()=>selectCase(i));
+    el('cases').append(b); caseButtons.push(b);
+  });
+  order.forEach((m,i)=>{
+    const b=document.createElement('button'); b.type='button'; b.textContent=`${i} · ${data.cases[0].variants[m].label}`;
+    b.addEventListener('click',()=>{
+      method=m;
+      if(mode==='pair') mode='mix';
+      if(m==='MUSIC') {mode='mix';el('clickOnly').checked=false;}
+      reload();
+    });
+    el('methods').append(b); buttons.set(m,b);
+  });
+  function selectCase(i) {
+    index=i; method=current().suggested; mode='mix'; el('clickOnly').checked=false;
+    const c=current(); el('topic').textContent=c.topic; el('title').textContent=c.title;
+    el('scope').textContent=`원음 ${time(c.source_start)}–${time(c.source_end)} · ${c.duration.toFixed(0)}초 발췌`;
+    el('guide').textContent=c.guide; el('pair').hidden=!c.stereo_diagnostic;
+    caseButtons.forEach((b,j)=>b.setAttribute('aria-pressed',String(i===j)));
+    reload(0);
+  }
+  function reload(position) {
+    const wasPlaying=!audio.paused && !audio.ended;
+    const wanted=position===undefined ? (audio.readyState>=1 ? audio.currentTime : pendingPosition || 0) : position;
+    pendingPosition=wanted;
+    const c=current(), variant=c.variants[method], revision=++change;
+    let path=mode==='pair' ? c.stereo_diagnostic : mode==='click' && variant.click ? variant.click : variant.mix;
+    audio.pause(); audio.src=path; audio.loop=el('repeat').checked;
+    el('error').textContent='';
+    audio.addEventListener('loadedmetadata',()=>{
+      if(revision!==change) return;
+      audio.currentTime=Math.max(0,Math.min(wanted,audio.duration));
+      pendingPosition=null;
+      update();
+    },{once:true});
+    buttons.forEach((b,m)=>b.setAttribute('aria-pressed',String(mode!=='pair' && m===method)));
+    el('pair').setAttribute('aria-pressed',String(mode==='pair'));
+    el('clickOnly').disabled=method==='MUSIC' || mode==='pair';
+    el('download').href=path;
+    el('download').textContent=mode==='pair' ? '좌우 비교 WAV 열기 / 저장' : `${variant.label} · ${mode==='click' ? '클릭만' : '청취'} WAV 열기 / 저장`;
+    el('seed').textContent=mode==='pair' ? '왼쪽: 실험 당시 참조 · 오른쪽: 전체 곡 BPM · 원음 없이 실제 시간 차이로 비교' :
+      !variant.seed ? (method==='REFERENCE' ? '참조 클릭은 저장된 quarter 시각을 그대로 사용합니다.' : '모든 조건과 같은 음량의 원음입니다.') :
+      variant.seed.status==='NO_SEED' ? '처음 시계를 확정하지 못해 클릭이 출력되지 않습니다.' :
+      `처음 확정한 값: ${rate(variant.seed.bpm)} BPM · 원음 ${variant.seed.time.toFixed(2)}초`;
+    audio.load();
+    if(wasPlaying) audio.play().catch(error=>{
+      if(revision===change && error.name!=='AbortError') el('error').textContent='재생 버튼을 눌러 이어서 들어보세요.';
+    });
+    update();
+  }
+  el('clickOnly').addEventListener('change',()=>{mode=el('clickOnly').checked ? 'click' : 'mix';reload();});
+  el('repeat').addEventListener('change',()=>{audio.loop=el('repeat').checked;});
+  el('restart').addEventListener('click',()=>{audio.currentTime=0;audio.play().catch(()=>{});});
+  el('pair').addEventListener('click',()=>{
+    if(!current().stereo_diagnostic) return;
+    mode=mode==='pair' ? 'mix' : 'pair'; method='I1_WHOLE_RATE_LOCAL6';
+    el('clickOnly').checked=false; reload();
+  });
+  audio.addEventListener('error',()=>{
+    el('error').textContent='청취 파일을 열지 못했습니다. ZIP을 풀고 listen.html을 다시 열거나, 곡 폴더의 WAV를 직접 재생하세요.';
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.ctrlKey || event.metaKey || event.altKey || event.target.closest('input:not([type=checkbox]),select,textarea')) return;
+    if(/^[0-5]$/.test(event.key)) {event.preventDefault();buttons.get(order[Number(event.key)]).click();}
+  });
+  function draw(position) {
+    const canvas=el('timeline'), width=canvas.clientWidth, height=185, dpr=window.devicePixelRatio || 1;
+    if(canvas.width!==Math.round(width*dpr) || canvas.height!==Math.round(height*dpr)) {canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
+    const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
+    const left=105, available=Math.max(20,width-left-8), c=current();
+    ctx.font='12px system-ui';ctx.textBaseline='middle';
+    timelineOrder.forEach((m,k)=>{
+      const y=12+k*32, variant=c.variants[m];
+      ctx.fillStyle=m===method && mode!=='pair' ? '#f0f5ff' : '#b8c3d4';ctx.fillText(variant.label,0,y+10);
+      ctx.fillStyle='#384351';ctx.fillRect(left,y,available,20);
+      variant.spans.filter(s=>s.status==='ACCEPTED').forEach(s=>{
+        ctx.fillStyle=m==='REFERENCE' ? '#ac93df' : '#69c9a2';
+        ctx.fillRect(left+s.start/c.duration*available,y,(s.end-s.start)/c.duration*available,20);
+      });
+      ctx.fillStyle='#ffffff80';variant.event_times.forEach(t=>ctx.fillRect(left+t/c.duration*available,y+3,1,14));
+    });
+    ctx.fillStyle='#e4edff';ctx.fillRect(left+position/c.duration*available,8,2,157);
+    ctx.fillStyle='#aeb7c7';ctx.textBaseline='top';ctx.fillText('0초',left,172);
+    ctx.textAlign='right';ctx.fillText(`${c.duration.toFixed(0)}초`,width-8,172);ctx.textAlign='left';
+  }
+  function update() {
+    const c=current(), position=Math.min(audio.readyState>=1 ? audio.currentTime || 0 : pendingPosition || 0,c.duration), variant=c.variants[method];
+    el('clock').textContent=`원음 ${time(c.source_start+position)} · 발췌 ${time(position)}`;
+    const span=variant.spans.find(s=>s.start<=position && position<s.end);
+    const active=span && span.status==='ACCEPTED';
+    el('state').textContent=mode==='pair' ? '참조 왼쪽 / 전체 곡 오른쪽' : method==='MUSIC' ? '원음만' :
+      method==='REFERENCE' ? '실험 당시 참조 클릭' : `${variant.label} · ${active ? '클릭 출력' : '클릭 보류'}`;
+    el('state').style.color=active || mode==='pair' ? '#8dddb9' : '#bdc6d5';
+    draw(position);
+  }
+  function frame(){update();requestAnimationFrame(frame);}
+  selectCase(0);requestAnimationFrame(frame);
+</script>
+</body>
+</html>

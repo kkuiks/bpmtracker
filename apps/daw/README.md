@@ -1,6 +1,13 @@
 # Joljak audio workspace
 
-Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.6.6**.
+Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.6.15**.
+
+Project development now uses the owner-selected **L2 variable baseline**;
+see [current development](../../docs/DEVELOPMENT.md) and the
+[code map](../../docs/CODE_MAP.md). This application still uses its fixed-only
+Analyze command. Current source is in `src/`, `electron/`, `backend/` and
+`scripts/`; recorded UI checks, design references and the earlier remote installer
+are in [reference/](reference/README.md).
 
 The initial design target is fewer than ten tracks and projects under thirty minutes. Analysis produces one constant BPM, time signature and downbeat offset for a selected song or range. The project map can contain multiple editable tempo and signature events.
 
@@ -48,14 +55,76 @@ For development, run **`Start Joljak.cmd`** in the repository root from Windows 
 
 The portable folder is `dist/Joljak-win-x64/` at the repository root. Updating this folder does not update the ZIP. An existing ZIP can seed the development cache, after which the launcher copies current application files from the checkout.
 
+After one launch through **Start Joljak.cmd**, Windows associates `.joljak` files
+with the current development executable for this user. Double-click opens the
+project, including paths with spaces or Unicode. An existing instance receives
+the request in its current window. Opening the same file preserves its current
+unsaved state; opening a different file uses the ordinary unsaved-work confirmation.
+An explicit startup file takes priority over automatic recovery. Close an older
+running app and relaunch once after updating to 0.6.13. File → Open Project remains
+available. The registration uses HKCU and leaves Windows' protected UserChoice intact.
+
 ## Basic workflow
 
-1. **Import Audio**: select WAV, MP3 or FLAC files and choose **One track**, **Different tracks** or **Aligned stems**. Files can remain referenced at their original location or be copied into app-local media storage.
+1. **File → Import Audio…**: select WAV, MP3 or FLAC files and choose **One track**, **Different tracks** or **Aligned stems**. Files can remain referenced at their original location or be copied into app-local media storage.
 2. Select an event with Object Selection (`1`), or use Range Selection (`2`) to select part of an event.
-3. **Analyze Audio**: optionally tap or enter an approximate quarter BPM. This selects a metrical layer; precise BPM, meter and phase come from audio. There is no initial meter input.
+3. **Analyze Audio**: optionally tap with `T`, `Space` or the TAP button, or enter an approximate quarter BPM. Each tap gives pressed-button feedback; holding a key does not add repeated taps. This selects a metrical layer; precise BPM, meter and phase come from audio. There is no initial meter input.
 4. Audition the proposal, then use **Apply & Align**. The preview shows the target project bar and signed shift. The song and linked stems move together so the inferred first downbeat lands on that bar.
 5. Edit audio, project Tempo/Signature events or saved analysis values. **Restore Original Prediction** restores saved analysis values; use **Apply & Align** separately to update the map and placement.
 6. Save a `.joljak` project. **Save As → Collect original audio** gathers sources for portability. Export WAV mix/stems/click and tempo-map JSON/MIDI.
+
+## Values, selection and Undo
+
+Numbers use the same editing behavior throughout the Inspector, Info Line and
+Transport. Drag vertically to adjust; double-click or use Tab/Enter for direct
+entry. Hovering a value or position segment and scrolling adjusts it without
+requiring focus or scrolling the panel. Arrow keys adjust the focused field.
+BPM drag/wheel/arrow steps are whole numbers; direct entry accepts decimals and
+fractions such as `400/3`. Other numeric controls retain Shift fine adjustment.
+Scalar decimal places and position-segment widths stay fixed while values change.
+Displayed rounding never changes the stored value or full-precision entry text.
+
+Position fields expose bar/beat/sixteenth/tick or hours/minutes/seconds/milliseconds
+segments. Drag a segment to change it; double-click to type or paste the full
+position. Audio Start/End/Length scrubs in the Info Line preview
+linked edits immediately; release commits once, and Escape restores the baseline.
+Signature numerator is an integer field and denominator a discrete list.
+While editing during playback, the text and edit target stay captured; a signature
+pair stays together even if playback crosses into another meter.
+
+Enter commits valid input. Invalid input stays visible with an explanation;
+Escape cancels. A completed scrub/fader drag is one Undo; canceled gestures add
+none. Ctrl-click resets volume to 0 dB, pan to center and transport tempo to 120.
+Text Undo stays in a text edit; project Undo resumes after it is committed/canceled.
+Copying a value retains its full precision. Pasting stages the complete value for
+review before Enter or focus-loss commits it.
+
+The Info Line identifies Audio/Range/Tempo/Signature/Mixed selection. With multiple
+linked/selected events, it shows the reference event's values and identifies
+relative editing. Inspector track focus is independent of arrangement selection.
+Object Selection (`1` or the toolbar) clears the active range; Escape or pointer
+cancellation restores the preceding range while a new range is being drawn.
+
+## Workspace and contextual actions
+
+The default view contains the toolbar, Info Line, Inspector, arrangement and
+Transport. Import/Export use icons and Analyze remains labelled. Zoom, horizontal
+scroll and Fit Project are below the timeline. The Inspector contains the focused
+track's mix controls and Event/Analysis disclosures; the Info Line owns event/map
+properties. View toggles the Inspector, Tempo/Signature tracks and optional lower
+Audio Editor/MixConsole. Restore Layout restores pane widths and the default view.
+
+Right-click an event, range, track, empty lane, ruler or map point for its actions.
+Right-clicking a selected member keeps the selection and lead; an unselected event
+selects itself. Split Here and Paste Here use the captured pointer position.
+Commands retain their opening selection/cursor during playback. Numeric readouts
+offer Edit Value, Copy Exact Value, Paste Value and applicable Reset; active text
+editing uses Windows text actions. Menus support arrows, Home/End, Enter, Escape,
+Shift+F10 and focus return. Disabled actions show their reason.
+
+Right-click a Transport position/locator to choose its Time Format, or the ruler
+to choose its display format. These displays are independent. Timeline waveforms
+are magnified for visibility; this does not change playback gain or audio data.
 
 ## Review newly collected candidates
 
@@ -127,7 +196,7 @@ Audio Cut/Copy/Paste is unavailable while a Tempo/Signature point is selected. D
 
 ### Audio Editor and overlapping events
 
-Object-tool double-click, Ctrl E or Return opens the selected event in the lower **Audio Editor**. Its local Range, Trim and Split tools edit the event non-destructively. The pane shows the source waveform, project cursor/grid and event boundaries, with zoom/fit and an explicit Analyze button. Opening it closes the lower MixConsole.
+Object-tool double-click, Ctrl E or Return opens the selected event in the lower **Audio Editor**. Its local Range, Trim and Split tools edit the event non-destructively. The pane shows the source waveform, project cursor/grid and event boundaries, with zoom/fit and an explicit Analyze button. **MixConsole** and **Editor** tabs share the lower zone; switching tabs retains the opened event and editor view. **View → MixConsole** opens the mixer. Drag the divider above the lower zone to resize it.
 
 Alt X in the Project window splits selected events, or all intersecting events when none are selected. In the focused Audio Editor it targets that event. Shift X splits at both range boundaries.
 
@@ -139,7 +208,9 @@ Ordinary event and range edits leave the shared Tempo/Signature map in place. A 
 
 ## Project map and timing
 
-The toolbar and Info Line sit above the arrangement. Tempo and Signature are separate project tracks sharing the audio grid. Their Inspector lists and edits map events. MixConsole opens in the lower zone; Transport sits at the bottom.
+The toolbar and Info Line sit above the arrangement. Tempo and Signature are compact project tracks sharing the audio grid. The Info Line edits their properties and the Inspector lists their points. MixConsole opens in the lower zone; Transport sits at the bottom. Toolbar zone buttons show/hide the Inspector and map tracks. Inspector and track-list widths are adjustable by dragging their right dividers; these sizes and the lower-zone height are local layout preferences.
+
+Audio-only selections show the first selected event's Start, End, editable Length and Source in on the Info Line. Multiple audio selections show their count and a different value color; existing relative movement/trimming rules apply. A single tempo or signature point shows its own position and value. Mixed audio/map selections and multiple map points retain Move Selection controls. Position edits use the same collision checks as arrangement movement.
 
 New projects start with whole-project values of **120 BPM, 4/4**, no declared map points, a Bars+Beats ruler and a 30-minute project duration. Whole-project values also apply before the first declaration of that kind. Each declared tempo/signature holds until the next point, including through silence. No automatic point is inserted at project start or at a song/range end.
 
@@ -156,23 +227,23 @@ Switching time base preserves current placement. Source offsets, audio duration 
 
 ### Map editing
 
-Tempo events use the shared quarter clock; signature events attach to whole project bars. Bar numbering continues through songs and signature changes.
+Tempo and signature events use the shared quarter clock. A signature can start on an existing notated beat inside a bar: that beat ends the partial preceding bar and starts the new signature's first bar. Tempo-only edits preserve the current bar. Project format v3 stores signature `quarter` positions and derives display bar numbers. Versions 1/2 still open with their original timing and audio placement.
 
-Click a map point to edit it in the Inspector. Double-click a map track or use its `+` button to declare a point. Drag a tempo point horizontally for position and vertically for BPM. Every declared point, including one at project start/bar 1, can move or be removed with Erase/Delete. Removing all points of a kind leaves its whole-project value in effect.
+Click a map point to edit it in the Info Line. Double-click or right-click a map lane to declare a point. Drag a tempo point horizontally for position and vertically for BPM. Every declared point, including one at project start/bar 1, can move or be removed with Erase/Delete or its action menu. Removing all points of a kind leaves its whole-project value in effect.
 
 Tempo, Signature and audio-event position fields use the same
 **Bar.Beat.Sixteenth.Tick** format, such as `5.1.1.0`, in both the Inspector and
 Info Line. Range bounds and custom import positions use that format too,
 independently of the ruler display. Enter or focus loss applies the position;
 Escape cancels it. A bare bar number such as `5` expands to `5.1.1.0`.
-Signature positions use whole-bar starts (`x.1.1.0`); invalid positions are
+Signature positions use existing beat starts (`bar.beat.1.0`); invalid positions are
 rejected with an inline explanation. A point at `1.1.1.0` uses the same editable
 position control as other points. Position editing uses the current project map and
 preserves the existing move/trim and Linear/Musical timing rules. Durations,
 source-relative timing and alignment-adjustment fields retain their time units;
 Transport keeps its explicit optional seconds display.
 
-The bottom **Tempo** and **Time signature** fields edit the whole-project value when that kind has no declared points, regardless of cursor position. Once a kind has points, committing its bottom field declares the entered value **at the cursor**, preserving preceding values. At an occupied position it updates that point. Time signature accepts entries such as `4/4` or `7/8`; declaring a signature requires a whole-bar cursor position (`x.1.1.0`). Enter or focus loss commits; Escape cancels. Entering the current value at another position still declares a point. To start point-based editing, use the map lane's `+` button or double-click it.
+The bottom **Tempo** field always declares the entered BPM **at the cursor**, including the first point in a new project. It preserves the whole-project base and preceding values; an occupied position updates the existing point. The cursor is captured when editing begins, including during playback. **Time signature** still edits the whole-project value when no signature points exist; with points it declares at a captured existing beat (`bar.beat.1.0`). Enter or focus loss commits; Escape cancels. Entering the current BPM at another position still declares a point. Map lanes also support declarations through `+` or double-click. Existing manual tempo positions are preserved; research-generated maps impose the additional rule that every tempo/signature change lies on the preceding map's beat.
 
 Existing point/Inspector editing changes that point's value. **Apply & Align** also assesses tempo and signature separately: without declarations of that kind, it applies the analyzed value to the whole project without creating points. With existing declarations, it inserts/updates the analysis at the aligned scope start or first downbeat bar and preserves preceding whole-project values. Alignment conflict review is still pending.
 
@@ -204,7 +275,7 @@ Joint audio/map moves also retain the sample's existing alignment adjustment.
 
 When a point at project start is included, it moves with the group without
 creating a replacement point at zero/bar 1. Signature
-points require whole-bar destinations. An incompatible signature boundary or a
+points require existing beat destinations. An incompatible signature boundary or a
 collision with an unselected map point blocks the complete move and displays
 the reason, without partially moving audio or overwriting another point.
 Mixed-selection drags preserve each audio track; audio-only drags retain their
@@ -242,9 +313,11 @@ Transport provides L/R locators, Cycle, Stop, Start, musical position, tempo/met
 
 Stop preserves position, Start resumes, and a second Stop while stopped returns to the last playback start. Space toggles playback. Num Enter always starts/resumes; Return starts when no event is selected and otherwise opens Audio Editor. Drag the lower ruler or cursor head to seek while stopped or playing; Ctrl bypasses Snap.
 
+Dragging the cursor head reaches project zero regardless of which side of the handle was grabbed. Its line has the same width and alignment through the ruler and track area. Visual pixel alignment does not round the audio or musical clock.
+
 Ctrl-wheel zooms around the pointer, Shift-wheel pans horizontally, and fit shows the project. Playback auto-scroll yields briefly during zoom and cursor dragging.
 
-Inspector and MixConsole provide track volume, pan, mute and solo. The volume fader has a dB readout, Shift fine adjustment and Ctrl-click reset to 0 dB; its bottom detent is silence. Click volume is independent and saved with the project. Playback and click export use the same click level.
+Inspector and MixConsole provide track volume, pan, mute and solo. The Inspector uses compact horizontal volume/pan controls; MixConsole keeps vertical volume faders. Pan has a neutral rail without a filled segment. Its center line marks 0, and volume reference lines mark 0 dB, including Stereo Out. Ordinary drags snap near those lines; continuing through the line releases the snap. Shift enables fine adjustment without snapping, and numeric inputs remain precise. Ctrl-click resets pan to center or volume to 0 dB. The volume fader's bottom detent is silence. Track volume/pan drags commit one history entry against the value before the preview. Click volume is independent and saved with the project. Playback and click export use the same click level.
 
 The click's new default is **+6 dB above the former default**. **Click boost**
 displays 0 dB at this new default and permits up to **+12 dB above it**; Ctrl-click
@@ -256,11 +329,13 @@ Changing click volume keeps the current reference/analysis audition selected.
 
 ## Save, recover and export
 
-Projects use schema v2 with assets, tracks, clips, whole-project `bpm` and `signature` values, declared tempo/signature events, saved clocks and original analysis records. Save As can collect original audio for portability. Project recovery and cache regeneration use the application workspace; missing sources can be relocated. Project switches cancel stale import/analysis jobs and reject their completions. Exports retain their original project snapshot.
+Projects use schema v3 with assets, tracks, clips, whole-project `bpm` and `signature` values, declared tempo/signature events, saved clocks and original analysis records. Signature events store their quarter coordinates; their bar numbers are derived display values. Save As can collect original audio for portability. Project recovery and cache regeneration use the application workspace; missing sources can be relocated. Project switches cancel stale import/analysis jobs and reject their completions. Exports retain their original project snapshot.
 
-Older v1 projects open with preserved audio placement and saved predictions, whole-project 120 BPM/4/4 values and no declared points. Older v2 projects recover whole-project values from their former starting state. Identified default-origin automatic points and the start-state copies generated by 0.6.4 are removed during in-memory migration; manually declared, imported and analysis-origin points remain editable, including points at zero/bar 1. Migration preserves audio placement and prediction records, and opening does not overwrite the file.
+Older v1 projects open with preserved audio placement and saved predictions, whole-project 120 BPM/4/4 values and no declared points. Older v2 projects recover whole-project values from their former starting state and convert bar-only signatures to quarters at their original positions. Identified default-origin automatic points and the start-state copies generated by 0.6.4 are removed during in-memory migration; manually declared, imported and analysis-origin points remain editable, including points at zero/bar 1. Migration preserves audio placement and prediction records, and opening does not overwrite the file.
 
 Source-rate PCM is used for analysis. Streamed SoXR HQ 48 kHz PCM is used for playback and audio export. WAV mix, stems and click share the selected start, sample rate and frame length. Stems respect mute/solo, volume, pan and master gain. Mono uses pan; stereo uses balance. Overlapping events follow the same front-event priority in playback and rendering.
+
+Opening a project or recovering a session restores the decoded playback rate and frame count from the local cache. This also supports generated listening projects that store only original-audio metadata. Incomplete caches are regenerated on project opening. Original sample-rate geometry, clip timing and tempo/signature maps remain unchanged. If 44.1 kHz audio sounded lower and slower after reopening in an older build, close Joljak and run **Start Joljak.cmd** to load 0.6.15, then open the same project again.
 
 JSON retains whole-project values separately from declared map coordinates, saved source-relative clocks and raw analyses. MIDI includes the active tempo/signature at its export origin as required for playback. It is a quantized interchange derivative with export-origin/bar markers, rather than an exact recording of the original source clock.
 
@@ -324,11 +399,13 @@ Restart development launch after Electron or Python adapter changes. Build the U
 
 Development configuration uses `JOLJAK_PYTHON` for Python, `JOLJAK_DATA` for the workspace and `JOLJAK_DEV_URL` for the Vite server. Production uses a local application protocol with a sandboxed preload bridge. Playback runs on an AudioWorklet sample clock; media, analysis and rendering jobs run in separate Python processes.
 
+For a separate Windows PC connected with VS Code Remote SSH, run `npm run dev` on the development host and forward port **8998** to local **127.0.0.1:8998**. The development server serves the prepared runtime, small app update and installer under `/__joljak_preview__/`. On the Windows PC, download `Install-Joljak-Preview.ps1` from that route and run it with Windows PowerShell. It installs under `%LOCALAPPDATA%\Joljak\remote-preview`, resumes partial runtime downloads and opens the folder containing **Start Remote Preview.cmd**. This command opens the real Windows app against the forwarded UI; audio files, playback, analysis and projects stay on that Windows PC. Frontend edits reload through the tunnel. Close the app and rerun the installer after Electron/Python application updates; the installed runtime is reused. The small update archive must be prepared from the current built application files.
+
 ## Validation status and limits
 
 | Version | Available evidence |
 | --- | --- |
-| Initial implementation | [Windows integration audit](audit/README.md): 64 editing, playback, analysis, persistence, recovery and export cases, with recorded measurements and fixture limits. |
+| Initial implementation | [Windows integration audit](reference/audits/README.md): 64 editing, playback, analysis, persistence, recovery and export cases, with recorded measurements and fixture limits. |
 | 0.4.2 | Import/track workflow comparison against native Cubase and controlled material. |
 | 0.4.4 | Audio-editing workflow comparison and timeline observations. |
 | 0.5.0 | Vite build and Windows app-file refresh; no new runtime, playback, regression, export round-trip or inference results. |
@@ -339,6 +416,12 @@ Development configuration uses `JOLJAK_PYTHON` for Python, `JOLJAK_DATA` for the
 | 0.6.4 | Mixed audio/tempo/signature selection, cross-lane marquee, Ctrl A, atomic group movement and Bars/Beats shift controls with retained start state. UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
 | 0.6.5 | Whole-project tempo/signature values without automatic start points, cursor declarations from Transport, editable/removable first points, and compatible in-memory project migration. Basic syntax parsing, UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
 | 0.6.6 | Analysis application uses whole-project values for kinds without declared points and supports explicit reapplication of saved analysis to repair 0.6.5 placement. UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
+| 0.6.7 | First UI refinement: compact Project-window chrome, menus and zone controls, resizable panels, lower-zone tabs, restored Info Line fields, compact Inspector controls, volume/pan history correction, shared map-position collision checks, and T/Space tap feedback. Vite build and Windows app-file refresh only; no new app runtime/playback, persistence, export, regression or model checks. |
+| 0.6.8 | Unit 1 review fixes: toolbar sizing/scrollbar visibility, a legible import hint above the grid, neutral pan rails, and pan-center/0 dB reference lines and snapping. Vite build and Windows app-file refresh only; Windows interaction review remains with the owner. No new runtime/playback, persistence, export, regression or model checks. |
+| 0.6.9 | First focused refinement unit: shared numeric/gain/segmented-position controls, selection context, cancellation and text/project Undo routing. TypeScript/Vite build and Windows app refresh; 17 focused native Windows checks passed, with normal/small-window and invalid-input screenshots. Uses generated WAVs and isolated profiles; controlled dialogs and clipboard/pointer-cancel events. No fresh inference, export certification or long-run performance benchmark. |
+| 0.6.10 | Owner U1 feedback: footer BPM always declares at the captured cursor; integer BPM steps, unfocused hover wheel, fixed decimal/segment widths, live linked placement/trimming, and Inspector duplicate-key repair. TypeScript/Vite build and Windows app refresh; 11 focused native Windows checks passed, including 24 alternating duplicated-track selections and normal/1024x720 layouts. No fresh inference, export audit or long-run benchmark. |
+| 0.6.11 | Cursor drag clamps after grab-offset correction, fixing the 5 px origin residue; ruler/body stems share 1 px width and a painted coordinate, with a separate handle hit area. TypeScript/Vite and Windows app refresh; 7 focused native checks passed, including 16 off-center origin drags, playing-state behavior and cursor geometry. No inference, export audit or DPI sweep. |
+| 0.6.12 | Approved U2 workspace: compact chrome/Info Line/Inspector/Transport, timeline zoom footer, map visibility, display-only waveform magnification and one captured-context menu owner. TypeScript/Vite and app refresh; 13 distinct focused native UX checks plus a keyboard recheck passed at DPR 1, including real-playback value capture and range/mixed selection. See the audit README for limits. No fresh inference, full persistence/export audit or DPI sweep. |
 
 `npm run build` bundles the frontend; it does not run TypeScript project-wide type checking or the audit suites. Build, packaging and startup do not run audits or accuracy benchmarks. Earlier observations describe their respective revisions.
 

@@ -1,0 +1,210 @@
+/* Approved U2 workspace. Dialogs and lower editors retain their existing behavior. */
+.app-shell { font-family:"Segoe UI",system-ui,sans-serif; font-size:12px; color:#dce1e4; min-width:1000px; container-type:inline-size; container-name:workspace; }
+.app-shell .title-bar { height:32px; min-height:32px; gap:14px; padding-left:14px; background:#202426; border-color:#434b50; }
+.app-shell .wordmark { font-size:11px; font-weight:600; letter-spacing:1px; gap:10px; }
+.app-shell .wordmark>svg { width:18px; height:18px; color:#91bdb2; }
+.app-shell .title-project { font-size:12px; color:#cbd4da; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell .menu-bar { height:26px; min-height:26px; padding:0 6px; background:#282d30; border-color:#444c52; }
+.app-shell .menus button { font-size:12px; padding:0 10px; border-radius:0; }
+.app-shell .edit-toolbar { height:42px; min-height:42px; padding:0 10px; gap:5px; background:#30363a; border-color:#515b62; overflow:hidden; }
+.app-shell .edit-toolbar>.toolbar-spacer { flex:1; min-width:8px; }
+.app-shell .edit-toolbar .icon-button,.app-shell .edit-toolbar .tool-button { width:30px; min-width:30px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:transparent; border:0; }
+.app-shell .edit-toolbar .icon-button:hover,.app-shell .edit-toolbar .tool-button:hover { background:#535c63; }
+.app-shell .edit-toolbar .icon-button.active { color:#e0ece9; background:#4a615b; box-shadow:inset 0 0 0 1px #758f85; }
+.app-shell .tool-group { padding:1px; display:flex; border:1px solid #566168; border-radius:3px; background:#282e32; }
+.app-shell .tool-group .tool-button.active { background:#a3b4c1; color:#1d2a32; box-shadow:inset 0 0 0 1px #c4d0d8; }
+.app-shell .toolbar-divider { height:24px; margin-inline:5px; background:#59636a; }
+.app-shell .edit-toolbar select { width:76px; height:28px; padding:0 5px; background:#282e32; border:1px solid #58636b; border-radius:2px; font-size:12px; color:#e0e5e8; }
+.app-shell .edit-toolbar .analyze-button { display:inline-flex; align-items:center; justify-content:center; width:86px; min-width:86px; height:28px; padding:0 10px; gap:7px; font-size:12px; border:1px solid #778992; border-radius:2px; background:#3d4b53; color:#e6eff3; }
+.app-shell .analyze-button:hover:not(:disabled) { background:#536671; }
+.app-shell button:focus-visible,.app-shell select:focus-visible,.app-shell .track-head:focus-visible { outline:2px solid #97bcda; outline-offset:-2px; }
+
+.app-shell .info-line { height:48px; min-height:48px; max-height:48px; display:flex; align-items:stretch; gap:0; padding:4px 10px; background:#212629; border-color:#566168; overflow:hidden; }
+.app-shell .info-line>label,.app-shell .info-line>div { padding:0 14px; border-right:1px solid #465057; margin:0; }
+.app-shell .info-line>div:first-child { padding-left:0; }
+.app-shell .info-name { width:188px; min-width:188px; max-width:none; display:flex; flex-direction:column; justify-content:center; gap:2px; overflow:hidden; }
+.app-shell .info-name>span,.app-shell .info-source>span,.app-shell .info-line .time-field>span,.app-shell .info-line .number-field>span,.app-shell .info-duration>span,.app-shell .info-signature>span { color:#b3bec5; font:11px/14px "Segoe UI",sans-serif; text-align:left; }
+.app-shell .info-name>div { display:flex; align-items:center; min-width:0; height:24px; gap:7px; }
+.app-shell .info-name svg { flex-shrink:0; color:#b8c8d1; }
+.app-shell .info-name strong { min-width:0; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell .info-selection-count { display:flex; align-items:center; flex-shrink:0; gap:4px; margin-left:auto; border:0; padding:0; background:transparent; font:11px Consolas,monospace; color:#dbc78f; }
+.app-shell .info-selection-count svg { color:inherit; }
+.app-shell .info-name.object-title { flex-direction:row; align-items:center; justify-content:flex-start; gap:7px; }
+.app-shell .info-line .time-field,.app-shell .info-line .number-field,.app-shell .info-duration,.app-shell .info-signature { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:2px; }
+.app-shell .info-line .time-field>span,.app-shell .info-line .number-field>span,.app-shell .info-duration>span,.app-shell .info-signature>span { padding-left:4px; }
+.app-shell .info-line .time-field .value-control { width:139px; }
+.app-shell .info-line .number-field .value-control { width:94px; }
+.app-shell .info-line .value-control>input { height:24px; padding:2px 3px; border:1px solid transparent; text-align:left; background:transparent; }
+.app-shell .info-line .value-control:hover>input { border-color:#7c8991; background:#2c343a; }
+.app-shell .info-line .value-segments { justify-content:flex-start; inset:2px 3px; }
+.app-shell .info-line.multiple-selection .value-segments,.app-shell .info-line.multiple-selection .info-name strong,.app-shell .info-line.multiple-selection .info-duration input { color:#e4ce91; }
+.app-shell .info-duration .value-control { width:82px; }
+.app-shell .info-source { min-width:106px; display:flex; flex-direction:column; gap:2px; justify-content:center; }
+.app-shell .info-source>span { padding-left:4px; }
+.app-shell .info-source strong { height:24px; display:flex; align-items:center; gap:5px; padding-left:4px; font:12px Consolas,monospace; }
+.app-shell .info-source small { font:10px "Segoe UI",sans-serif; color:#b3bec5; }
+.app-shell .info-empty { display:flex; align-items:center; font-size:11px; color:#b6c1c8; }
+.app-shell .info-signature .transport-signature { height:24px; width:79px; min-width:0; gap:3px; }
+.app-shell .info-signature .value-control { width:31px; }
+.app-shell .info-signature .value-control>input { height:24px; padding:2px 3px; }
+.app-shell .info-signature select { height:24px; width:36px; padding:0 1px; }
+.app-shell .compact-selection { display:flex; align-items:stretch; gap:12px; border-right:0!important; }
+.app-shell .compact-selection .selection-summary { display:flex; gap:9px; align-items:center; color:#d9ca9c; font:11px Consolas,monospace; }
+.app-shell .compact-selection .selection-summary>span { display:flex; align-items:center; gap:4px; }
+.app-shell .compact-selection .selection-shift { align-items:center; }
+.app-shell .compact-selection .selection-shift select { height:24px; font-size:11px; }
+.app-shell .compact-selection .selection-shift>button { height:24px; font-size:11px; }
+
+.app-shell .inspector { background:#272d30; }
+.app-shell .panel-heading { height:32px; min-height:32px; padding:0 10px; color:#c4cdd3; background:#272d30; border-color:#454d53; font-size:11px; }
+.app-shell .inspector-track { min-height:34px; height:34px; padding:0 8px; gap:7px; background:#515b62; border-left:3px solid var(--track-color); border-bottom:1px solid #69747b; }
+.app-shell .inspector-track>svg { width:17px; height:17px; }
+.app-shell .inspector-track>div { min-width:0; }
+.app-shell .inspector-track h3 { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.app-shell .inspector-channel { padding:10px 12px; border-color:#49545b; }
+.app-shell .channel-state { display:flex; align-items:center; gap:3px; height:25px; margin-bottom:8px; }
+.app-shell .channel-state .track-switch { width:25px; height:23px; font-size:12px; }
+.app-shell .track-timebase { display:flex; align-items:center; gap:5px; height:25px; margin-left:auto; color:#b9c9d3; }
+.app-shell .track-timebase select { height:23px; width:84px; padding:0 4px; background:#333e46; border:1px solid #55636d; border-radius:2px; color:#dbe4ea; font-size:11px; }
+.app-shell .inspector-volume,.app-shell .inspector-pan { display:grid; grid-template-columns:36px minmax(0,1fr) 64px; gap:6px; align-items:center; height:30px; padding:0; }
+.app-shell .inspector-control-name { font-size:11px; color:#bbc7ce; }
+.app-shell .inspector-volume>.gain-field { width:64px; position:relative; margin:0; gap:0; }
+.app-shell .inspector-volume .gain-field>.value-control,.app-shell .inspector-pan>.value-control { width:64px; }
+.app-shell .inspector-volume .gain-field>span { display:none; }
+.app-shell .inspector-volume .gain-field>small { display:block; position:absolute; right:4px; top:50%; transform:translateY(-50%); color:#b1bec6; font-size:10px; pointer-events:none; }
+.app-shell .inspector-volume .value-control>input,.app-shell .inspector-pan .value-control>input { height:24px; padding:2px 19px 2px 5px; font:11px Consolas,monospace; }
+.app-shell .pan-slider { height:22px; border:1px solid #56636b; border-radius:2px; background:#20272b; }
+.app-shell .horizontal .volume-rail { height:22px; border-color:#56636b; background:#20272b; }
+.app-shell .pan-groove,.app-shell .horizontal .fader-groove { top:9px; height:3px; }
+.app-shell .pan-cap,.app-shell .horizontal .fader-cap { top:5px; width:11px; height:11px; border-radius:50%; border-color:#dce5eb; background:#c4d1da; }
+.app-shell .pan-zero { top:3px; height:15px; background:#87939c; }
+.app-shell .inspector-fold>summary { padding:6px 9px; background:#424d55; color:#d8e1e7; font-size:12px; }
+.app-shell .inspector-fold { border-color:#4f5b63; }
+.app-shell .inspector-fold .inspector-section { font-size:11px; }
+.app-shell .value-control>input { background:#20272b; color:#e0e7eb; border-radius:2px; }
+.app-shell .value-control[data-state="typing"]>input { background:#354859; color:#f1f6f9; }
+.app-shell .value-control[data-state="scrubbing"]>input,.app-shell .value-control[data-state="stepping"]>input { background:#374b5d; color:#f1f6f9; }
+.app-shell .value-control:focus-within { outline-color:#97bddb; outline-offset:0; }
+
+.app-shell .arrangement { flex-direction:column; }
+.app-shell .arrangement-body { display:flex; flex:1; min-height:0; min-width:0; overflow:hidden; }
+.app-shell .pane-x>.pane-resize-handle { width:4px; background:#424b51; border-inline:1px solid #22292e; }
+.app-shell .track-list { background:#2d353b; }
+.app-shell .track-list-ruler { height:32px; padding:0 10px; align-items:center; justify-content:flex-start; gap:10px; color:#c4cdd3; background:#30383e; border-color:#59636b; font-size:11px; }
+.app-shell .track-list-ruler .track-count { padding:0; background:none; color:#b9c7d1; font:11px Consolas,monospace; }
+.app-shell .track-list-ruler .icon-button { margin-left:auto; width:25px; height:25px; background:none; border:0; }
+.app-shell .map-track-head { padding:0 10px 0 12px; display:flex; align-items:center; background:#30383d; border-color:#4b565f; }
+.app-shell .map-track-head>div { display:flex; align-items:center; gap:6px; width:100%; }
+.app-shell .map-track-head strong { font-size:12px; }
+.app-shell .map-index-space { width:16px; min-width:16px; }
+.app-shell .signature-icon { width:14px; color:#b49dc6; font-size:18px; }
+.app-shell .track-head { height:88px; padding:9px 8px 7px 9px; background:#343d44; border-bottom-color:#55616a; }
+.app-shell .track-head.active { background:#56626b; box-shadow:inset 0 0 0 1px #85949e; }
+.app-shell .track-head.selected:not(.active) { background:#46535e; }
+.app-shell .track-heading { height:23px; gap:6px; }
+.app-shell .track-index { width:16px; min-width:16px; color:#b0c1cd; font:10px Consolas,monospace; }
+.app-shell .track-name { font-size:12px; padding:0; color:#dce1e4; font-weight:600; }
+.app-shell .track-heading .icon-button { background:none; border:0; width:22px; height:23px; padding:0; }
+.app-shell .track-controls { height:26px; margin:9px 0 0; gap:4px; }
+.app-shell .track-controls .track-switch { height:21px; width:22px; font-size:11px; }
+.app-shell .track-level { width:54px; color:#d3dfe7; font:11px Consolas,monospace; }
+.app-shell .track-pan { margin-left:auto; width:24px; text-align:right; font:11px Consolas,monospace; color:#c3d4df; }
+.app-shell .track-controls .time-base-button { width:19px; height:22px; padding:0; background:none; border:0; color:#b7c8d4; }
+.app-shell .timeline-scroll,.app-shell .timeline-content { background:#282e32; }
+.app-shell .timeline-scroll::-webkit-scrollbar:horizontal { height:0; }
+.app-shell .timeline-scroll::-webkit-scrollbar:vertical { width:10px; }
+.app-shell .timeline-ruler { height:32px; min-height:32px; background:#273039; border-color:#66737e; }
+.app-shell .ruler-tick { color:#c9d7e1; border-color:#6d7b86; }
+.app-shell .ruler-tick span { font:11px Consolas,monospace; }
+.app-shell .tempo-track-lane,.app-shell .signature-track-lane { background:#2e373d; border-color:#49535b; }
+.app-shell .map-base-value { position:absolute; white-space:nowrap; font:10px Consolas,monospace; color:#b1c0ca; pointer-events:none; }
+.app-shell .tempo-step { border-color:#8da79b; }
+.app-shell .tempo-point,.app-shell .signature-point { font:11px Consolas,monospace; }
+.app-shell .signature-point { top:3px; }
+.app-shell .track-lane { border-color:#49535b; }
+.app-shell .audio-clip { top:7px; height:74px; border-radius:2px; background:color-mix(in srgb,var(--clip-color) 18%,#1e272d); }
+.app-shell .audio-clip.selected { background:color-mix(in srgb,var(--clip-color) 28%,#273541); }
+.app-shell .clip-label { height:19px; padding:0 6px; font-size:11px; background:color-mix(in srgb,var(--clip-color) 15%,#2a363f); }
+.app-shell .audio-clip .clip-waveform { top:19px; }
+.app-shell .playhead { top:32px; }
+.app-shell .timeline-controls { height:23px; min-height:23px; display:flex; align-items:center; background:#2f383f; border-top:1px solid #53616b; gap:7px; }
+.app-shell .timeline-controls-spacer { align-self:stretch; flex-shrink:0; border-right:1px solid #4b5760; }
+.app-shell .timeline-hscroll,.app-shell .timeline-zoom-controls input { appearance:none; height:3px; background:#1e2931; padding:0; border:0; border-radius:2px; cursor:default; }
+.app-shell .timeline-hscroll { flex:1; min-width:0; }
+.app-shell .timeline-hscroll::-webkit-slider-thumb { appearance:none; width:var(--thumb-width); height:8px; border-radius:3px; background:#758b9b; }
+.app-shell .timeline-zoom-controls { width:154px; min-width:154px; padding-right:3px; display:flex; gap:3px; align-items:center; }
+.app-shell .timeline-zoom-controls .icon-button { width:21px; min-width:21px; height:21px; background:none; border:0; padding:0; }
+.app-shell .timeline-zoom-controls input { width:64px; min-width:0; }
+.app-shell .timeline-zoom-controls input::-webkit-slider-thumb { appearance:none; width:9px; height:9px; border-radius:50%; background:#b7c8d4; }
+
+.app-shell .transport-bar { height:52px; min-height:52px; gap:8px; padding:4px 10px; background:#303a41; border-color:#72828e; overflow:hidden; }
+.app-shell .locator-fields { flex-direction:column; align-items:stretch; gap:1px; width:143px; }
+.app-shell .locator-field>button { width:17px; height:20px; background:transparent; color:#c0d0dc; }
+.app-shell .locator-field .value-control { width:123px; }
+.app-shell .locator-field .value-control>input { height:20px; padding:1px 4px; }
+.app-shell .locator-field .value-segments { font-size:11px; inset:1px 4px; }
+.app-shell .transport-buttons { height:34px; border-color:#8596a1; padding:0; }
+.app-shell .transport-buttons .icon-button { height:32px; background:#3a4853; border-color:#617483; }
+.app-shell .transport-buttons .play-button { width:36px; height:32px; background:#3a4853; }
+.app-shell .transport-buttons .stop-button.active { background:#b6c6d2; color:#2b3841; }
+.app-shell .transport-buttons .play-button.playing { background:#82bc9b; color:#1b352a; }
+.app-shell .transport-position .value-control { width:151px; }
+.app-shell .transport-position .value-control>input { height:30px; background:#17242d; border-color:#8497a5; }
+.app-shell .transport-position .value-segments { font-size:16px; color:#e1edf5; }
+.app-shell .transport-divider { width:1px; min-width:1px; height:32px; margin:0 1px; background:#71818b; }
+.app-shell .transport-tempo .number-field>span { display:none; }
+.app-shell .transport-tempo .number-field>div { display:flex; align-items:center; gap:6px; }
+.app-shell .transport-tempo .number-field .value-control { width:84px; }
+.app-shell .transport-tempo .value-control>input { height:30px; padding:3px 6px; font-size:13px; border-color:#627685; }
+.app-shell .transport-tempo .number-field small { font:10px "Segoe UI",sans-serif; color:#c2d0da; margin:0; }
+.app-shell .transport-bar .transport-signature { width:79px; flex-shrink:0; gap:3px; }
+.app-shell .transport-bar .transport-signature .value-control { width:31px; }
+.app-shell .transport-bar .transport-signature .value-control>input { height:30px; padding:3px; }
+.app-shell .transport-bar .transport-signature select { width:36px; height:30px; padding:0 1px; }
+.app-shell .metronome-control { gap:5px; }
+.app-shell .metronome-control>.icon-button { width:30px; height:28px; border:0; background:none; }
+.app-shell .metronome-control>.icon-button.active { background:#4a615b; box-shadow:inset 0 0 0 1px #758f85; }
+.app-shell .metronome-control .gain-field,.app-shell .transport-output .gain-field { position:relative; display:flex; align-items:center; gap:0; margin:0; width:70px; flex-shrink:0; }
+.app-shell .metronome-control .gain-field>span,.app-shell .transport-output .gain-field>span { display:none; }
+.app-shell .metronome-control .gain-field .value-control,.app-shell .transport-output .gain-field .value-control { width:70px; }
+.app-shell .metronome-control .value-control>input,.app-shell .transport-output .value-control>input { height:30px; padding:3px 19px 3px 5px; font:12px Consolas,monospace; }
+.app-shell .metronome-control .gain-field>small,.app-shell .transport-output .gain-field>small { display:block; position:absolute; right:4px; top:50%; transform:translateY(-50%); font:10px "Segoe UI",sans-serif; color:#bbcedb; pointer-events:none; }
+.app-shell .transport-spacer { min-width:0; flex:1; }
+.app-shell .transport-output { min-width:0; gap:6px; }
+.app-shell .transport-output>svg { flex-shrink:0; color:#c2d0da; }
+.app-shell .transport-output>.horizontal { width:68px; }
+.app-shell .transport-output .master-meter { width:75px; height:13px; display:flex; flex-direction:column; gap:3px; background:repeating-linear-gradient(#15242f 0 5px,transparent 5px 8px); }
+.app-shell .transport-output .master-meter>i { height:5px; flex-shrink:0; }
+
+.app-shell .owned-menu { position:fixed; top:auto; z-index:2000; width:max-content; min-width:248px; max-width:calc(100vw - 16px); max-height:calc(100vh - 16px); padding:5px; overflow:auto; background:#30383e; border:1px solid #798a98; border-radius:3px; box-shadow:0 6px 22px #0009; color:#e0e7ed; font:12px "Segoe UI",sans-serif; outline:none; }
+.app-shell .owned-menu>button { display:flex; align-items:center; gap:7px; width:100%; min-height:27px; padding:4px 7px 4px 3px; border:0; border-radius:2px; color:#e0e7ed; background:transparent; font:12px "Segoe UI",sans-serif; text-align:left; cursor:default; }
+.app-shell .owned-menu>button:hover,.app-shell .owned-menu>button:focus { background:#566d7e; outline:none; }
+.app-shell .owned-menu>button:focus-visible { box-shadow:inset 0 0 0 1px #b0d0e7; }
+.app-shell .owned-menu .menu-check { width:16px; min-width:16px; display:flex; justify-content:center; }
+.app-shell .owned-menu .menu-label { flex:1; white-space:nowrap; }
+.app-shell .owned-menu kbd { color:#bac8d2; font:11px "Segoe UI",sans-serif; background:none; border:0; padding:0; box-shadow:none; }
+.app-shell .owned-menu>button[aria-disabled="true"] { color:#96a4ad; }
+.app-shell .owned-menu>button.danger { color:#edbcb7; }
+.app-shell .owned-menu .menu-caption { padding:5px 10px 8px 22px; border-bottom:1px solid #57636c; margin-bottom:4px; font-size:11px; color:#bac9d5; }
+.app-shell .owned-menu .menu-separator { height:1px; background:#56626b; margin:5px 6px; }
+.app-shell .owned-menu .menu-reason { border-top:1px solid #586771; padding:7px 9px; margin-top:4px; max-width:280px; font-size:11px; line-height:1.5; color:#c5d3dd; }
+.app-shell .owned-menu.submenu { min-width:160px; }
+
+@container workspace (max-width:1100px) {
+  .app-shell .inspector-pane { max-width:200px; }
+  .app-shell .track-pane { max-width:188px; }
+  .app-shell .info-line .info-name { width:158px; min-width:158px; }
+  .app-shell .info-line .info-source { display:none; }
+  .app-shell .info-line>label,.app-shell .info-line>div { padding-inline:8px; }
+  .app-shell .info-line .time-field .value-control { width:131px; }
+  .app-shell .edit-toolbar { gap:3px; padding-inline:8px; }
+  .app-shell .toolbar-divider { margin-inline:3px; }
+  .app-shell .transport-bar { gap:7px; padding-inline:7px; }
+  .app-shell .locator-fields { width:127px; }
+  .app-shell .locator-field .value-control { width:110px; }
+  .app-shell .transport-position .value-control { width:144px; }
+  .app-shell .transport-output>.horizontal { display:none; }
+  .app-shell .transport-output .master-meter { width:53px; }
+  .app-shell .track-controls { gap:3px; }
+  .app-shell .track-level { width:43px; font-size:10px; }
+}

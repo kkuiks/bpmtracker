@@ -1,5 +1,7 @@
 # Interval-consensus A research
 
+**Current role:** retained source-clock I/O/helper dependencies. This failed consensus direction remains historical evidence. Its former stop/gate does not override the owner-selected [L2 development baseline](../../docs/DEVELOPMENT.md).
+
 An isolated, owner-approved follow-up after Step 0 and the seven-direction clock
 study. This tests candidate-specific support episodes and a matched whole-input
 control. It does not implement an automatic tempo map, meter inference or an app

@@ -19,7 +19,9 @@ contextBridge.exposeInMainWorld("joljak", {
   chunk: (id, index) => invoke("chunk", id, index),
   registerAssets: (assets) => invoke("register-assets", assets),
   save: (project, path, copy) => invoke("save", project, path, copy),
-  open: () => invoke("open"),
+  open: (filename) => filename === undefined ? invoke("open") : invoke("open", filename),
+  pendingProjects: () => invoke("pending-projects"),
+  onOpenProject: (callback) => subscribe("open-project", callback),
   autosave: (project) => invoke("autosave", project),
   closingProject: (project) =>
     ipcRenderer.sendSync("joljak:closing-project", project),

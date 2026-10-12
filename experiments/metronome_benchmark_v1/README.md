@@ -1,5 +1,7 @@
 # Automatic fixed-metronome benchmark
 
+**Current role:** qualification, reference and benchmark tooling. Alternate fitters remain separate diagnostics; the selected variable development baseline is [L2](../../algorithms/README.md).
+
 Read a prepared dataset, qualify reference capabilities, run the
 frozen fixed-metronome estimator, and produce JSON, CSV and an HTML report.
 BabySlakh supplies encoded MIDI clocks; GTZAN supplies public features and

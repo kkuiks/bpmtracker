@@ -2,7 +2,8 @@ param(
     [switch]$PrepareOnly,
     [switch]$Source,
     [string]$DevUrl,
-    [string]$CacheRoot
+    [string]$CacheRoot,
+    [string]$Project
 )
 $ErrorActionPreference = 'Stop'
 $app = Split-Path $PSScriptRoot -Parent
@@ -28,6 +29,12 @@ if ($PrepareOnly) { Write-Output $bundle; exit 0 }
 $executable = Join-Path $bundle 'Joljak.exe'
 $running = Get-Process Joljak -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $executable }
 if ($running) {
+    if ($Project) {
+        $installed=Get-Content (Join-Path $bundle 'resources\app\package.json') -Raw | ConvertFrom-Json
+        if ($installed.version -ne $package.version) { throw 'Close Joljak and relaunch once to update project-file opening.' }
+        Start-Process -FilePath $executable -WorkingDirectory $bundle -ArgumentList ('"'+$Project+'"')
+        exit 0
+    }
     Write-Host 'Joljak is already open. Close its window and start again to refresh the current build.'
     exit 0
 }
@@ -49,6 +56,7 @@ foreach ($directory in @('dist','electron','backend')) {
 }
 $manifest = @{ name = 'joljak-daw'; productName = 'Joljak'; version = $package.version; main = 'electron/main.cjs' } | ConvertTo-Json
 [System.IO.File]::WriteAllText((Join-Path $target 'package.json'), $manifest, [System.Text.UTF8Encoding]::new($false))
+& (Join-Path $PSScriptRoot 'register_project_files.ps1') -Executable $executable
 if ($Source -and $DevUrl) { $env:JOLJAK_DEV_URL = $DevUrl }
 else { Remove-Item Env:JOLJAK_DEV_URL -ErrorAction SilentlyContinue }
 $env:JOLJAK_SAMPLE_ROOT = Join-Path $repository 'data\samples'
@@ -56,4 +64,5 @@ Write-Host 'Starting the current Joljak build.'
 # VS Code launches its tooling with Electron's Node mode. Do not inherit that
 # mode when starting the actual desktop application. This affects this child only.
 Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-Start-Process -FilePath $executable -WorkingDirectory $bundle
+if ($Project) { Start-Process -FilePath $executable -WorkingDirectory $bundle -ArgumentList ('"'+$Project+'"') }
+else { Start-Process -FilePath $executable -WorkingDirectory $bundle }
