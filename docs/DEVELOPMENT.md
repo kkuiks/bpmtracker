@@ -14,20 +14,37 @@ inference into the DAW. The earlier approximately-99% fixed verification target
 is dated experimental evidence, not a continuing veto on this owner-selected
 development baseline. Keep all its scores and failures intact.
 
-## Next objective
+## Completed AutoResearch and the next proposed experiment
 
-The primary goal is **Circle With Me**. Its accepted map has three small tempo
-changes, 205→210→205→210 quarter BPM, with unchanged 4/2 meter. The current L2
-result gets the opening right, misses all three transition boundaries, then
-changes late and incorrectly declares 2/4. Its 63.08% joint score comes from the
-opening; it is not evidence of successful variable tracking.
+The 2026-10-13 AutoResearch v2 campaign is closed. Its `trial006` candidate improves
+the frozen **pinned-initial, held-meter** objective `(V,W)` from
+`(0.16541267669858642, 0.16541267669858642)` to `(0.25, 0.25)`. One of four known
+development songs has all three boundaries successful; the other three still
+score zero. Successful boundaries increase from 2/17 to 3/17. The weighted
+objective is not the fraction of successful boundaries.
 
-First distinguish missing source candidates from candidates rejected by search
-or the mismatch gate. This diagnosis and any following improvement are planned,
-not executed by the repository reorganization. Keep real changes on existing
-beats, without phase jumps. Compare small changes in Underoath and Over It as
-well, and retain ordinary fixed-song listening controls. Do not introduce song
-names, accepted transition times, reference BPM, or reference roles into inference.
+The candidate and H7 fixed parent pass the separately frozen 16 known fixed
+complete recordings and 10 original excerpts under that same input restriction.
+The actual full L2 initial/meter integration fails fixed regression on four
+materials, and its final variable comparator is incomplete. These results do not
+replace the owner-selected L2 entry, authorize app integration, approve product
+thresholds, or establish independent generalization. See
+[`AUTORESEARCH.md`](AUTORESEARCH.md) for provenance, artifacts and limits.
+
+The next proposed experiment is one generic ablation of the mismatch gate's
+absolute **old-beat ceiling**. Retain the new-evidence floor, gain/mass rules and
+H7 PCM veto. An observed legal candidate provides a local gate-failure witness;
+neither later PCM admission nor full-path selection is established. Run the same
+candidate on the entire frozen development cohort and retain fixed regression
+requirements. A separate authorized campaign is needed; neither this proposal
+nor the closed v2 session is an execution queue.
+
+The earlier Circle roadmap is retained in `project-state.json` as
+`historical_circle_roadmap`. Its original unrestricted L2 joint score of 63.08%
+and 0/3 successful boundaries remain historical evidence. The later constrained
+baseline and candidate use different input conditions. Do not overwrite or
+substitute their scores. Keep declarations on existing beats without phase jumps,
+and do not pass identities, reference times/rates or evaluation roles to inference.
 
 ## Evidence and comparison
 
@@ -38,6 +55,8 @@ names, accepted transition times, reference BPM, or reference roles into inferen
 | Owner audition | `data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects/` | 21 separate reference/current pairs; 22 weak feature-only cases lack original audio |
 | Fixed comparison | `experiments/metronome_reconstruction_v1/` and its original frozen runs | Fixed estimator remains a useful comparison and the DAW backend |
 | Reorganization audit | `data/storage/20261013-repository-organization-v1/` | Whole-checkout inventory, original source snapshot, moves and static checks |
+| Closed AutoResearch v1 | `data/research/runs/autoresearch_run_v1/20261013-session-v1/` | No primary adopted; H3/H4/H7 code and failed trials preserved |
+| Closed AutoResearch v2 | `data/research/runs/autoresearch_run_v2/20261013-campaign-v2/` | Scoped primary; known regression pass, full L2 failed/incomplete |
 
 The 98 feature groups have now been consumed in development. They are not an
 untouched holdout for a changed candidate. Source-only inference, evaluation,

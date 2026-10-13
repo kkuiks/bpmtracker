@@ -19,18 +19,14 @@
     "fixed_comparator": "experiments/metronome_reconstruction_v1"
   },
   "next_objective": {
-    "status": "planned-not-executed-by-reorganization",
-    "primary_recording": "Spiritbox - Circle With Me",
-    "sample_id": "legacy_circle",
-    "recorded_run_id": "r003",
-    "goal": "Track all three genuine small tempo changes while preserving bar phase and avoiding the erroneous final 2/4 declaration.",
-    "reference_transition_source_seconds": [147.60216277313233, 184.1735548324585, 205.24670072861764],
-    "baseline_successful_tempo_boundaries": 0,
-    "baseline_eligible_tempo_boundaries": 3,
-    "baseline_pulse_valid_fraction": 0.7876068376068376,
-    "baseline_joint_stable_map_fraction": 0.6307692307692307,
-    "additional_small_change_comparisons": ["Underoath - Desperate Times, Desperate Measures", "Bullet For My Valentine - Over It"],
-    "fixed_regression_listening": ["Real Friends - Waiting Room", "In Flames - Meet Your Maker", "Maxime Solemn - Breathe Fire", "Mick Gordon - BFG Division"]
+    "status": "proposed-not-executed-after-closed-autoresearch-v2",
+    "title": "Single source-mismatch gate ablation on the full frozen known cohort",
+    "goal": "Remove only the old-beat absolute ceiling from the pulse mismatch conjunction; preserve the accent old-bar ceiling, new floors, gain/mass rules and H7 PCM veto. Compare one generic predictor under pinned initial/held meter before considering broader integration.",
+    "evidence": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/next-one-experiment.json",
+    "authorization": "Separate owner-authorized research/reproduction; documentation does not start it.",
+    "requires_new_campaign_clock": true,
+    "closed_campaign_must_not_restart": true,
+    "independent_holdout_preparation": "No unused independent audio/reference pairs identified; known recordings, excerpts and feature98 remain consumed development evidence."
   },
   "application": {
     "path": "apps/daw",
@@ -67,5 +63,114 @@
     "new_experiments": "require an applicable owner request",
     "private_notes": "standing exact-path main-only publication delegation",
     "documentation_or_current_status_does_not_start_pending_work": true
+  },
+  "historical_circle_roadmap": {
+    "status": "planned-not-executed-by-reorganization",
+    "primary_recording": "Spiritbox - Circle With Me",
+    "sample_id": "legacy_circle",
+    "recorded_run_id": "r003",
+    "goal": "Track all three genuine small tempo changes while preserving bar phase and avoiding the erroneous final 2/4 declaration.",
+    "reference_transition_source_seconds": [
+      147.60216277313233,
+      184.1735548324585,
+      205.24670072861764
+    ],
+    "baseline_successful_tempo_boundaries": 0,
+    "baseline_eligible_tempo_boundaries": 3,
+    "baseline_pulse_valid_fraction": 0.7876068376068376,
+    "baseline_joint_stable_map_fraction": 0.6307692307692307,
+    "additional_small_change_comparisons": [
+      "Underoath - Desperate Times, Desperate Measures",
+      "Bullet For My Valentine - Over It"
+    ],
+    "fixed_regression_listening": [
+      "Real Friends - Waiting Room",
+      "In Flames - Meet Your Maker",
+      "Maxime Solemn - Breathe Fire",
+      "Mick Gordon - BFG Division"
+    ]
+  },
+  "current_research": {
+    "id": "autoresearch-v2-20261013",
+    "status": "closed-scoped-candidate-full-L2-not-adopted",
+    "documentation_updated_date": "2026-10-13",
+    "run_root": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2",
+    "source_document": "docs/AUTORESEARCH.md",
+    "private_topic_document": "_local/docs/VARIABLE_CLOCK_EXPLORATION.md",
+    "primary": {
+      "trial": "trial006",
+      "code": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/trials/trial006/candidate",
+      "scope": "Same preserved source-fitted initial map; held meter; complete continuous audio map",
+      "rank_objective": [
+        0.25,
+        0.25
+      ],
+      "direct_baseline_method": "PINNED_INITIAL_HELD_METER_L2",
+      "direct_baseline_rank_objective": [
+        0.16541267669858642,
+        0.16541267669858642
+      ],
+      "successful_boundaries": 3,
+      "direct_baseline_successful_boundaries": 2,
+      "known_development_boundaries": 17,
+      "known_development_recordings": 4,
+      "formal_L2_entry_replaced": false
+    },
+    "parents": {
+      "fixed": "trial001_H7",
+      "coverage": "trial002_H4",
+      "speed": null,
+      "H3_disposition": "Faster paired timing but primary coverage regression; rejected"
+    },
+    "verification": {
+      "held_map_known_fixed_complete": 16,
+      "held_map_known_original_excerpts": 10,
+      "primary_and_H7_held_map_no_loss": true,
+      "full_L2_existing_baseline_reproduced": 26,
+      "full_L2_fixed_or_excerpt_regressions": 4,
+      "full_L2_pairs_completed": 29,
+      "full_L2_pairs_expected": 30,
+      "full_L2_incomplete_baseline_comparators": 1,
+      "full_L2_verified": false,
+      "fresh_raw_preparation_three_repeat_control_complete": false,
+      "generalization_verified": false,
+      "Windows_listening_verified": false,
+      "owner_approved_numerics": false
+    },
+    "budget": {
+      "submissions": 12,
+      "submission_limit": 24,
+      "probes": 5,
+      "probe_limit": 6,
+      "combined_timing_candidates": 2,
+      "timing_candidate_limit": 2,
+      "campaign_elapsed_minutes": 147.4863666653633,
+      "clock_reset": false,
+      "setup_closure_late_seconds": 210.93384504318237,
+      "validation_inference_auto_stopped_at_cap": true,
+      "validation_closure_late_seconds": 29.609130382537842
+    },
+    "local_time": {
+      "started": "2026-10-13T16:30:32.313661+09:00",
+      "finished": "2026-10-13T18:58:01.495661+09:00",
+      "timezone": "Asia/Seoul"
+    },
+    "evidence": {
+      "campaign_status": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-status.json",
+      "report": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/report.ko.md",
+      "boundary_comparison": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/boundary-comparison.tsv",
+      "input_and_evaluator_freeze": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/seal.json",
+      "validation_plan": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation-plan.json",
+      "known_held_map_regression": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/known/result.json",
+      "failed_full_L2_bridge": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/l2/result.json",
+      "corrected_full_L2_regression": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/l2-corrected-unit/result.json",
+      "limits": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/verification-limitations.json",
+      "lineage": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/lineage.json",
+      "listen_guide": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/listen-guide.ko.md",
+      "listen_project_count": 56,
+      "reproduction": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/reproduce.md",
+      "resume": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/resume.md"
+    },
+    "preservation": "Closed runs and their artifact manifests remain unedited; no app change or algorithm deployment."
   }
 }

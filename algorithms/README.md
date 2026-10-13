@@ -18,3 +18,11 @@ Future changes should use a new run and compare with the preserved L2 prediction
 Do not modify a recorded freeze, reference, failed-input denominator, or frozen
 implementation merely to let an old run accept new source. No experiments are
 started by importing these modules or reading the plans.
+
+The closed 2026-10-13 AutoResearch v2 candidate remains in a local snapshot:
+`data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/trials/trial006/candidate/`.
+It improved the pinned-initial/held-meter development objective and passed known
+fixed/excerpt regression in that scope. Actual full L2 integration failed fixed
+regression and remained incomplete on one comparator. It has not replaced this
+entry or the application estimator. See the [research handoff](../docs/AUTORESEARCH.md)
+for candidate modules, frozen evidence and the single proposed next experiment.

@@ -25,6 +25,33 @@ that implementation without copying it or altering parameters. Future candidate
 work needs new source/config provenance; never bypass an old freeze guard to make
 a historical run accept a changed fitter.
 
+## AutoResearch modules and execution evidence
+
+The closed v2 candidate is a local research snapshot, separate from the maintained
+L2 entry and the app backend. Read [`AUTORESEARCH.md`](AUTORESEARCH.md) before
+following its code or reproducing an execution.
+
+Let `C` be `data/research/runs/autoresearch_run_v2/20261013-campaign-v2`.
+
+| Concern | Location relative to `C` | Role |
+| --- | --- | --- |
+| Selected candidate | `session/trials/trial006/candidate/` | Same source-only predictor for the entire cohort |
+| Observation emissions | `session/trials/trial006/candidate/candidate_emissions.py` | Pointwise log costs/prefix sums; NN/PCM unchanged |
+| Continuous-phase path | `session/trials/trial006/candidate/candidate_core.py` | Exact active state, prefix dominance, bounded queue, event chain |
+| Fixed/coverage parents | `session/trials/trial001/candidate/`, `session/trials/trial002/candidate/` | H7/H4; separate from primary selection |
+| Frozen protocol | `session/protocol.json`, `session/seal.json`, `validation-plan.json` | Evaluator, reference, cohort and input contract |
+| Separate scoring | `session/trials/trialNNN/evaluation.job.json`, `metrics.json` | Trusted evaluator never imports the candidate |
+| Attempts and lineage | `session/attempts.json`, `session/results.tsv`, `cards/`, `lineage.json` | Failed execution retained; no per-song composite |
+| Neutral traces | `session/probes/`, `diagnosis*.json`, `boundary-comparison.tsv` | Source-only trace, independent reference-side review |
+| Held-map regression | `validation/known/` | Fixed16/excerpt10: baseline, primary, H7 |
+| Full L2 bridges | `validation/l2/`, `validation/l2-corrected-unit/` | Wrong unit attempt retained; corrected history26 matches, candidate regresses |
+| Verification limits | `campaign-status.json`, `verification-limitations.json` | Full L2 timeout, provisional numerics, absent holdout/listening |
+
+The supplied harness and inference/score workers are under
+`data/research/preflight/autoresearch-next-20261013-v02/package/BPMTracker_AutoResearch_Next_2026-10-13/runtime/`.
+Local evidence paths are not guaranteed by a public-source-only clone.
+No active fitter imports `trial006` automatically.
+
 ## App and fixed comparison
 
 | Concern | Source |
