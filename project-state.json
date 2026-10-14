@@ -19,14 +19,87 @@
     "fixed_comparator": "experiments/metronome_reconstruction_v1"
   },
   "next_objective": {
-    "status": "proposed-not-executed-after-closed-autoresearch-v2",
-    "title": "Single source-mismatch gate ablation on the full frozen known cohort",
-    "goal": "Remove only the old-beat absolute ceiling from the pulse mismatch conjunction; preserve the accent old-bar ceiling, new floors, gain/mass rules and H7 PCM veto. Compare one generic predictor under pinned initial/held meter before considering broader integration.",
-    "evidence": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/next-one-experiment.json",
-    "authorization": "Separate owner-authorized research/reproduction; documentation does not start it.",
+    "status": "recommended-not-executed-after-full-L2-diagnosis",
+    "title": "Full L2 source-unit, bar-cost and initial-search comparisons",
+    "goal": "Separate H4 source-unit admission, bar evidence and initial-root coverage in a new finite full-integration campaign. Compare original L2 and trial006 under full and pinned/held conditions while preserving current practical fixed-material quality.",
+    "evidence": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/next-research.md",
+    "authorization": "A new campaign requires separate owner authorization; this documentation update starts no experiment.",
     "requires_new_campaign_clock": true,
     "closed_campaign_must_not_restart": true,
-    "independent_holdout_preparation": "No unused independent audio/reference pairs identified; known recordings, excerpts and feature98 remain consumed development evidence."
+    "previous_unexecuted_proposal": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/next-one-experiment.json",
+    "independent_holdout_preparation": "No new independent holdout was consumed by the diagnosis. New recording families require preparation and candidate freeze before evaluation; known recordings, excerpts and feature98 remain consumed development evidence."
+  },
+  "latest_diagnosis": {
+    "id": "full-L2-regression-diagnosis-v1-20261014",
+    "status": "complete-four-regressions-reproduced",
+    "documentation_updated_date": "2026-10-14",
+    "run_root": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1",
+    "source_document": "docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14",
+    "completed_utc": "2026-10-14T02:29:08.352123+00:00",
+    "comparison": {
+      "expected_known30_pairs": 30,
+      "full_L2_pairs_completed": 30,
+      "held_pairs_completed": 30,
+      "completed_cells": 240,
+      "failed_cells": 0,
+      "focused_materials": 7,
+      "initial_meter_factorial_cells": 56,
+      "common_parent_cost_decoder_cells": 20,
+      "reproduced_regressions": 4,
+      "original_valid_maps_reproduced": 119,
+      "original_map_raw_and_semantic_hashes_match": true,
+      "older_full_L2_baseline_maps_reproduced": 30,
+      "legal_common_maps": 2563,
+      "complete_neutral_traces": 112,
+      "full_L2_regression_passed": false
+    },
+    "supported_contributions": {
+      "daybreak_and_breathe_fire": "Pointwise bar-cost path ranking under full meter support; legacy bar substitution reverses the finite-pool ranking, not a full hybrid-predictor result.",
+      "neck_deep": "H4 additional tempo-unit proposals cause loss even with legacy cost/beam; H7-only preserves quality.",
+      "in_flames": "Retained initial-root scheduling and bootstrap retention; source-only root-first and one-slot qualified-root reserve interventions recover quality and repeat."
+    },
+    "limitations": {
+      "independent_generalization_verified": false,
+      "Windows_listening_verified": false,
+      "owner_approved_numerics": false,
+      "single_overfitting_cause_established": false,
+      "expected_tick_omission_separated_from_bar_normalization": false,
+      "diagnostic_interventions_adopted": false
+    },
+    "preservation": {
+      "closed_v2_clock_ledger_seal_and_failure_stub_preserved": true,
+      "original_v2_pairs_completed": 29,
+      "original_v2_pairs_expected": 30,
+      "protected_files_unchanged_at_diagnosis_completion": 3645,
+      "development_baseline_replaced": false,
+      "application_analyzer_changed": false,
+      "new_NN_forward": false
+    },
+    "evidence": {
+      "report": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/report.ko.md",
+      "status": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/status.json",
+      "protocol": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/protocol.json",
+      "provenance": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/provenance.json",
+      "comparison": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/comparison.tsv",
+      "factorial": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/factorial.tsv",
+      "score_comparison": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/score-comparison.tsv",
+      "components": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/component-ablation.tsv",
+      "search": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/search-comparison.tsv",
+      "reproduction": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/reproduce.md",
+      "sample_agent_handoff": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/sample-agent-handoff.md",
+      "next_research": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/next-research.md"
+    },
+    "delivery": {
+      "compact_zip": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/full-l2-diagnosis-20261014.zip",
+      "package_receipt": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/package-receipt.json",
+      "bytes": 6140642,
+      "sha256": "6977ffaa50e2dad07cf11e46082a1ce7dc3599aa2567bfefbb4fff3b20086eda",
+      "private_summary_commit": "408c226f2c2dc481ccbf20a55e774c20658b3db8",
+      "private_summary_path": "_local/docs/FULL_L2_REGRESSION_DIAGNOSIS_2026-10-14.md",
+      "private_publication_scope": "Summary and evidence paths only",
+      "report_and_zip_remotely_uploaded": false,
+      "full_run_remote_backup_verified": false
+    }
   },
   "application": {
     "path": "apps/daw",
@@ -93,7 +166,7 @@
   "current_research": {
     "id": "autoresearch-v2-20261013",
     "status": "closed-scoped-candidate-full-L2-not-adopted",
-    "documentation_updated_date": "2026-10-13",
+    "documentation_updated_date": "2026-10-14",
     "run_root": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2",
     "source_document": "docs/AUTORESEARCH.md",
     "private_topic_document": "_local/docs/VARIABLE_CLOCK_EXPLORATION.md",
@@ -171,6 +244,35 @@
       "reproduction": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/reproduce.md",
       "resume": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/resume.md"
     },
-    "preservation": "Closed runs and their artifact manifests remain unedited; no app change or algorithm deployment."
+    "preservation": "Closed runs and their artifact manifests remain unedited; no app change or algorithm deployment.",
+    "handoff_audit": {
+      "date": "2026-10-14",
+      "receipt": "data/storage/20261014-autoresearch-handoff-audit-v1/audit.json",
+      "report": "data/storage/20261014-autoresearch-handoff-audit-v1/report.ko.md",
+      "notes_publication_receipt": "data/storage/20261014-autoresearch-handoff-audit-v1/notes-publication.json",
+      "notes_published_commit": "f317f5bdc133daf026afe91a891e41470cad9348",
+      "source_HEAD_at_audit": "52c78ef2a1db3675869cb729609181f68a9ffb7c",
+      "closed_campaign_restarted": false,
+      "declared_local_inputs_and_artifacts_present": true,
+      "content_hashes_revalidated": false,
+      "same_PC_handoff_available": true,
+      "fresh_machine_recovery_ready": false,
+      "earlier_checkpoint_AutoResearch_coverage_rows": 0,
+      "newer_remote_research_backup_verified": false,
+      "safe_status_commands": [
+        "python3 -B tools/repository/status.py",
+        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-status.json",
+        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-clock.json",
+        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/state.json"
+      ],
+      "archived_invoke_status_mutates_logs": true,
+      "next_campaign_protocol_frozen": false,
+      "next_campaign_clock_started": false,
+      "next_campaign_budget_approved": false,
+      "next_comparators_to_prescribe": [
+        "PINNED_INITIAL_HELD_METER_L2",
+        "trial006 incumbent under same input contract"
+      ]
+    }
   }
 }

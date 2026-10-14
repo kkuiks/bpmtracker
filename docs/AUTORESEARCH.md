@@ -1,11 +1,97 @@
-# AutoResearch development handoff — 2026-10-13
+# AutoResearch development handoff — updated 2026-10-14
+
+The latest completed work is the isolated full L2 regression diagnosis below.
+The owner-selected `L2_DENSE_PROPOSALS` entry and the fixed DAW analyzer remain
+unchanged. The earlier v2 campaign remains closed with its original failed and
+incomplete validation records.
+
+## Full L2 regression diagnosis — 2026-10-14
+
+`D = data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1`.
+This owner-authorized diagnosis completed 240 source-only cells, the full and
+pinned/held known30 comparisons at 30/30 pairs each, the seven-material 56-cell
+initial/meter factorial and 20 common-parent cost/decoder cells. It reproduced
+all four full L2 regressions with the frozen v0.2/native evaluator and original
+NN/PCM/prepared inputs. No new NN forward, reference change or app integration
+was performed.
+
+| Material | Full baseline C → trial006 C | Supported contribution |
+| --- | --- | --- |
+| Daybreak — Equilibrium | 1 → .776692 | Initial competition interacts with later meter support; new bar cost reverses the path ranking |
+| Neck Deep — Can't Kick Up the Roots | 1 → .028302 | H4 admits the additional tempo-unit proposal; H4-only loses even under legacy cost/beam while H7-only preserves 1 |
+| Maxime — Breathe Fire | .754027 → .716952 | New cost selects an earlier 2/4 declaration under either decoder; the baseline is already imperfect |
+| In Flames — Meet Your Maker | .966295 → .698125 | Retained-root starvation and bootstrap retention; source-only scheduling/reserve interventions recover .989256/1 and repeat |
+
+Original 119 valid held/full maps reproduce byte-for-byte, semantically, in
+source scores and output metrics. The original BFMV corrected-bridge baseline
+remains a `worker_failed/validation_phase_deadline` failure/0 stub. The separate
+fresh baseline completes in 36.561s with C=.2536200088; candidate C=.3703378675.
+The older measured full L2 maps also match 30/30. This does not retroactively
+complete v2's 29/30 validation or reset its clock.
+
+With the missing comparator closed, full variable4 mean C is .474392→.506003,
+but V/W remain 0 on both methods. Full fixed complete16 mean C remains
+.990532→.899083 with bad tempo declarations 2→3. The four per-material losses
+still fail regression; comparison completeness is not algorithm admission.
+Pinned/held V/W .1654126767→.25 and boundary success 2/17→3/17 also reproduce.
+
+The finite common pool has 2,563 legal source-produced maps. Replacing only the
+bar-cost term reverses Daybreak/Breathe Fire rankings in that pool; this is not
+an executed hybrid predictor's full-cohort result. The scalar-phase restriction
+leaves one complete initial head and does not independently prove a phase cause.
+Root-first scheduling at the same 12 expansions does not fix the other cases,
+and the one-slot whole-song constant-root reserve was tested only on In Flames.
+Expected-tick omission versus aggregation/normalization remains partly
+unresolved. Circle-centered development gains, full-scope regressions and new
+music generalization are separate questions; overfitting is not established as
+the direct cause of all four losses. Independent holdout, Windows listening and
+owner-approved numerics remain unverified.
+
+All 3,645 protected files and source/data Git indexes were preserved at diagnosis
+completion. All 112 source traces were complete; cooperative Python audits found
+no forbidden reference reads or live experiment imports. Eight native project
+geometry roundtrips preserve C/P; Windows runtime playback is not verified.
+The original campaign, measured baseline, accepted references and source clocks
+remain untouched. Diagnostic copies inherit some held-core descriptive metadata;
+actual I/M branches, unit policy, proposals and maps were checked separately.
+
+| Evidence relative to `D` | Scope |
+| --- | --- |
+| `report.ko.md`, `status.json`, `execution-summary.json` | Owner report, completed/failed inventory, actual executions and limits |
+| `protocol.json`, `inputs.json`, `provenance.json`, `input-provenance-supplement.json` | Frozen selection, source/reference boundary, geometry, unit policy and hashes |
+| `comparison.tsv`, `factorial.tsv`, `branch-activation.tsv` | Known30 full/held and actual initial/meter branches |
+| `score-comparison.tsv`, `component-ablation.tsv`, `search-comparison.tsv` | Same-map cost ranks, common H4+H7 controls and finite search interventions |
+| `cases/`, `maps/`, `traces/`, `source-snapshots/`, `diffs/` | Case evidence, actual predictions, complete source traces and isolated code |
+| `reproduction-parity.json`, `preservation-after.json`, `common-pool-audit.json` | 119 original map matches, preserved originals and legal/reference-separated common pools |
+| `reproduce.md`, `sample-agent-handoff.md`, `next-research.md` | Actual commands, fresh output preparation, sampling conditions and proposed next campaign |
+| `full-l2-diagnosis-20261014.zip`, `package-manifest.json`, `package-receipt.json` | Compact local delivery, omissions and SHA-256 |
+
+The compact ZIP is 6,140,642 bytes (5.86 MiB), SHA-256
+`6977ffaa50e2dad07cf11e46082a1ce7dc3599aa2567bfefbb4fff3b20086eda`.
+It excludes original audio, large observations and the complete 2.3 GiB traces;
+their required/retained paths and hashes remain in manifests. The report and ZIP
+are local, not committed/uploaded to `joljak-data`. Only the private summary and
+evidence paths were published in notes commit
+`408c226f2c2dc481ccbf20a55e774c20658b3db8`; this is not a remote artifact backup.
+The package receipt records 72.023 minutes from goal start to packaging completion.
+
+The recommended next research is a new finite full-integration campaign
+separating H4 unit admission, bar cost and initial-root coverage. Compare original
+L2 and trial006 under both full and pinned/held conditions, retain fixed quality
+and prespecified denominators, and keep new recording families sealed until
+candidate freeze. `D/next-research.md` proposes at most six one-factor/understood
+combination candidates. None was started by completing or documenting this
+diagnosis; the original old-beat-ceiling proposal remains unrun historical work.
+
+## Closed v2 campaign — 2026-10-13
 
 The v2 campaign is closed. `trial006` is a research candidate for **the same
 source-fitted initial map with held meter**. Its `(V,W)` improves from
 `(0.16541267669858642, 0.16541267669858642)` to `(0.25, 0.25)`. Successful boundaries
 increase from 2/17 to 3/17. The candidate and H7 pass known fixed/excerpt regression
 under that contract. Actual full L2 integration regresses four materials and is
-incomplete on the last baseline comparator. The owner-selected L2 entry and the
+incomplete on the last baseline comparator in that ended campaign. The
+owner-selected L2 entry and the
 fixed DAW analyzer remain unchanged.
 
 This is a documentation handoff, not permission to resume a finished campaign,
@@ -14,6 +100,8 @@ run its unexecuted proposal, replace the app or approve numerical thresholds.
 ## Evidence authorities and history
 
 [`project-state.json`](../project-state.json) is the compact current pointer.
+Its `latest_diagnosis` records the completed follow-up; `current_research` keeps
+the original closed v2 campaign record, including its 29/30 validation scope.
 The private topic document `_local/docs/VARIABLE_CLOCK_EXPLORATION.md` contains
 recording-specific diagnosis and the detailed durable research history. Raw
 outputs, references, clocks and execution ledgers remain in local private data.
@@ -206,6 +294,11 @@ campaign; do not assume these later artifacts have already been published/backed
 
 ## Proposed next single experiment
 
+This was the v2 closeout proposal and remains unexecuted. The current recommended
+direction follows the separate
+[2026-10-14 diagnosis](#full-l2-regression-diagnosis--2026-10-14); this gate-only
+proposal does not explain the four full L2 regression mechanisms by itself.
+
 A legal candidate with valid local before/after output readings reaches the
 mismatch gate. Its old beat score .5897 exceeds the old .55 ceiling while the
 new score .8217 has gain+.2320; the new bar score .5304 fails the separate .65
@@ -223,6 +316,13 @@ A new authorized campaign would freeze one generic candidate, run one neutral
 probe and the entire development cohort, and check known fixed regression if
 eligible. Do not substitute a per-song best result, finish the old campaign by
 resetting its clock, or promote the old scoped candidate into the app.
+
+This is a prospective minimum experiment, not a frozen or approved new campaign.
+Its new clock, budget, timing controls, evaluator/input seals and baseline wiring
+have not been created. Before `init`, distinguish the original pinned/held L2
+control (.1654126767) from the retained trial006 incumbent (.25), and prescribe
+comparison with both. Calling trial006 an unmodified L2 baseline would be wrong.
+Do not edit the old protocol or inject a parent into its closed archive.
 
 ## Re-entry and artifacts
 
@@ -243,16 +343,67 @@ Start by reading `C/campaign-status.json`, `report.ko.md`, `resume.md`,
 - Listening/reproduction: `listen-guide.ko.md`, `listen-projects/manifest.json`,
   `reproduce.md`. There are56 separate native projects; playback is unverified.
 
-These are read-only status commands; they do not start inference:
+These commands read saved JSON without changing the campaign tree:
 
 ```bash
 cd /home/yooch/code/joljak
 C=data/research/runs/autoresearch_run_v2/20261013-campaign-v2
-python3 tools/repository/status.py
-python3 "$C/invoke.py" harness status
-python3 "$C/invoke.py" clock status
+python3 -B tools/repository/status.py
+python3 -B -m json.tool "$C/campaign-status.json"
+python3 -B -m json.tool "$C/campaign-clock.json"
+python3 -B -m json.tool "$C/session/state.json"
 ```
 
-The historical worker commands in `reproduce.md` require a separately authorized
-reproduction and fresh output destinations. Never rerun `init/start/trial/probe`
-against the closed ledger or alter its frozen inputs to make an old replay pass.
+The archived `invoke.py` creates CLI logs and appends `commands.jsonl` even for
+`status`; its `clock status` also rejects a finished clock. The older status
+examples in `C/reproduce.md` are therefore superseded by the commands above.
+The archived instructions and wrapper remain unchanged as historical evidence.
+Do not execute that wrapper, submit/finalize/validation/export scripts or
+`init/start/trial/probe` against the closed tree. Historical worker argv require
+a separately authorized reproduction, fresh output/log destinations and a new
+seal for changed source; never edit a freeze to make a replay pass.
+
+## Fresh-session handoff audit — 2026-10-14
+
+The audit reconciled saved records and checked declared paths, without running
+inference, evaluation, tests, playback or content-hash validation. Its local
+receipt/report are under
+`data/storage/20261014-autoresearch-handoff-audit-v1/`.
+
+| What the next session can rely on | Scope and remaining limit |
+| --- | --- |
+| Same-PC evidence | All 3,113 manifest-listed files, 10 development packets/references, 28 validation rows, 505 protected paths, the declared Python and 56 listening projects exist. Presence does not revalidate their digests or runtime. |
+| Saved results | Primary .25 versus direct L2 .1654126767; known held-map regression passes; full L2 fails four materials and lacks one baseline. No new result was produced by this audit. |
+| Published notes | The earlier notes publication reached `5ee66233824fe9259d63f613836ca4ea358452b7`; subsequent audit publication has its own receipt. Source/data commits remain owner-operated. |
+| Fresh-machine recovery | No files under the preparation/v1/v2 run roots are tracked in data Git, and the earlier checkpoint manifest contains none of these runs or the Next package. A source/notes/data clone plus that checkpoint cannot restore this research. No later remote backup was verified. |
+| Further research | The campaign is finished; the single gate proposal is unrun. A new authorized protocol and preserved inputs are prerequisites, rather than a restart of the old clock. |
+
+For a fresh machine, the concrete missing stores are the listed preparation,
+v1 session/bridge, v2 campaign and Next-package roots, plus the original
+recordings and NN/PCM/prepared-source dependencies named in
+`session/protocol.json` and `validation-inputs.json`. Original music was excluded
+from the previous checkpoint. No new backup/upload or acquisition was performed.
+On this PC those paths are present; do not confuse that with remote durability.
+
+Three interpretation cautions prevent a fresh reader from overstating results:
+
+- **Lineage:** trial006's recorded checkout parent is `seed`; H4/trial002 and
+  H7/trial001 are code donors, not a different recorded parent. Saved donor code
+  digests match v1 H4/trial004, H7/trial007 and H3/trial003. This audit compared
+  recorded digests; it did not recompute source hashes.
+- **Frozen code erratum:** trial006 `candidate_core.py` retains the copied header
+  claiming unchanged scores/search. Its body implements the changed decoder and
+  emissions described above. `parameters.json` selects 12 expansions, despite
+  a fallback of 36 in the code. Preserve the frozen bytes and use the body,
+  parameters, experiment card and lineage to interpret them.
+- **Diagnosis and timing limits:** stage counters use the canonical held-meter
+  equal-bar witness and visited paths; they are not exhaustive proofs over all
+  acceptable R1–R3 readings. Full-L2 pair-time totals cover 29 completed records,
+  not all 30 denominator inputs or a complete matched speed comparison.
+
+The supplied `research_review.ko.md` records seven papers/official implementations
+that motivated v2, alongside `program.md`, `SESSION_START.txt` and `GOAL.txt`.
+They are design context, not evidence of an exact implementation or independent
+generalization. Keep the package, campaign findings and proposed next protocol
+distinct. Older private Step0/fresh-start documents retain dated decisions and
+now point to this current authority.

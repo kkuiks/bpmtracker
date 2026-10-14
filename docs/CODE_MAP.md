@@ -25,6 +25,26 @@ that implementation without copying it or altering parameters. Future candidate
 work needs new source/config provenance; never bypass an old freeze guard to make
 a historical run accept a changed fitter.
 
+## Latest completed regression diagnosis
+
+The 2026-10-14 full L2 diagnosis completed 240 cells and full/held known30 pairs
+without changing the maintained fitter. Read its
+[handoff](AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14).
+Let `D` be
+`data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1`.
+
+| Concern | Location relative to `D` | Role |
+| --- | --- | --- |
+| Outcome and current evidence | `report.ko.md`, `status.json`, `comparison.tsv`, `factorial.tsv` | Completed comparisons; four reproduced regressions remain failed |
+| Frozen actual code/imports | `source-snapshots/`, `diffs/`, `audit-summary.json` | Exact adapters, copied shared modules, controlled initial/meter/cost/decoder changes |
+| Source/evaluation separation | `driver.py`, `evaluate_cell.py`, `map_scorer.py`, `evaluate_pool.py` | Opaque source packets and independent frozen output scoring |
+| Causal probes | `interventions.py`, `parent_probe.py`, `root_schedule_probe.py`, `initial_reserve_probe.py` | Finite diagnostic interventions; no adopted replacement |
+| Reproduction and delivery | `reproduce.md`, `prepare_replay.py`, `package-receipt.json` | Fresh output tree and local ZIP; external immutable inputs required |
+
+The report/ZIP are not remotely backed up; the private notes publication contains
+only a summary and paths. These local source snapshots do not become imports of
+the public algorithm entry or the fixed-only app analyzer.
+
 ## AutoResearch modules and execution evidence
 
 The closed v2 candidate is a local research snapshot, separate from the maintained
@@ -51,6 +71,11 @@ The supplied harness and inference/score workers are under
 `data/research/preflight/autoresearch-next-20261013-v02/package/BPMTracker_AutoResearch_Next_2026-10-13/runtime/`.
 Local evidence paths are not guaranteed by a public-source-only clone.
 No active fitter imports `trial006` automatically.
+Use the JSON-only status commands in the
+[handoff](AUTORESEARCH.md#re-entry-and-artifacts); the archived wrapper writes
+logs even for status. The [audit](AUTORESEARCH.md#fresh-session-handoff-audit--2026-10-14)
+distinguishes the recorded `seed` parent from H4/H7 donors and documents the
+stale copied decoder header without changing frozen code.
 
 ## App and fixed comparison
 
