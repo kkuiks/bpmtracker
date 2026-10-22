@@ -1,6 +1,6 @@
 # Repository status and static audit
 
-Use the status command to locate the selected baseline, app and next objective:
+The status command reports application, algorithm, completed-comparison and review metadata:
 
 ```bash
 python3 tools/repository/status.py
@@ -9,7 +9,7 @@ python3 tools/repository/status.py
 It reads the canonical root `project-state.json` and app package version. It
 does not run inference, tests, servers, Git writes or data changes.
 
-For an explicitly requested repository audit:
+A static repository inspection can be written to a new output directory:
 
 ```bash
 python3 tools/repository/audit.py --output data/storage/<new-audit>/final
@@ -23,19 +23,21 @@ source, or delete files. `--exclude` can omit the audit's own parent receipt
 when comparing a task's before/after inventories.
 
 Source organization is documented in [CODE_MAP.md](../../docs/CODE_MAP.md).
-The current cleanup's full evidence is local at
+Current technical-review material is indexed in
+[RESEARCH_REVIEW.md](../../docs/RESEARCH_REVIEW.md), with selected source and
+aggregate-only snapshots under `reference/decoder_review/`. This is distinct
+from data-dependent execution and from selecting a future algorithm design.
+The recorded source-layout inspection is local at
 `data/storage/20261013-repository-organization-v1/`.
 
 ## Private data checkpoints
 
-The owner-authorized private repository `kkuiks/joljak-data` is connected at
-the existing checkout-local `data/` path. Source Git continues to ignore it.
+The separate private data checkout is connected at the checkout-local `data/` path. Source Git continues to ignore it.
 Compact maps/drafts/reports use an exact metadata allowlist; big frozen evidence
 uses private release attachments. Original songs, audio distribution archives,
 credentials and dependency/playback caches are excluded.
 
-For an explicitly requested backup, use an explicitly requested durability
-inventory and a new checkpoint ID:
+Checkpoint preparation uses a selected durability inventory and a new checkpoint ID:
 
 ```bash
 python3 tools/repository/private_data.py prepare --audit <inventory-and-proposal.json> --checkpoint <new-id>

@@ -2,6 +2,20 @@
 
 **Current role:** qualification, reference and benchmark tooling. Alternate fitters remain separate diagnostics; the selected variable development baseline is [L2](../../algorithms/README.md).
 
+The latest isolated map candidate is G21. The next planned step is
+**broad observation-to-tempo-map dataset expansion and evaluation**, described
+in the [current research documentation](../../docs/AUTORESEARCH.md#broad-observation-to-map-evaluation).
+Beat This training overlap is not a dataset exclusion for this decoder test;
+ASAP is outside the next step. Use independent reference annotations to score
+the map, retain observation provenance and distinguish prior decoder exposure.
+
+Existing GTZAN qualification contains 472 rows / 465 exact-feature groups:
+280 development, 87 validation and 98 formerly reserved groups. The initial
+100-group pilot is a subset of the development group, not another 100 songs.
+The 98 groups were consumed by the later frozen L2 validation. All 465 are known
+material; no completed G21 comparison over that full set is recorded. The
+historical protocol sections below retain their original role names and scope.
+
 Read a prepared dataset, qualify reference capabilities, run the
 frozen fixed-metronome estimator, and produce JSON, CSV and an HTML report.
 BabySlakh supplies encoded MIDI clocks; GTZAN supplies public features and

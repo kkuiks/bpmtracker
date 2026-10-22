@@ -113,7 +113,7 @@ constant-BPM recordings. They do not change the original run's frozen indexes.
   distinct. Change-count matches alone are not correct clock sequences.
 - UNKNOWN consumes coverage/event recall. Missing, failed and short cases remain
   in denominators. A candidate found near a time does not establish full support.
-- Real reference maps support practical owner agreement, without independent
+- Real reference maps support practical listening agreement, without independent
   producer-clock millisecond precision. GTZAN is approximately fixed/coarse
   annotation evidence, not independently certified false producer changes.
 - Circle retains its accepted 4/2 interpretation. BabySlakh Track00008 is encoded

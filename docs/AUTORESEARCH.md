@@ -1,409 +1,234 @@
-# AutoResearch development handoff — updated 2026-10-14
+# Variable-tempo research
 
-The latest completed work is the isolated full L2 regression diagnosis below.
-The owner-selected `L2_DENSE_PROPOSALS` entry and the fixed DAW analyzer remain
-unchanged. The earlier v2 campaign remains closed with its original failed and
-incomplete validation records.
+The research pipeline converts audio-derived beat/downbeat observations into a continuous tempo/signature map. **L2_DENSE_PROPOSALS** is the maintained comparison baseline. **G21** is the preserved comparison candidate; subsequent selection refiners remain experimental and separate from the application's fixed-tempo analyzer. Known-case improvements have not yet established broad variable-tempo generalization.
+
+The [current-state review](RESEARCH_REVIEW.md) summarizes completed comparisons,
+source locations and unresolved questions. [Selected review source and aggregate
+results](../reference/decoder_review/README.md) are included in the source
+repository; original run inputs and predictions remain separate.
+
+## G21 development validation
+
+This earlier C/P/V/W validation has its own prepared source banks and assistance
+conditions. It is retained as protocol-specific evidence. The later broad and
+formal event-F1 comparisons below are separate studies; their scores and initial
+candidate banks cannot be treated as one unchanged-input benchmark.
+
+### Representation and method
+
+A fixed estimator fits one BPM, signature and downbeat offset. The variable representation starts with one audio-supported phase and accumulates quarter position through piecewise-constant tempo/signature sections. Changes preserve the existing clock's beat geometry instead of independently resetting each section.
+
+L2 searches dense source proposals using Beat This observations and available PCM evidence. G21 retains the official `final0` checkpoint and adds:
+
+- Four early-source and four information-qualified/local initial roots in a bounded search.
+- Metrical-role evidence and a quarter-role meter gate for comparing physical clocks and notation changes.
+- A complete-map comparison against the original L2 map under the original source cost.
+- Assignment of rebuilt initial candidates to the original metrical-unit partition by log-BPM distance before coarse unit selection.
+
+The final change repairs an initial-unit mapping error in the preceding G19 candidate. It restores one new recording's coverage from zero to .483894717, equal to L2, without recovering its actual tempo change. The complete-map guard uses audio evidence rather than reference scores and does not guarantee an improvement on every recording.
+
+Candidates are prepared before the coarse initial BPM input. That input selects a discrete metrical layer; its continuous numeric value does not set precise BPM, phase or scores. There is no song-specific dispatch or reference-timed proposal generation. Neural training is unchanged.
+
+### Conditions and metrics
+
+**Full search** estimates the initial clock and subsequent tempo/meter path. **Held initial/meter** is a diagnostic starting from a common source-fitted initial with fixed meter; the initial is not ground truth. Its results cannot substitute for full-search performance.
+
+C/P measure acceptable/preferred map coverage with stability penalties. V/W measure localized post-change quality, averaged within each song and then equally across songs. These are not whole-song pass percentages or boundary success ratios. All results below use coarse initial-unit assistance.
+
+### Performance and denominators
+
+The comparison covers 62 materials: 44 catalog recordings, two auxiliaries and a separate 16-material development release. They are not 62 independent unseen songs. The 324-row comparison contains 108 actual G21 conditions, 152 exactly reused control rows and 64 newly executed control rows. The development references include manual revisions; final reference review remains pending.
+
+| Full-search cohort | n | L2 C / P | G21 C / P | L2 V/W → G21 V/W |
+| --- | ---: | ---: | ---: | ---: |
+| Existing fixed complete | 16 | .990532 / .928032 | .990532 / .928032 | Not applicable |
+| Existing excerpts | 10 | .959870 / .959870 | .959870 / .959870 | Not applicable |
+| Existing core variable | 4 | .474392 / .474392 | .632760 / .632760 | 0 → .333333 |
+| Existing meter guards | 5 | .739037 / .472450 | .739037 / .472450 | Separate meter diagnostics |
+| Additional variable | 6 | .417190 / .417190 | .398355 / .398355 | .166667 → .166667 |
+| Additional fixed | 1 | 0 / 0 | 0 / 0 | Not applicable |
+| Qualified diagnostics | 4 | .830368 / .830368 | .830368 / .830368 | Not a primary tempo cohort |
+| New variable | 8 | .653133 / .565796 | .653133 / .565796 | .174690 → .174690 |
+| New fixed | 6 | 1 / 1 | 1 / 1 | Not applicable |
+| New meter | 2 | .477162 / .476765 | .477162 / .476765 | Separate meter diagnostics |
+
+Circle With Me recovers three of three tempo changes and removes a spurious final 2/4. ADTR recovers one of three changes. Across the core four, four of 17 boundaries are recovered. Opeth and BFMV remain unresolved. Six of the new variable eight have V=0; their mean equals L2. The additional Allageon recording regresses from .369671558 to .256663672 coverage, while Red Miso remains at zero. Failures remain in their original denominators.
+
+Held-initial/meter V/W is .25 on the established core four, equal to the earlier trial006 diagnostic. On the new variable eight it is .041667, equal to trial006 and below held L2's .0625. This diagnostic does not establish full-search improvement.
+
+### Runtime and validation scope
+
+Three alternating matched timing pairs share cached observations and PCM. Median G21/L2 ratios including source candidate preparation are **1.668706** on the established 30-material cohort and **1.414131** on development16. Full-search fitting alone is 1.757788× / 1.604439×. These ratios compare algorithms; they are not processing time divided by recording length.
+
+An earlier G19 fresh-file run, including decoding and observation preparation, took **95.901 seconds for 234.011 seconds of audio**. This is a single-file measurement, not a G21 unseen-recording or Windows latency guarantee.
+
+Recorded execution evidence includes 108 exact native re-scores, 552 semantically equal repeated maps, 62 full-search initial-unit/budget checks and 46 exact held-condition comparisons. Native geometry evidence covers 96 projects, 60,448 worklet clicks and 64 inverse-quality comparisons. These counts describe repeated execution and geometry rather than additional songs or listening evaluations.
+
+Final reference review, independent evaluation on eight reserved materials, G21 Windows listening and application integration are outstanding. The independent set has not been opened or evaluated. Broader variable/meter generalization is unestablished.
+
+## Broad observation-to-map evaluation
+
+The completed broad comparison targets the **decoder's conversion of observations into valid tempo maps** across musical styles. Frozen G21 FULL, original L2 and the application's fixed estimator were evaluated on the qualified five-dataset corpus. Beat-detector training overlap is recorded as provenance rather than used to exclude this decoder comparison; this does not establish end-to-end independence of the neural detector.
+
+### Sources and current collection state
+
+| Source | Available representation | Current state and reference limits |
+| --- | --- | --- |
+| GTZAN | Published features | 465 unique qualified groups already used during decoder development; complete G21 evaluation outstanding |
+| [BRID](https://zenodo.org/records/14051323) | Original short percussion audio | 367 inventoried recordings; 93 ensembles with beat/bar-position references and 274 auxiliary solos |
+| [Ballroom](https://github.com/CPJKU/BallroomAnnotations) | Published original features | 685 inventoried excerpts/reference pairs; 13 of 698 catalog entries absent from the selected release |
+| [SMC](https://zenodo.org/records/13922116) | Published original features | 217 inventoried excerpts/reference pairs; beat labels without downbeats |
+| [Hainsworth](https://zenodo.org/records/13922116) | Published original features | 222 inventoried excerpts/reference pairs, with beat/bar-position labels |
+| [Raveform](https://mir-aidj.github.io/raveform/) | Original platform audio and curated annotations | 1,387 acquired/reference-paired; 36 source failures retained; provider-event metrics qualified, independent alignment unverified |
+
+BRID/Ballroom provide 1,052 original inputs and 778 source/reference pairs in the completed first batch. Published augmentations, replica families and alternate audio encodings do not count as independent recordings. One Ballroom reference extends 120ms beyond the feature extent; the discrepancy remains recorded without shifting or trimming its annotation.
+
+Together the completed acquisition batches contain **2,878 input rows and 2,604 source/provider-reference pairs**, including 274 unannotated auxiliaries. They comprise 1,754 audio sources and 1,124 original feature inputs, excluding existing GTZAN. Every original source passed identity and structural checks, including full finite decoding and a separate strict codec pass for audio. The final comparison retains 2,580 strict-extent inputs and 24 limited-overlap inputs: one Ballroom reference and 23 Raveform references extend beyond the actual input extent. No labels were shifted or corrected. The 13 Ballroom feature absences each correspond to one side of a reported replica pair, with one acquired member per pair.
+
+Raveform's curated metadata covers about 160.69 hours. 280 rows have multiple distinct provider BPM values; these labels do not independently certify intentional tempo changes or native ideal maps. The provider CSV's downbeat field contains bar positions rather than a binary downbeat flag. Actual audio availability remains part of the inventory, including all 36 failed-source cases. Of the acquired sources, 278 have multiple distinct provider BPM values; that count is not a certified tempo-change cohort.
+
+ASAP's piano-performance/rubato focus is outside this evaluation scope. Harmonix is deferred. Metric Modulations provides annotated recording identities, but a compatible independent audio route has not been established. No result is inferred from these collection decisions.
+
+### Reference and comparison protocol
+
+The source selection and comparison protocol were frozen before new predictions:
+
+1. Source version, original timing, reference capabilities and waveform/feature extent.
+2. Recording/composition families, exact duplicates, prior decoder exposure and frozen selection.
+3. Shared observation provenance and separate raw-audio versus feature-only conditions.
+4. Distinct complete-recording/excerpt, fixed/tempo/meter and real/synthetic cohorts.
+5. Map coverage, localized changes, false declarations, failures, runtime and resource metrics supported by each reference.
+
+The exhaustive capability matrix contains all 2,927 provider rows and seven explicit metric decisions per row. Provider pulse agreement is available on 2,604 inputs, bar-event agreement on 2,387, and tempo-grid agreement on 1,343 internally consistent Raveform inputs. Of the latter, 269 have multiple distinct provider BPM values. These are provider-label capabilities, without native ideal-map, written-meter or independently certified intentional-change truth. Independent audio/reference listening alignment and composition independence remain unverified.
+
+The comparison preserves the existing initial-unit-assisted condition: source candidates precede hint encoding, the reference-derived pulse proxy only selects a discrete unit, and its numerical value never enters fitting. Unit-selection sensitivity uses 97/100/103% proxies; identical model inputs are explicitly reused without new timing claims. Shared final0 observations, feature-only inputs without PCM, failed cases and metric-specific denominators remain distinct. Event matching reports 10/20/30/70ms tolerances, with the primary view fixed at 30ms before results.
+
+### Completed broad comparison
+
+All 2,604 inputs completed 7,812 primary method cases and 23,436 cases across the three initial-unit conditions. These comprise 7,853 fresh method invocations and 15,583 explicitly equivalent-input reuses. G21 and L2 each produced 2,604 geometrically valid maps; the fixed estimator produced 2,601 maps and three unsupported-source-octave results. The latter remain zero in applicable metric denominators, giving nine failure-table rows across the conditions. There were no controller or infrastructure gaps.
+
+The primary table uses record-macro F1 at the predeclared 30ms one-to-one event tolerance. Pulse and literal-quarter agreement use 2,580 strict inputs; bar agreement uses the 2,363 with bar labels. Scores are not complete-song success rates or written-meter accuracy.
+
+| Method | Provider pulse F1 | Literal-quarter F1 | Provider bar F1 |
+| --- | ---: | ---: | ---: |
+| G21 FULL | .834787 | .835214 | .801072 |
+| Original L2 | .832872 | .833442 | .799617 |
+| Fixed linear | .789402 | .789402 | .761483 |
+
+G21's mean advantage over L2 is 0.192 percentage points for pulses and 0.145 for bars. Paired pulse wins/ties/losses are 117/2,383/80; bars are 79/2,233/51. BRID bar F1 regresses by 0.177 points. In the long-audio Raveform strict subset, G21 gains only 0.019 points for pulses and 0.010 for bars. At 70ms, Raveform pulse F1 is slightly higher for L2. Both variable methods exceed the fixed estimator's overall event scores, while G21 does not consistently improve every input, metric or aggregation. The 24 limited-overlap inputs remain a separate reported cohort.
+
+On the 1,321 consistent Raveform tempo grids inside the strict pulse cohort, 1,059 have one provider BPM and 262 have multiple values. More than 98% of scored duration is within 1% of the provider BPM for every method. In the multiple-value stratum, change-location macro F1 at 1s is only .001165 for G21, .001255 for L2 and zero for fixed. The 262 references contain 32,423 adjacent changes, with a median step of 0.02 BPM; all individual relative steps are below 1%. Small adjacent steps do not bound cumulative excursion. These values describe provider-label granularity and agreement, without certifying intended musical changes. BPM proximity is not evidence of successful boundary recovery.
+
+Paired primary G21/L2 API elapsed cost has median 1.652x, p95 2.071x and maximum 4.116x; 180 of 2,604 inputs exceed 2x. CPU ratios are recorded separately. Shared preparation, G21 enrichment/guard cost, fixed candidate selection, fresh workers and equivalent-input reuse have separate receipts. Component sums under concurrent execution are not three independently measured cold-file latencies. Process RSS is not a measured concurrent whole-job peak.
+
+The final evidence audit passed all frozen-code, reference, original-source, case-coverage, geometry, failure and event-arithmetic checks. Saved-report reproduction matched numeric results except report creation time and matched all six case/qualification/runtime tables byte for byte. Scientific interpretation and raw regression examples are recorded separately from the unchanged generated report. Local evidence is under `data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/delivery/`, starting with `final-report.ko.md`, `scientific-review.json` and `final-artifact-sha256.json`.
+
+### Completed formal reference-grid comparison
+
+The separate comparison completed on all 44 current formal catalog entries after qualification of every selected accepted reference, full original audio and supported range. Its 396 condition-method results comprise 132 fresh calls and 264 equivalent-input reuses, with no execution or native-format failures. The corpus contains 33 complete recordings, ten original excerpts and one approved synthetic recording.
+
+| Method | Accepted quarter F1 | Accepted rendered-click F1 | Accepted bar F1 |
+| --- | ---: | ---: | ---: |
+| G21 FULL | .886574 | .876016 | .806210 |
+| Original L2 | .882903 | .869224 | .792134 |
+| Fixed linear | .852085 | .847971 | .804984 |
+
+These are 30ms record-macro agreement scores on the accepted saved arrays. G21/L2 quarter wins/ties/losses are 3/41/0; bars are 2/40/2. G21's mean gains of 0.367 quarter and 1.408 bar percentage points include Deadman and Roundabout bar regressions. Its overall bar mean is nearly tied with fixed. The ten original excerpts have equal quarter means across methods, while fixed has the higher bar mean. Single-BPM references include changing-meter material and must not all be called fully constant maps.
+
+The ten multiple-BPM references give G21/L2/fixed quarter F1 .715186/.699034/.593185 and bar F1 .491740/.488596/.448711. Their 1s accepted change-location macro F1 is .341667/.269444/0. Across 37 accepted changes, G21 predicts 12 events with nine matches; L2 predicts 11 with seven matches. Event counts and per-input macro F1 are different summaries. Same-value phase declarations remain in the separate accepted meter-declaration comparison; its 11 positive-reference rows average .060606 for both variable methods at 1s.
+
+The 10ms quarter ranking is fixed > L2 > G21. Nocturne has zero quarter F1 at 30ms but about .99934 at 70ms, with a saved median residual near 30.214ms. The reference was neither shifted nor excluded. G21/L2 API elapsed cost has median 1.742x, p95 2.066x and maximum 2.638x; three of 44 inputs exceed 2x. Source preparation, CPU timing, cumulative batch/process RSS and reuse remain distinct from cold-file latency and concurrent whole-job memory.
+
+One prediction-origin reference is a separate stratum; its historical audio digest was unrecorded, so current bytes are bound without claiming a historical identity certificate. Explicit accepted quarter, rendered-click and bar arrays retain their coordinate, endpoint and support semantics without reconstructing a native reference map. These are established development/review materials, not an independent generalization set. Accepted-grid scores do not replace the earlier C/P/V/W metrics.
+
+Actual report reproduction, all-case evidence audit and scientific interpretation passed. The original generated eight files are preserved. Local evidence is under `data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/`, including `final-report.ko.md`, `combined-report.ko.md`, `scientific-review.json`, `resources-and-diagnostics.json` and `final-artifact-sha256.json`. Both requested comparisons and their reports are complete; independent reserved-eight evaluation and application integration remain separate outstanding work.
+
+## Source-cost and map-selection repair study
+
+Eighteen source-scoring/selection policies were implemented and evaluated on the
+44 formal inputs; twelve were also compared across all 2,604 broad inputs. The
+study reused frozen observations and upstream maps, with eight actual fresh G21
+graph calls for composition parity. No neural retraining or new acquisition was
+needed. These are adaptive development comparisons, not independent validation.
+
+The legacy interval criterion changes when an identical clock is integrated over
+different partitions. A controlled constant-clock calculation changes its score
+by +7.141521 on Meet Your Maker and +3.251740 on BFG Division; additive pointwise
+costs differ only by numerical roundoff. Replacing only the beat term reverses
+the corresponding two-map guard decisions. This diagnoses a ranking contributor,
+without establishing that single-channel substitution as a validated decoder.
+G21 already includes an expected-bar tick penalty despite stale contrary metadata.
+
+Two conservative prototypes preserve the physical quarter clock and every BPM
+change. A retains the selected initial clock and compares retaining trailing
+meter changes with truncating their suffix under its source criterion. B also enumerates legal global initial bar rotations, using
+literal bar observations to select origin and role-aware evidence to select the
+suffix, with source-derived boundary and phase code lengths.
+
+| Method | Formal bar F1, n=44 | Strict broad bar F1, n=2,363 | Formal / broad bar losses against G21 |
+| --- | ---: | ---: | ---: |
+| G21 | .806210 | .801072 | — |
+| A: tempo-preserving suffix selection | .815747 | .808510 | 1 / 50 |
+| B: literal-phase and role-suffix selection | .817484 | .804556 | 1 / 66 |
+
+These are 30ms macro F1 values. Quarter-grid scores remain unchanged at all four
+tolerances. A's strict broad bar wins/ties/losses are 165/2,148/50; its gains
+primarily come from Raveform, while other provider bar means regress slightly.
+B repairs several severe phase-related losses from suffix removal but introduces
+other phase errors. Both regress on the formal Jinjer reference. At 70ms, formal
+bar F1 is .823884 for G21, .825080 for A and .836522 for B.
+
+Full-pool score replacements and broader suffix removal were also executed and
+retain their negative results. The new refiners do not reconstruct missing tempo
+paths: formal changing-ten quarter F1 .715186 and 1s tempo-change F1 .341667 remain
+unchanged. Neither prototype replaces L2, G21 or the application analyzer.
+
+Local implementation and evidence are under
+`data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/`, including
+`prefix_api.py`, `hierarchical_predictor.py`, `report.ko.md`,
+`all-variants-comparison.csv`, `results-summary.json` and `REPRODUCE.md`.
+
+The [source-review snapshot](../reference/decoder_review/20261022/README.md)
+includes the selected algorithms, evaluator logic and aggregate results. Possible
+changes to objectives, search, bar roles and initialization remain unselected
+proposals in [the review questions](RESEARCH_REVIEW.md#questions-and-possible-directions-for-review),
+not conclusions established by these partial refinements.
 
 ## Full L2 regression diagnosis — 2026-10-14
 
-`D = data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1`.
-This owner-authorized diagnosis completed 240 source-only cells, the full and
-pinned/held known30 comparisons at 30/30 pairs each, the seven-material 56-cell
-initial/meter factorial and 20 common-parent cost/decoder cells. It reproduced
-all four full L2 regressions with the frozen v0.2/native evaluator and original
-NN/PCM/prepared inputs. No new NN forward, reference change or app integration
-was performed.
+The preceding trial006 candidate improved a held-initial/meter objective (.165413 → .25) but regressed under full search. Its original full comparison ended at 29/30 pairs. A separate diagnosis completed 240 cells and both full and held 30/30 comparisons, reproducing four regressions with unchanged observations and references.
 
-| Material | Full baseline C → trial006 C | Supported contribution |
+| Recording | Full L2 C → trial006 C | Supported contribution |
 | --- | --- | --- |
-| Daybreak — Equilibrium | 1 → .776692 | Initial competition interacts with later meter support; new bar cost reverses the path ranking |
-| Neck Deep — Can't Kick Up the Roots | 1 → .028302 | H4 admits the additional tempo-unit proposal; H4-only loses even under legacy cost/beam while H7-only preserves 1 |
-| Maxime — Breathe Fire | .754027 → .716952 | New cost selects an earlier 2/4 declaration under either decoder; the baseline is already imperfect |
-| In Flames — Meet Your Maker | .966295 → .698125 | Retained-root starvation and bootstrap retention; source-only scheduling/reserve interventions recover .989256/1 and repeat |
+| Daybreak — Equilibrium | 1 → .776692 | Initial competition interacts with meter support; changed bar cost reverses path ranking |
+| Neck Deep — Can't Kick Up the Roots | 1 → .028302 | Additional tempo-unit admission loses quality even with the earlier cost/beam |
+| Maxime — Breathe Fire | .754027 → .716952 | Changed cost favors an earlier 2/4 declaration; L2 is already imperfect |
+| In Flames — Meet Your Maker | .966295 → .698125 | Initial-root scheduling and bootstrap retention suppress a better path |
 
-Original 119 valid held/full maps reproduce byte-for-byte, semantically, in
-source scores and output metrics. The original BFMV corrected-bridge baseline
-remains a `worker_failed/validation_phase_deadline` failure/0 stub. The separate
-fresh baseline completes in 36.561s with C=.2536200088; candidate C=.3703378675.
-The older measured full L2 maps also match 30/30. This does not retroactively
-complete v2's 29/30 validation or reset its clock.
+Finite-pool ranking reversals and controlled root interventions explain their stated comparison scope; they do not establish a universally improved decoder. G21 is a separate subsequent candidate. Earlier failures, source versions and denominators remain retained.
 
-With the missing comparator closed, full variable4 mean C is .474392→.506003,
-but V/W remain 0 on both methods. Full fixed complete16 mean C remains
-.990532→.899083 with bad tempo declarations 2→3. The four per-material losses
-still fail regression; comparison completeness is not algorithm admission.
-Pinned/held V/W .1654126767→.25 and boundary success 2/17→3/17 also reproduce.
+## Reproduction
 
-The finite common pool has 2,563 legal source-produced maps. Replacing only the
-bar-cost term reverses Daybreak/Breathe Fire rankings in that pool; this is not
-an executed hybrid predictor's full-cohort result. The scalar-phase restriction
-leaves one complete initial head and does not independently prove a phase cause.
-Root-first scheduling at the same 12 expansions does not fix the other cases,
-and the one-slot whole-song constant-root reserve was tested only on In Flames.
-Expected-tick omission versus aggregation/normalization remains partly
-unresolved. Circle-centered development gains, full-scope regressions and new
-music generalization are separate questions; overfitting is not established as
-the direct cause of all four losses. Independent holdout, Windows listening and
-owner-approved numerics remain unverified.
+The maintained baseline is [`algorithms/variable/baseline.py`](../algorithms/variable/baseline.py), with implementation/configuration in [`experiments/beat_event_stability_v1/`](../experiments/beat_event_stability_v1/README.md). The [code map](CODE_MAP.md) lists source, geometry and scoring dependencies.
 
-All 3,645 protected files and source/data Git indexes were preserved at diagnosis
-completion. All 112 source traces were complete; cooperative Python audits found
-no forbidden reference reads or live experiment imports. Eight native project
-geometry roundtrips preserve C/P; Windows runtime playback is not verified.
-The original campaign, measured baseline, accepted references and source clocks
-remain untouched. Diagnostic copies inherit some held-core descriptive metadata;
-actual I/M branches, unit policy, proposals and maps were checked separately.
+Local G21 artifacts use:
 
-| Evidence relative to `D` | Scope |
-| --- | --- |
-| `report.ko.md`, `status.json`, `execution-summary.json` | Owner report, completed/failed inventory, actual executions and limits |
-| `protocol.json`, `inputs.json`, `provenance.json`, `input-provenance-supplement.json` | Frozen selection, source/reference boundary, geometry, unit policy and hashes |
-| `comparison.tsv`, `factorial.tsv`, `branch-activation.tsv` | Known30 full/held and actual initial/meter branches |
-| `score-comparison.tsv`, `component-ablation.tsv`, `search-comparison.tsv` | Same-map cost ranks, common H4+H7 controls and finite search interventions |
-| `cases/`, `maps/`, `traces/`, `source-snapshots/`, `diffs/` | Case evidence, actual predictions, complete source traces and isolated code |
-| `reproduction-parity.json`, `preservation-after.json`, `common-pool-audit.json` | 119 original map matches, preserved originals and legal/reference-separated common pools |
-| `reproduce.md`, `sample-agent-handoff.md`, `next-research.md` | Actual commands, fresh output preparation, sampling conditions and proposed next campaign |
-| `full-l2-diagnosis-20261014.zip`, `package-manifest.json`, `package-receipt.json` | Compact local delivery, omissions and SHA-256 |
-
-The compact ZIP is 6,140,642 bytes (5.86 MiB), SHA-256
-`6977ffaa50e2dad07cf11e46082a1ce7dc3599aa2567bfefbb4fff3b20086eda`.
-It excludes original audio, large observations and the complete 2.3 GiB traces;
-their required/retained paths and hashes remain in manifests. The report and ZIP
-are local, not committed/uploaded to `joljak-data`. Only the private summary and
-evidence paths were published in notes commit
-`408c226f2c2dc481ccbf20a55e774c20658b3db8`; this is not a remote artifact backup.
-The package receipt records 72.023 minutes from goal start to packaging completion.
-
-The recommended next research is a new finite full-integration campaign
-separating H4 unit admission, bar cost and initial-root coverage. Compare original
-L2 and trial006 under both full and pinned/held conditions, retain fixed quality
-and prespecified denominators, and keep new recording families sealed until
-candidate freeze. `D/next-research.md` proposes at most six one-factor/understood
-combination candidates. None was started by completing or documenting this
-diagnosis; the original old-beat-ceiling proposal remains unrun historical work.
-
-## Closed v2 campaign — 2026-10-13
-
-The v2 campaign is closed. `trial006` is a research candidate for **the same
-source-fitted initial map with held meter**. Its `(V,W)` improves from
-`(0.16541267669858642, 0.16541267669858642)` to `(0.25, 0.25)`. Successful boundaries
-increase from 2/17 to 3/17. The candidate and H7 pass known fixed/excerpt regression
-under that contract. Actual full L2 integration regresses four materials and is
-incomplete on the last baseline comparator in that ended campaign. The
-owner-selected L2 entry and the
-fixed DAW analyzer remain unchanged.
-
-This is a documentation handoff, not permission to resume a finished campaign,
-run its unexecuted proposal, replace the app or approve numerical thresholds.
-
-## Evidence authorities and history
-
-[`project-state.json`](../project-state.json) is the compact current pointer.
-Its `latest_diagnosis` records the completed follow-up; `current_research` keeps
-the original closed v2 campaign record, including its 29/30 validation scope.
-The private topic document `_local/docs/VARIABLE_CLOCK_EXPLORATION.md` contains
-recording-specific diagnosis and the detailed durable research history. Raw
-outputs, references, clocks and execution ledgers remain in local private data.
-A public source clone alone does not contain the recordings or observation caches.
-
-The local evidence roots, relative to the checkout, are:
-
-| Stage | Root | Disposition |
-| --- | --- | --- |
-| PC preflight | `data/research/runs/autoresearch_step_v1/20261013-preparation-v1` | Source/initial/evaluator preparation and three separate comparators |
-| First campaign | `data/research/runs/autoresearch_run_v1/20261013-session-v1` | No primary adopted; 11 actual trials plus one lock refusal counted as 12 attempts |
-| v1 bridge | `data/research/runs/autoresearch_run_v1/20261013-bridge-v1` | Original candidate adapter and protocol preserved |
-| Second campaign (`C` below) | `data/research/runs/autoresearch_run_v2/20261013-campaign-v2` | 12 submissions, scoped primary, two auxiliary roles, all failures retained |
-| Supplied v2 package | `data/research/preflight/autoresearch-next-20261013-v02/package/BPMTracker_AutoResearch_Next_2026-10-13` | `program.md`, `runtime/README.md`, immutable harness/workers and package manifest |
-
-The packages did not contain original music or observations. The PC reused its
-existing immutable NN/PCM arrays; it did not run a new network forward pass,
-retrain a model, extract replacement features or requalify references.
-Source-code provenance is recorded against checkout HEAD
-`55da3fc07fb8e1e42714c589dc208d6ad956f4f7`. Documentation written later is not part
-of that algorithm snapshot.
-
-## Comparison and output contract
-
-Keep these three comparators distinct:
-
-1. `HISTORICAL_L2_UNMODIFIED`: the preserved full L2 output with its original
-   initial/meter selection policy.
-2. `PINNED_INITIAL_HELD_METER_L2`: newly run with the same initial BPM, meter,
-   phase and source duration as every candidate. This is the direct comparator.
-3. `PINNED_INITIAL_CONSTANT_MAP`: the same initial map held for the entire audio.
-
-The historical Circle 63.08% joint map quality and 0/3 boundary success are not
-the later pinned/held baseline's 99.51% map quality and 2/3 boundary success.
-Input conditions differ. Never replace the direct comparator with the older
-score or silently treat the candidate as a new unrestricted L2 standard.
-
-The initial maps come from the preserved source-fitted L2 `proxy100` outputs.
-This work fixes those maps; it does not measure a fresh, fully automatic,
-without-tap initial estimator. A proxy label is not a literal 100 BPM tap.
-Wrong initial estimates remain in the four-song/17-boundary denominator.
-
-Inference receives only `initial`, `duration_seconds` and `data`; `data` contains
-`events_path` and `prepared_source_path`. Reference clocks, transitions/counts,
-evaluation roles, song IDs and filename-based target dispatch are forbidden.
-Inference and scoring use separate processes. Preserve the full original audio
-map, legal old-beat declarations, continuous quarter coordinates and one initial
-phase. Meter is held in the main research condition. The separate full L2
-integration test does not lift this condition for candidate selection.
-
-Objective v0.2 defines acceptable quality C, preferred quality P and timely
-localized success L. V averages `C × L` over post-change regions within each song,
-then averages songs equally; W does the same with `P × L`. Compare `(V,W)`
-lexicographically. Partial coverage with L=0 is diagnostic. Missing/failed outputs
-remain failures in the frozen denominator. Different candidates' best songs
-cannot be combined into one result.
-
-The owner's R1–R6 readings remain in force: R1 alternatives are equal; R2/R3
-allow both but prefer A; R4/R5/R6 allow only A. R3 covers regular 4/4→2/4 splitting
-on the same ordinary beat, not arbitrary multiples or a phase error. A bar-late
-change and unnecessary notation changes are not successes.
-
-Numerical tolerances, fixed loss 0 and runtime 2× were frozen **development**
-conditions, with `owner_approved_numerics=false`. Preserve the output evaluator
-and protected native tolerances; changing an internal inference gate is a
-different operation from changing the output success threshold.
-
-## What the candidate implements
-
-The selected code is `C/session/trials/trial006/candidate/`, including:
-
-| File | Responsibility |
-| --- | --- |
-| `candidate_api.py` | Read the anonymous immutable packet and return one native map |
-| `candidate_common.py`, `parameters.json` | Snapshot-local configuration |
-| `candidate_core.py` | Source proposals, legal phase transport and bounded path selection |
-| `candidate_emissions.py` | Pointwise weighted observation log costs and prefix sums |
-| `candidate_scoring.py` | Existing source explanation and symmetric bar/PCM gate components |
-| `candidate_base_scoring.py` | Revalidated H7 mismatch/PCM gate |
-
-The path state retains BPM, meter, anchor time/quarter, bar quarter, phase, start
-and declaration count. Only identical future states are merged by completed
-prefix cost. Constant-tail completion is a queue-order heuristic, rather than a
-requirement that every intermediate short episode improve the final map.
-Nonpositive future emissions and transition costs give a prefix upper bound.
-The chosen 12-expansion/128-queue/24-declaration budgets still make traversal
-approximate. The implementation is not exhaustive Viterbi or a proven optimum.
-
-Pulse explanations are latent observation roles rather than output tempo events.
-The channels/roles form a weighted composite likelihood; calibrated statistical
-independence is not established. This first retained emission model does not
-penalize every empty expected tick. Its limitations became visible when a larger
-source vocabulary produced an unsupported dense tempo path. Preserve this
-counterexample before extending the source bank.
-
-No active algorithm entry or DAW worker imports this snapshot automatically.
-Do not copy it into a frozen old implementation to bypass its guard.
-
-## Executed experiments and causal findings
-
-| v2 trial | Change | Result | V=W |
-| --- | --- | --- | ---: |
-| 001 | Original H7 fixed recovery | Fixed auxiliary preserved | 0.165413 |
-| 002 | Original H4 source unit interpretations | Coverage auxiliary preserved | 0.165413 |
-| 003 | Original H3 internal time-kernel/speed variant | Unsafe coverage; rejected | 0.165413 |
-| 004 | H4+H7 combination | No new primary/archive gain | 0.165413 |
-| 005 | Pointwise costs plus phase-state decoder, 36 expansions | Runtime overflow; five outputs failed | 0.250000* |
-| 006 | Same decoder bounded to 12 expansions | Primary retained | 0.250000 |
-| 007 | Source-family diversity at final run retention | Fixed bad declarations increased | 0.165413 |
-| 008 | Source retention plus selected decoder | Main tie; coverage side effects | 0.250000 |
-| 009 | New emissions inside original beam | Combination improvement absent | 0.165413 |
-| 010 | New phase decoder with legacy interval cost | Combination improvement absent | 0.165413 |
-| 011 | Symmetric expected-bar costs with new source bank | No additional main gain | 0.250000 |
-| 012 | Same costs with original source bank | No additional main gain | 0.250000 |
-
-`*` Trial005 is FAILED and ineligible despite its partial variable score. All
-ten denominator slots, missing fixed outputs and runtime overflow were retained.
-
-The original search had already constructed a fully successful continuous path
-for the song improved by trial006. The winner cost/path selection preferred a
-different map. Component ablations 004/006/009/010 support the combined cost and
-path change in this known cohort; they do not prove necessity on unseen music.
-
-Baseline stage diagnosis across 17 boundaries: raw-clock retention 6, unit
-filter 3, ranking 1, path selection 1, invalid visited prefix 4, successful winner
-2. Final primary: raw-clock retention 6, unit filter 1, ranking 1, gate 1, invalid
-visited prefix 5, successful winner 3. A prefix failure is conditional on visited
-paths, not a proof of global impossibility under pinned initialization.
-
-Neutral raw-run replay recovered qualified clocks before final512 retention.
-The unchanged generator's live-run48 limit remains bounded. Source retention
-restored four of the six affected regions but did not produce further timely
-success. Probe04 has a partially truncated trace; absence after truncation is
-unknown. Probe05 completely reproduced the final candidate's ten meaning maps.
-
-H7 and H4 are useful parents with different roles, not two adopted primary
-candidates. H3's three alternating baseline/candidate pairs are a non-admitting
-timing diagnostic: median ratio 0.760312, with primary coverage regression.
-The primary's alternating-pair median ratio is 0.967261; it passes the 2× limit
-but fails separate speed-archive admission. No significance claim was made.
-
-## Verification scopes and failures
-
-| Verification | Observed result |
-| --- | --- |
-| Pinned/held baseline, 10 inputs × 3 repeats | Identical status/initial/events/full duration and objective; median 37.901077 s |
-| Primary development | V/W=0.25; frozen fixed pilot and 2× runtime requirements pass |
-| Known held-map regression, primary and H7 | All fixed16/excerpt10 retain per-song C/P and bad-change requirements |
-| Known complete group | C .987435→.990532; P .924935→.928032; bad changes 3→2 |
-| Known excerpt group | C=P=1; bad changes 0, unchanged |
-| First full L2 bridge | Literal100 unit-policy mistake; only6/26 historical baselines match; preserved invalid attempt |
-| Corrected full L2 bridge | Existing source unit recovered from prepared candidates;26/26 historical fixed/excerpt baseline maps match |
-| Candidate with full initial/meter competition | Four fixed/excerpt materials regress; complete group C .990532→.899083 and bad changes2→3 |
-| Final full L2 comparator | 29/30 pairs complete; last baseline hits20-minute cap and remains failure/0 in denominator |
-| Fresh-run preparation baseline | One neutral10-input reproduction; three standalone matched-preparation timing repeats incomplete |
-| Independent holdout / Windows listening / approved numerics | Not verified / not performed / not approved |
-
-Full L2 means actual original initial-head and meter-proposal competition in a
-research copy, not a held-map output wrapper. The corrected bridge selects the
-existing discrete source unit by matching the already frozen initial candidate;
-it does not read a reference or use that BPM as a fine fitting target. Preserve
-both bridge attempts and their separate outputs. The missing baseline makes a
-complete full-L2 variable comparison ineligible; its aggregate is not a gain claim.
-
-The raw-clock-generation variants were discarded. Their fresh preparation costs
-are included on the candidate side, but the three-repeat matched fresh baseline
-timing control was not completed. The retained primary and parents use the
-original frozen prepared bank, so this limitation does not certify or invalidate
-their separately matched timing scope.
-
-## Budget and preservation
-
-The campaign used 12/24 submissions, 5/6 probes and two timing candidates
-(rejected H3 diagnostic plus the primary), each with three alternating pairs.
-Checkpoint files follow trials6 and12. Block2 produced new causal evidence but no
-main/auxiliary gain; closure was a finite evidence-based decision, not the rule
-for two consecutive blocks without any progress/evidence.
-
-Whole clock elapsed147.486 minutes, without reset. Formal setup closure was
-211 seconds late although setup artifacts sealed within15 minutes. Validation
-inference stopped automatically at20 minutes; formal phase closure was30 seconds
-late. These recorded stage-limit overruns are disclosed, not converted to passes.
-The first full-L2 bridge mistake consumed validation time before correction.
-
-Preserve all frozen runs, references, audio, clocks, observations and source
-snapshots. The campaign performed no source commit/push, publication or app
-replacement. Later documentation maintenance does not rewrite that evidence or
-its 3,113-file artifact manifest. The independent backup checkpoint predates this
-campaign; do not assume these later artifacts have already been published/backed up.
-
-## Proposed next single experiment
-
-This was the v2 closeout proposal and remains unexecuted. The current recommended
-direction follows the separate
-[2026-10-14 diagnosis](#full-l2-regression-diagnosis--2026-10-14); this gate-only
-proposal does not explain the four full L2 regression mechanisms by itself.
-
-A legal candidate with valid local before/after output readings reaches the
-mismatch gate. Its old beat score .5897 exceeds the old .55 ceiling while the
-new score .8217 has gain+.2320; the new bar score .5304 fails the separate .65
-floor. This is a witnessed local rejection. Later PCM veto and winner selection
-are unknown.
-
-The proposal removes only `ob <= CONFIG['gate_old_ceiling']` from the pulse-gate
-conjunction in the copied `candidate_base_scoring.py`. Keep the accent gate's
-old-bar ceiling, new floors, gains, masses, H7 PCM veto, budgets and evaluator.
-Raising the shared parameter would also change the bar branch and is not this
-single ablation. Target evidence is evaluator-side only; no song identity or
-accepted time/rate is put in inference.
-
-A new authorized campaign would freeze one generic candidate, run one neutral
-probe and the entire development cohort, and check known fixed regression if
-eligible. Do not substitute a per-song best result, finish the old campaign by
-resetting its clock, or promote the old scoped candidate into the app.
-
-This is a prospective minimum experiment, not a frozen or approved new campaign.
-Its new clock, budget, timing controls, evaluator/input seals and baseline wiring
-have not been created. Before `init`, distinguish the original pinned/held L2
-control (.1654126767) from the retained trial006 incumbent (.25), and prescribe
-comparison with both. Calling trial006 an unmodified L2 baseline would be wrong.
-Do not edit the old protocol or inject a parent into its closed archive.
-
-## Re-entry and artifacts
-
-Start by reading `C/campaign-status.json`, `report.ko.md`, `resume.md`,
-`verification-limitations.json` and `next-one-experiment.json`. Then follow:
-
-- Protocol, seal and validation plan: `session/protocol.json`, `session/seal.json`,
-  `validation-plan.json`, `validation-inputs.json`.
-- Attempts/code/cards: `session/attempts.json`, `session/results.tsv`,
-  `session/trials/`, `cards/`, `lineage.json`, `source-code-lineage.json`.
-- Boundary diagnosis: `diagnosis.reviewed.json`, `diagnosis.primary.reviewed.json`,
-  both boundary TSVs, `boundary-comparison.tsv`, stage-evidence JSON and traces.
-- Timing: `session/controls/summary.json`, `supplemental-benchmarks/trial003/`,
-  `session/benchmarks/trial006/`, `cli-logs/commands.jsonl`.
-- Regression and mistakes: `validation/known/`, `validation/l2/`,
-  `validation/l2-corrected-unit/`, `search-closure-clarification.json`.
-- Checks/checkpoints: `checks/`, `checkpoints/`, `session/checkpoints/`.
-- Listening/reproduction: `listen-guide.ko.md`, `listen-projects/manifest.json`,
-  `reproduce.md`. There are56 separate native projects; playback is unverified.
-
-These commands read saved JSON without changing the campaign tree:
-
-```bash
-cd /home/yooch/code/joljak
-C=data/research/runs/autoresearch_run_v2/20261013-campaign-v2
-python3 -B tools/repository/status.py
-python3 -B -m json.tool "$C/campaign-status.json"
-python3 -B -m json.tool "$C/campaign-clock.json"
-python3 -B -m json.tool "$C/session/state.json"
+```text
+data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/
+  phases/phase-B-c250ba38c4af/
+    trials/G21/full/
+    trials/G21/held/
+    evaluations/G21-development16-v1/
+    delivery/final-G21-v2/
 ```
 
-The archived `invoke.py` creates CLI logs and appends `commands.jsonl` even for
-`status`; its `clock status` also rejects a finished clock. The older status
-examples in `C/reproduce.md` are therefore superseded by the commands above.
-The archived instructions and wrapper remain unchanged as historical evidence.
-Do not execute that wrapper, submit/finalize/validation/export scripts or
-`init/start/trial/probe` against the closed tree. Historical worker argv require
-a separately authorized reproduction, fresh output/log destinations and a new
-seal for changed source; never edit a freeze to make a replay pass.
+The delivery contains comparison/cohort tables, per-material losses, tempo/meter boundaries, localized regions, reference scope, timing, a candidate freeze and the independent evaluation specification. `report.ko.md` describes the recorded result. The separate compact archive `delivery/G21-development16-repro-v2.zip` is 92,376,713 bytes, SHA256 `2449afec4dea984dcc7faf890b67ec131475278d9260cfdeb21aa4212e642c0f`.
 
-## Fresh-session handoff audit — 2026-10-14
+Full local run artifacts are excluded from the public source clone. The selected
+review copies and aggregate tables in `reference/decoder_review/` support source
+inspection but do not supply a complete runtime environment. Reproduction also
+requires the manifested original inputs, compatible observation arrays, reference
+supports and official checkpoint. The compact archive does not include audio,
+weights or reserved evaluation material; its existence is not a complete remote backup.
 
-The audit reconciled saved records and checked declared paths, without running
-inference, evaluation, tests, playback or content-hash validation. Its local
-receipt/report are under
-`data/storage/20261014-autoresearch-handoff-audit-v1/`.
-
-| What the next session can rely on | Scope and remaining limit |
-| --- | --- |
-| Same-PC evidence | All 3,113 manifest-listed files, 10 development packets/references, 28 validation rows, 505 protected paths, the declared Python and 56 listening projects exist. Presence does not revalidate their digests or runtime. |
-| Saved results | Primary .25 versus direct L2 .1654126767; known held-map regression passes; full L2 fails four materials and lacks one baseline. No new result was produced by this audit. |
-| Published notes | The earlier notes publication reached `5ee66233824fe9259d63f613836ca4ea358452b7`; subsequent audit publication has its own receipt. Source/data commits remain owner-operated. |
-| Fresh-machine recovery | No files under the preparation/v1/v2 run roots are tracked in data Git, and the earlier checkpoint manifest contains none of these runs or the Next package. A source/notes/data clone plus that checkpoint cannot restore this research. No later remote backup was verified. |
-| Further research | The campaign is finished; the single gate proposal is unrun. A new authorized protocol and preserved inputs are prerequisites, rather than a restart of the old clock. |
-
-For a fresh machine, the concrete missing stores are the listed preparation,
-v1 session/bridge, v2 campaign and Next-package roots, plus the original
-recordings and NN/PCM/prepared-source dependencies named in
-`session/protocol.json` and `validation-inputs.json`. Original music was excluded
-from the previous checkpoint. No new backup/upload or acquisition was performed.
-On this PC those paths are present; do not confuse that with remote durability.
-
-Three interpretation cautions prevent a fresh reader from overstating results:
-
-- **Lineage:** trial006's recorded checkout parent is `seed`; H4/trial002 and
-  H7/trial001 are code donors, not a different recorded parent. Saved donor code
-  digests match v1 H4/trial004, H7/trial007 and H3/trial003. This audit compared
-  recorded digests; it did not recompute source hashes.
-- **Frozen code erratum:** trial006 `candidate_core.py` retains the copied header
-  claiming unchanged scores/search. Its body implements the changed decoder and
-  emissions described above. `parameters.json` selects 12 expansions, despite
-  a fallback of 36 in the code. Preserve the frozen bytes and use the body,
-  parameters, experiment card and lineage to interpret them.
-- **Diagnosis and timing limits:** stage counters use the canonical held-meter
-  equal-bar witness and visited paths; they are not exhaustive proofs over all
-  acceptable R1–R3 readings. Full-L2 pair-time totals cover 29 completed records,
-  not all 30 denominator inputs or a complete matched speed comparison.
-
-The supplied `research_review.ko.md` records seven papers/official implementations
-that motivated v2, alongside `program.md`, `SESSION_START.txt` and `GOAL.txt`.
-They are design context, not evidence of an exact implementation or independent
-generalization. Keep the package, campaign findings and proposed next protocol
-distinct. Older private Step0/fresh-start documents retain dated decisions and
-now point to this current authority.
+Collection records reside under `data/research/runs/observation_corpus_expansion_v1/`, and dataset manifests under `data/samples/datasets/`. [Local data documentation](../tools/LOCAL_DATA.md) describes the separation between sources, evaluation references, generated results and credentials. Frozen results retain their original inputs, source snapshots, failures and precision.

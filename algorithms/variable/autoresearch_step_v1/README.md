@@ -33,13 +33,13 @@ they are explicitly excluded from inference and aggregate candidate results.
 This module performs no optimizer search, neural retraining, sample acquisition,
 reference editing, source Git publication or application integration.
 
-The later v1/v2 campaigns are finished and use separate local candidate snapshots.
-This preparation module is not the v2 optimizer. Read the current
-[handoff](../../../docs/AUTORESEARCH.md) before using the historical commands;
-its JSON-only status examples preserve closed logs, and its audit documents
-same-PC dependencies and the incomplete fresh-machine backup.
+Later evaluated candidates use separate local source snapshots. This module
+prepares the held-initial condition rather than the full-search G21 candidate.
+The [research documentation](../../../docs/AUTORESEARCH.md) describes their
+comparison scopes and original-input requirements. A compact result archive
+does not contain a complete audio/model environment.
 
 The separate 2026-10-14 full L2 regression diagnosis is also complete: full/held
 known30 comparisons and 240 diagnostic cells reproduced and separated the four
-regressions. See the [current diagnosis handoff](../../../docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14).
+regressions. See the [current regression diagnosis](../../../docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14).
 It did not reopen v2 or replace this preparation module, the L2 entry or the app.

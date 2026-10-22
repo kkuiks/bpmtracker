@@ -9,11 +9,11 @@
 - 오디오 분석 결과 청취, 템포·박자 맵 편집과 곡·스템 정렬
 - `.joljak` 프로젝트 저장, WAV 믹스·스템·클릭과 템포 맵 JSON/MIDI 출력
 
-변속·변박 자동 추정을 개발하고 있습니다. **현재 앱의 Analyze Audio는 곡 또는 선택 구간에 고정 BPM·박자표·다운비트 오프셋을 하나씩 반환합니다.** 프로젝트 맵에는 여러 템포·박자 변경을 직접 입력할 수 있으며, 맵 편집은 원음의 속도나 길이를 바꾸지 않습니다.
+**Analyze Audio는 곡 또는 선택 구간에 고정 BPM·박자표·다운비트 오프셋을 하나씩 반환합니다.** 프로젝트 맵에는 여러 템포·박자 변경을 직접 입력할 수 있으며, 맵 편집은 원음의 속도나 길이를 바꾸지 않습니다. 변속·변박 자동 추정은 별도 연구 코드에서 개발하고 있습니다.
 
 ## Windows에서 실행하기
 
-소스 체크아웃에서는 탐색기로 **Start Joljak.cmd**를 실행합니다. 업데이트 후에는 실행 중인 앱을 완전히 종료한 뒤 다시 실행합니다. 최초 빌드와 런타임 준비는 [앱 안내](apps/daw/README.md#run-on-windows)를 따릅니다.
+소스 체크아웃에서는 탐색기로 **Start Joljak.cmd**를 실행합니다. 최초 빌드와 분석 런타임 준비는 [앱 안내](apps/daw/README.md#run-on-windows)를 따릅니다. 업데이트 후에는 실행 중인 앱을 완전히 종료한 뒤 다시 실행합니다.
 
 포터블 배포본은 폴더 전체를 유지한 채 **Joljak.exe**를 실행합니다.
 
@@ -21,15 +21,17 @@
 
 ## 개발과 문서
 
-변속 알고리즘의 개발 기준은 **L2_DENSE_PROPOSALS**입니다. 현재 진행 상태와 다음 개발 방향은 [개발 안내](docs/DEVELOPMENT.md)와 [프로젝트 상태](project-state.json)에서 관리합니다.
+앱의 고정 템포 분석기와 변속 알고리즘 연구는 별도로 관리합니다. 구현 범위와 검증 상태는 [개발 안내](docs/DEVELOPMENT.md), 알고리즘 원리·측정 결과·한계는 [연구 문서](docs/AUTORESEARCH.md)에 정리되어 있습니다.
 
 | 찾는 내용 | 문서 |
 | --- | --- |
 | 앱 사용·빌드 | [Joljak 앱 안내](apps/daw/README.md) |
 | 소스 구조와 진입점 | [코드 지도](docs/CODE_MAP.md), [알고리즘 안내](algorithms/README.md) |
-| 연구 결과·비교 실험·재현 | [AutoResearch](docs/AUTORESEARCH.md) |
+| 개발 현황 | [개발 안내](docs/DEVELOPMENT.md), [프로젝트 상태](project-state.json) |
+| 알고리즘 검토 | [현재 방법·결과·열린 질문](docs/RESEARCH_REVIEW.md) |
+| 알고리즘 성능과 재현 | [연구 문서](docs/AUTORESEARCH.md) |
 | 표본 검토·관리 | [관리 도구](tools/README.md) |
-| 데이터 보관·백업·복원 | [저장소 관리](tools/repository/README.md) |
+| 데이터 보관·복원 | [데이터 구조](tools/LOCAL_DATA.md), [저장소 관리](tools/repository/README.md) |
 
 ## 저장소 구성
 
@@ -37,9 +39,9 @@
 apps/daw/       Windows 앱
 algorithms/     알고리즘 진입점
 experiments/    추론·검색·평가 구현
-reference/      이전 연구와 완료된 작업
+reference/      검토용 소스, 이전 연구와 완료된 작업
 tools/          표본·저장소 관리 도구
 docs/           개발 안내와 연구 문서
 ```
 
-음원·평가 자료·실험 산출물은 공개 소스 배포에 포함되지 않습니다.
+음원·원시 평가 자료·개별 예측·모델 체크포인트는 공개 소스 배포에 포함되지 않습니다. 알고리즘 검토용 소스와 집계 결과는 `reference/decoder_review/`에 있습니다.

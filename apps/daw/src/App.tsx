@@ -52,7 +52,7 @@ import SelectionMove from "./SelectionMove";
 import ResizablePane from "./ResizablePane";
 import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
 import { sampleWorkspace, sampleClicks, type SampleReference } from "./samples";
-import { clockPlacement, editProjectMap, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
+import { clockPlacement, editMapAtTimes, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
 import {
   applyAnalysis,
   addAudioTracks,
@@ -338,7 +338,9 @@ export default function App() {
 
   const loadPeaks = async (assets: Asset[]) => {
     if (!api) return;
-    await api.registerAssets(assets);
+    // The backend needs the complete history-retained set, even when only the
+    // newly decoded subset needs waveform loading.
+    await api.registerAssets(projectRef.current.assets);
     for (const asset of assets)
       if (!peaks.current.has(asset.id)) {
         try {
@@ -418,7 +420,7 @@ export default function App() {
     if(selectedMap&&!valid.some(item=>item.id===selectedMap.id&&item.kind===selectedMap.kind))setMapFocus(valid[0]??null);
   }, [project.tempos, project.signatures, selectedMap,selectedMaps]);
   useEffect(() => {
-    if (api && project.assets.length) void loadPeaks(project.assets);
+    if (api) void loadPeaks(project.assets);
   }, [project.assets]);
   useEffect(() => {
     const close = () => {
@@ -512,15 +514,9 @@ export default function App() {
           }
         } else {
           if (!assets.some((asset) => projectRef.current.assets.some((current) => current.id === asset.id))) return;
-          change(
-            (p) => ({
-              ...p,
-              assets: p.assets.map(
-                (a) => assets.find((x) => x.id === a.id) ?? a,
-              ),
-            }),
-            "Restore audio cache",
-          );
+          // Restoring derived buffers is not a musical edit or an Undo entry.
+          projectRef.current = history.current.restoreAssets(assets);
+          setProject(projectRef.current);
         }
         void loadPeaks(assets);
       } else if (event.kind === "analyze") {
@@ -690,7 +686,7 @@ export default function App() {
     if (selectedMaps.length && ids === selection) {
       const tempoIds=new Set(selectedMaps.filter(item=>item.kind==="tempo").map(item=>item.id));
       const signatureIds=new Set(selectedMaps.filter(item=>item.kind==="signature").map(item=>item.id));
-      change(p=>editProjectMap(removeClips(p,selection,linked),
+      change(p=>editMapAtTimes(removeClips(p,selection,linked),
         p.tempos.filter(event=>!tempoIds.has(event.id)),
         p.signatures.filter(event=>!signatureIds.has(event.id))),"Delete selected arrangement items");
       setArrangement({clips:[],maps:[]});setMapFocus(null);setSelectedClock(null);return;
@@ -733,9 +729,10 @@ export default function App() {
     catch(e){tell(e instanceof Error?e.message:String(e));}
   };
   const updateTempo = (event: TempoEvent) => {
-    const next = putTempo(projectRef.current, event);
+    const current = projectRef.current, target = timeAtQuarter(current, Math.max(0, event.quarter));
+    const next = putTempo(current, event);
     commit(next, "Edit project tempo");
-    if (selectedMap?.id === event.id) setSelectedMap({ kind: "tempo", id: next.tempos.find((t) => Math.abs(t.quarter - Math.max(0, event.quarter)) < 1e-8)!.id });
+    if (selectedMap?.id === event.id) setSelectedMap({ kind: "tempo", id: next.tempos.find((t) => Math.abs(timeAtQuarter(next, t.quarter) - target) < 1e-8)!.id });
   };
   const updateSignature = (event: SignatureEvent) => {
     const next = putSignature(projectRef.current, event);
@@ -759,7 +756,7 @@ export default function App() {
   const removeMap = (selected: MapSelection) => {
     const event = selected.kind === "tempo" ? project.tempos.find((t) => t.id === selected.id) : project.signatures.find((s) => s.id === selected.id);
     if (!event) return;
-    change((p) => selected.kind === "tempo" ? editProjectMap(p, p.tempos.filter((t) => t.id !== selected.id)) : editProjectMap(p, undefined, p.signatures.filter((s) => s.id !== selected.id)), "Remove project map event");
+    change((p) => selected.kind === "tempo" ? editMapAtTimes(p, p.tempos.filter((t) => t.id !== selected.id)) : editMapAtTimes(p, undefined, p.signatures.filter((s) => s.id !== selected.id)), "Remove project map event");
     setSelectedMap(null);
   };
   const moveMap = (selected: MapSelection, time: number, bpm?: number) => {
@@ -788,7 +785,7 @@ export default function App() {
     const basis = positionAtQuarter(current, quarter).signature;
     const signature = { numerator: fields.numerator ?? basis.numerator, denominator: fields.denominator ?? basis.denominator };
     if (!current.signatures.length) {
-      commit(editProjectMap(current, undefined, undefined, { signature }), "Set whole-project signature");
+      commit(editMapAtTimes(current, undefined, undefined, { signature }), "Set whole-project signature");
       return true;
     }
     const cursor = positionAtQuarter(current, quarter);
@@ -1259,7 +1256,7 @@ export default function App() {
     if (["copy", "cut", "paste", "duplicate", "split", "split-here", "split-range", "group", "ungroup", "front", "back"].includes(command) && !audioOnly) return;
     const erase = () => {
       let next = context.range ? removeRange(current, context.range, context.linked) : removeClips(current, ids, context.linked);
-      if (maps.length) next = editProjectMap(next,
+      if (maps.length) next = editMapAtTimes(next,
         next.tempos.filter(point => !maps.some(item => item.kind === "tempo" && item.id === point.id)),
         next.signatures.filter(point => !maps.some(item => item.kind === "signature" && item.id === point.id)));
       commit(next, context.range ? "Delete selected audio range" : maps.length ? "Delete arrangement selection" : "Delete events");

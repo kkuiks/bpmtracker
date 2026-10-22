@@ -2,7 +2,7 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-Owner-authorized on 2026-10-11, after the initial tap tolerance changed from
+Recorded on 2026-10-11, after the initial tap tolerance changed from
 5% to 3%. This is isolated research, with no app integration or source Git
 publication. Prior frozen implementations, original audio and accepted maps
 remain unchanged.

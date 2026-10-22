@@ -2,7 +2,7 @@
 
 **Current role:** shared continuous map contract, actual grids, native project conversion and audio scoring. The earlier time-window fitter described below is historical; the selected L2 uses adaptive evidence and existing-beat search. See [current development](../../docs/DEVELOPMENT.md).
 
-Owner-approved redesign: one initial audio-supported tempo, meter and bar phase,
+The continuous representation uses one initial audio-supported tempo, meter and bar phase,
 then tempo/signature declarations only on the preceding map's notated beats.
 Tempo changes preserve the current bar. A signature may close a partial bar and
 start a new bar on the same physical beat. Confidence never interrupts the grid.
@@ -32,8 +32,7 @@ Commands, in order, from the checkout with the existing metronome environment:
 .venv-metronome-v1/bin/python -m experiments.continuous_beat_map_v1.native --run RUN
 ```
 
-Source workers accept `--shard`/`--shards`; this parallelizes computation, not
-agent work. Evaluation compares all 33 retained recordings (32 main plus one
+Source workers accept `--shard`/`--shards` for independent computation shards. Evaluation compares all 33 retained recordings (32 main plus one
 model-seeded diagnostic), the same 10 actual variable recordings, and common 13
 fixed controls. New native meter/bar scores are separate from prior quarter-pulse
 scores. Permitted rhythmic readings do not pardon unnecessary output changes.

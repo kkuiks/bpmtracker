@@ -1,0 +1,158 @@
+{
+  "format": "bpmtracker-source-review-snapshot",
+  "version": 1,
+  "snapshot_date": "2026-10-22",
+  "role": "Read-only review copies; historical experiment implementations and frozen results remain at original locations",
+  "runtime_supported_from_snapshot": false,
+  "paths_and_imports_preserved": true,
+  "raw_research_data_included": false,
+  "files": [
+    {
+      "path": "g21_full/candidate_api.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_api.py",
+      "bytes": 10960,
+      "sha256": "c05883e1a877199daa974885e3500b5b9f1248e3451267cf64a373effcaab184",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_core.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_core.py",
+      "bytes": 19470,
+      "sha256": "600ce7684e38449aba106bb24c143fa8ef769bb5c603c01e73ac74256af89bb3",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_common.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_common.py",
+      "bytes": 114,
+      "sha256": "597e9b60f841cfd7a405cb4a74288533445c1cade691be426e91acf9ee735dc5",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/parameters.json",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/parameters.json",
+      "bytes": 1904,
+      "sha256": "d8cc4f0e4ac4fec493fc6cdba9748ce4b81da1fd010fdd142e90818aeb24182c",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_initial_source.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_initial_source.py",
+      "bytes": 10290,
+      "sha256": "dd846a915fb8a57dd82ddb0e0cce168187b5d8eaa1cd68239a6f9dd60bf93b95",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_scoring.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_scoring.py",
+      "bytes": 1766,
+      "sha256": "a75e6c1f0a393bcb6233dc70b7fde1e3750549fb1eb1980ea57e92da6a6f93ae",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_emissions.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_emissions.py",
+      "bytes": 5967,
+      "sha256": "e75e8be7b275b74df30afe242818ac9d6fb6cce92d0c5ac1ff0cbd7c3d6bb100",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_base_scoring.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_base_scoring.py",
+      "bytes": 7137,
+      "sha256": "111d4626cbec5293c27c815cc6e77ad96fe5113af0899509652cc2dc5a484a05",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "g21_full/candidate_unit_policy.py",
+      "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_unit_policy.py",
+      "bytes": 546,
+      "sha256": "7f37f8a9de751599a7946c167fb7e74af767f2f7e95e0bfdc52f2e9c63ee857a",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/source_scores.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/source_scores.py",
+      "bytes": 9203,
+      "sha256": "3ae5d8f9e686abde7d5004dddb9072edec28c533d461600247008ea97462d549",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/prefix_api.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/prefix_api.py",
+      "bytes": 3018,
+      "sha256": "00489dfe58cf5a65e68d8443dc178c9f695bffc08d5fd07c368dccd32750356c",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/phase_api.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/phase_api.py",
+      "bytes": 3654,
+      "sha256": "74385dd9623386b8f1423f729a07dd6432b7e2169a402b969d1645a742c3880f",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/phase_predictor.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/phase_predictor.py",
+      "bytes": 1869,
+      "sha256": "99fdd0748f1aa14ff6565eff6e6f49d79632c398287ab62855a2a75901b628ad",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/hierarchical_predictor.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/hierarchical_predictor.py",
+      "bytes": 2444,
+      "sha256": "b804eb0a92bd98d903b93ffa7d143b43110c000560fb95c7a51652f87c452466",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/run_hierarchical_phase.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/run_hierarchical_phase.py",
+      "bytes": 5695,
+      "sha256": "b32d056c688e4f9b9f356ac4a87a96bb02eadf68b140ec3265e6c7ae3532e58a",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "selection_repair/repair_api.py",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/repair_api.py",
+      "bytes": 4686,
+      "sha256": "0a5e8fb3427d3309fd59ea84a861cee67833481052d500029821116acd791041",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "evaluation/broad_score_maps.py",
+      "source": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/score_maps.py",
+      "bytes": 10537,
+      "sha256": "117f4a75069bb2307fec6a07498ef883a28cec6e1da63d82eed8a2eb7587678e",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "evaluation/formal_score_maps.py",
+      "source": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/score_maps.py",
+      "bytes": 7634,
+      "sha256": "c367db035236afc019fb2d9597c25f72894a1c33f5414974dd3c5aad725ecbf1",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "evaluation/shared_event_metrics.py",
+      "source": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/shared_event_metrics.py",
+      "bytes": 10537,
+      "sha256": "117f4a75069bb2307fec6a07498ef883a28cec6e1da63d82eed8a2eb7587678e",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "policy-comparison.csv",
+      "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/all-variants-comparison.csv",
+      "bytes": 2789,
+      "sha256": "2829ab20fcfa8cd6f37852ddf31e30d94da84b4e8e2b2d47c29296af2c8f4b94",
+      "copy": "byte-identical-review-snapshot"
+    },
+    {
+      "path": "evaluation-summary.json",
+      "source": "Derived aggregate-only selection from the evidence_paths listed in this file",
+      "bytes": 56244,
+      "sha256": "52645af007703e15881d0236b4cba76135f8da00f53541fefc578714d1e20ffb",
+      "copy": "curated-aggregate-summary"
+    }
+  ]
+}

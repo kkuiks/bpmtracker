@@ -2,12 +2,12 @@
 
 **Current role:** accepted-reading and evaluation helpers reused by current native metrics. Earlier inference directions are historical; [L2](../beat_event_stability_v1/README.md) is the development standard.
 
-Owner-authorized rerun of the latest local octave-fold comparison on2026-10-11.
-The owner permits multiple musically plausible readings but prohibits excusing
-unnecessary switches by retrospectively choosing another reference at every time.
+Recorded rerun of the latest local octave-fold comparison on2026-10-11.
+The evaluation permits multiple musically plausible readings without excusing
+unnecessary switches by choosing another reference at every instant.
 This isolated experiment keeps all five latest inference/correction arms unchanged.
 
-All33 currently formal complete recordings are included. Original21 source maps
+All33 formal complete recordings in the recorded cohort are included. Original21 source maps
 and clocks are reused;12 additional complete recordings receive the same source
 pipeline. One model-seeded accepted reference is a separate diagnostic, so32
 complete recordings form the main summary. All12 additions are constant-tempo,

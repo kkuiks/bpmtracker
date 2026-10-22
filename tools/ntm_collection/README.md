@@ -2,10 +2,7 @@
 
 Download selected source materials, extract supplied MIDI/DAW clocks and prepare an interactive Master/click alignment review in Joljak. The tools preserve original recordings and clocks while storing reviewed audio-relative references separately. They are collection utilities, not an audio inference model.
 
-**Current owner workflow — 2026-10-10:** prepare offset review in the existing
-Windows DAW. Give the owner a `daw-review.json` descriptor and the DAW opening
-steps below. Browser listening pages are historical review material; do not start
-a listening-page server for a new collection unless the owner specifically asks.
+Review uses the Windows DAW and a `daw-review.json` descriptor. The retained browser route is a separate manually started compatibility tool.
 
 ## Workflow
 
@@ -13,8 +10,8 @@ a listening-page server for a new collection unless the owner specifically asks.
 2. Download selected materials using an authenticated member session. Existing files, partial transfers and transfer records support resuming a batch.
 3. Extract the original Master and supplied clocks, including native DAW project bundles. Keep their original time coordinates and audio geometry.
 4. Prepare source-clock metadata, an initial offset proposal from a corresponding source-stem segment, and the DAW candidate-review descriptor.
-5. Use Joljak to compare the full Master and supplied clock, edit the working map/alignment and save a separate sample draft. Record the owner's selected total offset and reviewed scope.
-6. Register the explicitly owner-approved working map and scope. Use `finalize_selected.py` only for an unchanged supplied map with an alignment-only approval. If tempo, signature or bar phase was edited, materialize the saved DAW geometry instead; see the [sample-review tools](../sample_review/README.md). Retired fixed-batch finalizers are available through Git history.
+5. Use Joljak to compare the full Master and supplied clock, edit the working map/alignment and save a separate sample draft. Record the selected total offset and reviewed reference scope.
+6. Register the reviewed working map and scope with its reference revision record. Use `finalize_selected.py` only for an unchanged supplied map with an alignment-only revision. If tempo, signature or bar phase was edited, materialize the saved DAW geometry instead; see the [sample-review tools](../sample_review/README.md). Retired fixed-batch finalizers are available through Git history.
 
 Archive-link generation consumes the provider's download allowance. Completed transfers and intentionally removed archives retain their disposition records, so absent ZIPs do not automatically trigger another download. Remaining download allowance comes from the current provider response rather than an inferred reset date.
 
@@ -25,8 +22,8 @@ Archive-link generation consumes the provider's download allowance. Completed tr
 | `collect_selected.py` | Download selected batch materials, reuse recorded transfers and honor exclusion flags |
 | `prepare_selected.py` | Extract acquired clocks and prepare alignment review assets |
 | `prepare_daw_review.py` | Turn already prepared source records into a DAW candidate descriptor; no acquisition, audio/model run or enrollment |
-| `finalize_selected.py` | Enroll an unchanged supplied clock with an explicitly approved offset; does not preserve manually edited DAW geometry |
-| `serve.py`, `review.html` | Retained browser-review compatibility; use only when explicitly requested |
+| `finalize_selected.py` | Enroll an unchanged supplied clock with a reviewed total offset; does not preserve manually edited DAW geometry |
+| `serve.py`, `review.html` | Retained browser-review compatibility; separately started compatibility server |
 | `login_bridge.py` | Local browser viewer for member login |
 | `storage.py` | Canonical per-session storage, batch records and recording discovery |
 
@@ -55,21 +52,9 @@ with retained audio geometry can open for listening and a manual draft; its BPM,
 signature and offset remain unspecified. Incomplete preparation is listed as
 unavailable.
 
-Combined candidate-review indexes can use the same command with a separate
-output directory:
+Combined candidate-review indexes can use `--out <review-directory>` to keep the generated descriptor separate from the source batch. Original media and prior review records retain their canonical locations.
 
-```sh
-python3 -B tools/ntm_collection/prepare_daw_review.py \
-  --batch data/samples/reviews/20261009-candidates-v1 \
-  --out data/samples/reviews/20261010-candidates-daw-v1
-```
-
-This preserves the selected order and reads each current canonical source record.
-The prepared descriptor contains seven supplied-clock candidates and one
-source-only recording. Original media and prior browser review records stay in
-their existing homes.
-
-Give the owner these steps:
+To review a prepared descriptor:
 
 1. Start Joljak from **Start Joljak.cmd** on Windows. Restart a closed app if a
    newly built version is required.
@@ -86,8 +71,8 @@ Give the owner these steps:
    under `data/samples/reviews/daw-drafts/<id>/<saved-time>/`. Continue a saved
    edit with **File → Open**; opening the catalog entry starts from its source
    reference rather than a saved working draft.
-6. Ask the owner to state the final **Total working offset** and scope. A saved
-   draft alone is not acceptance. The proposal's `proposed_offset_seconds` is the
+6. Record the final **Total working offset** and reviewed scope. A saved
+   draft alone does not register an accepted reference. The proposal's `proposed_offset_seconds` is the
    total offset; `additional_alignment_adjustment_ms` is only the adjustment to
    the initial source offset. Do not confuse the two or apply the base offset twice.
 
@@ -97,12 +82,11 @@ There is no original candidate click or total source offset for these entries.
 Their saved draft keeps the manual map, audio placement and note, with source
 clock/offset fields explicitly absent.
 
-For an alignment-only approval with an unchanged source tempo/signature map,
-`finalize_selected.py` can consume the explicit total offset and owner statement.
-If the owner edited BPM, signature events or bar phase, that offset-only finalizer
-does not consume those map edits. Preserve the project/proposal and prepare a
-consistent accepted map from the working geometry under the owner's explicit
-approval; do not silently re-enroll the unchanged supplied map. Neither saving
+For an alignment-only revision with an unchanged source tempo/signature map,
+`finalize_selected.py` consumes the explicit total offset and review statement.
+If BPM, signature events or bar phase changed, the offset-only finalizer does not
+consume those edits. The accepted map must be materialized from the saved DAW
+geometry, preserving the project/proposal and its reference revision record. Neither saving
 nor opening a candidate alters `catalog.json`, accepted references or frozen runs.
 
 Other acquisition providers may prepare the same descriptor format. Each
@@ -115,7 +99,7 @@ extent and uncertainty; a missing clock remains missing. Paths are relative to
 
 ## Historical browser-review route
 
-Use this only for an explicitly requested browser review of retained material:
+The retained browser route serves a prepared local review batch:
 
 ```sh
 python3 -B tools/ntm_collection/serve.py \
@@ -147,7 +131,7 @@ Native project files provide clock and layout evidence. Possessing a project bun
 All sample material is stored as ordinary files under the checkout's
 `data/samples/`. NTM sessions use `data/samples/ntm/<session-slug>/`; new source
 Masters, archives, clocks and review outputs stay in that session's `collection/`.
-A session has one physical home regardless of batch or approval status. Batch
+A session has one physical home regardless of batch or registration status. Batch
 selection/review descriptors live in `data/samples/intakes/<batch>/` and refer
 directly to the canonical files. No song directory links or alternate media
 homes are created.
@@ -157,13 +141,13 @@ sources; `ntm-library-index.json` records retained sessions and their statuses.
 `ntm-storage.json` binds the NTM root relative to the checkout on both Windows
 and Linux. Missing storage stops processing, without a fallback or overwrite.
 Raw projects retain native geometry. Relocation changes storage paths, never
-BPM, meter, offset, support, source coordinates, approval or eligibility.
+BPM, meter, offset, support, source coordinates, reference status or eligibility.
 
 `data/samples/excluded-candidates.json` is checked before storage creation or
 provider requests by session ID, slug and normalized recording identity.
 The Adventure (session 12897) remains permanently excluded, deleted and barred
-from reconsideration or download. Two acquired recordings remain unenrolled;
-source acquisition and storage discovery never imply owner approval.
+from reconsideration or download. Acquisition and storage discovery do not change formal membership; current
+registration state comes from the catalog.
 
 The 2026-10-08 consolidation's source fingerprints, comparison receipt and
 path-only relocation index are in `data/storage/20261008-consolidation/`.

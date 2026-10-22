@@ -2,8 +2,8 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-Owner-requested correction and fixed-estimator comparison on2026-10-11.
-The owner requires confidence/unknown states to preserve existing clicks.
+Recorded correction and fixed-estimator comparison on2026-10-11.
+Confidence/unknown states preserve the existing click grid.
 The preceding composer could discard an entire backward decoded half when the
 initial-unit constraint eliminated its path. The accepted-map list then lacked
 the prefix; later octave correction never reconstructed it.

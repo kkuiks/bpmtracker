@@ -2,7 +2,7 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-This owner-authorized experiment compares stateless local clock selection (C1),
+This recorded experiment compares stateless local clock selection (C1),
 a continuity policy (C2), and a BPM-locked control with the same phase reanchor
 rules (C_HOLD). It uses the unchanged official sensor and original final clock
 bank, eight specified fixed recordings and two specified variable recordings.

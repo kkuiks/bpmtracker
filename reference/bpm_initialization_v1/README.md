@@ -2,7 +2,7 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-Owner-authorized research following the completed `bpm_continuity_v1` run.
+Recorded research following the completed `bpm_continuity_v1` run.
 Compare four initial-clock choices on the same eight fixed-rate recordings;
 render every choice with the **unmodified six-second C_HOLD**. This module does
 not change the application, accepted references, candidate banks, prior runs,

@@ -36,8 +36,44 @@ def decode(job):
     assets = []
     for index, item in enumerate(job["files"]):
         path = Path(item["path"])
-        folder = output / item["id"]
+        cache_id = item.get("cacheId", item["id"])
+        if not isinstance(cache_id, str) or not re.fullmatch(r"[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,127}", cache_id):
+            raise ValueError("Invalid audio cache identity")
+        folder = output / cache_id
         folder.mkdir(exist_ok=True)
+        source_stat = path.stat()
+        cached = None
+        try:
+            candidate = json.loads((folder / "asset.json").read_text(encoding="utf-8"))
+            playback_name = "audio.f32" if candidate["sampleRate"] == 48000 else "playback.f32"
+            if (Path(candidate["sourcePath"]).resolve() == path.resolve()
+                    and candidate.get("originalSize") == source_stat.st_size
+                    and abs(candidate.get("originalModified", 0) - source_stat.st_mtime_ns / 1_000_000) <= 1
+                    and candidate.get("playbackRate") == 48000
+                    and (folder / "audio.f32").stat().st_size == candidate["frames"] * candidate["channels"] * 4
+                    and (folder / playback_name).stat().st_size == candidate["playbackFrames"] * candidate["channels"] * 4
+                    and (folder / "peaks.f32").stat().st_size == candidate["peakBins"] * 2 * 4):
+                cached = candidate
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        if cached is not None:
+            expected = item.get("expected")
+            if expected and any(cached[key] != expected[key] for key in ("sampleRate", "channels", "frames")):
+                raise ValueError("Relocated audio geometry differs from the saved original. Choose the original recording.")
+            assets.append({**cached, "id": item["id"], "cacheId": cache_id,
+                           "name": item.get("name", path.name), "sourcePath": str(path),
+                           "pcmPath": str(folder / "audio.f32"), "peaksPath": str(folder / "peaks.f32"),
+                           "playbackPath": str(folder / playback_name)})
+            emit("Using decoded audio", progress=(index + 1) / len(job["files"]), name=path.name)
+            continue
+        if item.get("cacheReuseOnly"):
+            # This folder belongs to another live asset. A source change between
+            # selection and decode must never overwrite that asset's buffers.
+            raise ValueError("Original audio changed before its cache could be reused. Import it again.")
+        # Retain enough provenance to remove a crash-interrupted decode safely.
+        write_json(folder / "source.json", {"id": cache_id, "cacheId": cache_id,
+                   "sourcePath": str(path), "originalSize": source_stat.st_size,
+                   "originalModified": source_stat.st_mtime_ns / 1_000_000})
         with sf.SoundFile(path) as source:
             if source.channels not in (1, 2) or source.frames <= 0:
                 raise ValueError("Import mono or stereo audio with at least one sample")
@@ -74,7 +110,9 @@ def decode(job):
             wave = np.concatenate(peaks).astype("<f4")
             wave.tofile(folder / "peaks.f32")
             stat = path.stat()
-            asset = {"id": item["id"], "name": item.get("name", path.name), "sourcePath": str(path),
+            if stat.st_size != source_stat.st_size or stat.st_mtime_ns != source_stat.st_mtime_ns:
+                raise ValueError("Source audio changed while decoding. Import the stable original again.")
+            asset = {"id": item["id"], "cacheId": cache_id, "name": item.get("name", path.name), "sourcePath": str(path),
                      "pcmPath": str(folder / "audio.f32"), "peaksPath": str(folder / "peaks.f32"),
                      "playbackPath": str(folder / 'playback.f32' if resampler else folder / 'audio.f32'),
                      "playbackRate": 48000, "playbackFrames": playback_frames if resampler else decoded_frames,

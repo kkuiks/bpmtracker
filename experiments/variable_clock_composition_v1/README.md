@@ -2,7 +2,7 @@
 
 **Current role:** reused source sensors and geometry/evaluation helpers. The region-first composer below is a completed historical experiment, not the current standard. See [the code map](../../docs/CODE_MAP.md).
 
-Owner-authorized extensive research on 2026-10-11. This isolated implementation
+Recorded extensive research on 2026-10-11. This isolated implementation
 does not replace the application estimator, modify references or revive a retired
 inference architecture. It reuses official Beat This final0 observations and
 physical quarter-clock primitives.
@@ -14,7 +14,7 @@ competing evidence justifies a change. Qualifying a clock and placing its interv
 boundary use different evidence windows. Original audio is never cut/rejoined.
 The beam decoder is an approximate search, not a proof of an optimal tempo map.
 
-Eleven currently owner-approved variable songs are primary. Four meter-only and
+Eleven reviewed variable songs form the recorded primary cohort. Four meter-only and
 six fixed recordings expose unwanted splits; 24 previously authored musical
 controls cover four parents with six arrangements each. Three newly accepted
 variable songs are confirmation material, not certified unseen recordings.

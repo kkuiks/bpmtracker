@@ -41,6 +41,25 @@ export class ProjectHistory {
     this.remember(next);
     this.current = this.preserved(next);
   }
+  restoreAssets(items: Asset[]): Project {
+    const restored = new Map<string, Asset>();
+    for (const asset of items) {
+      const existing = this.assets.get(asset.id);
+      if (!existing) continue;
+      if (asset.sampleRate !== existing.sampleRate || asset.channels !== existing.channels || asset.frames !== existing.frames)
+        throw new Error("Restored audio differs from the saved original");
+      const updated = { ...existing, ...asset };
+      restored.set(asset.id, updated);
+      this.assets.set(asset.id, updated);
+    }
+    const refresh = (project: Project): Project => ({
+      ...project, assets: project.assets.map(asset => restored.get(asset.id) ?? asset),
+    });
+    this.past = this.past.map(item => ({ ...item, project: refresh(item.project) }));
+    this.future = this.future.map(item => ({ ...item, project: refresh(item.project) }));
+    this.current = this.preserved(refresh(this.current));
+    return this.current;
+  }
   record(analysis: Analysis): Project {
     this.analyses.set(analysis.id, analysis);
     this.current = this.preserved(this.current);

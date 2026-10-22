@@ -1,5 +1,5 @@
 import { clipEnd, relatedClips, type ArrangementSelection, type Project, type SignatureEvent, type TempoEvent } from "./model";
-import { editProjectMap, positionAtQuarter, quarterAtBar, quarterAtTime, refreshMusicalAnchors, signaturesInOrder, temposInOrder, timeAtBar, timeAtQuarter } from "./music";
+import { editMapAtTimes, editProjectMap, positionAtQuarter, quarterAtBar, quarterAtTime, refreshMusicalAnchors, signaturesInOrder, temposInOrder, timeAtBar, timeAtQuarter } from "./music";
 
 const EPS = 1e-8;
 const selectedIds = (selection: ArrangementSelection, kind: "tempo" | "signature") =>
@@ -8,10 +8,10 @@ const selectedIds = (selection: ArrangementSelection, kind: "tempo" | "signature
 /** The destination grid excludes moving declarations and uses whole-project values. */
 export function arrangementDestination(p: Project, selection: ArrangementSelection): Project {
   const tempoIds = selectedIds(selection, "tempo"), signatureIds = selectedIds(selection, "signature");
+  if (!tempoIds.size && !signatureIds.size) return p;
   const tempos = p.tempos.filter(event => !tempoIds.has(event.id));
   const signatures = p.signatures.filter(event => !signatureIds.has(event.id));
-  const grid = { ...p, tempos: tempos.sort((a,b) => a.quarter-b.quarter), signatures };
-  return { ...grid, signatures: signaturesInOrder(grid) };
+  return editMapAtTimes(p, tempos, signatures);
 }
 
 export function arrangementBounds(p: Project, selection: ArrangementSelection, linked: boolean) {
@@ -46,35 +46,23 @@ export function arrangementShift(p: Project, selection: ArrangementSelection, li
 }
 
 function movedTempos(p: Project, grid: Project, selected: Set<string>, delta: number) {
-  const fixed = temposInOrder(grid);
-  const moving = p.tempos.filter(event => selected.has(event.id))
-    .map(event => ({ event, seconds: timeAtQuarter(p,event.quarter)+delta }))
+  const timed = temposInOrder(p)
+    .map(event => ({ event, seconds: timeAtQuarter(p,event.quarter)+(selected.has(event.id)?delta:0) }))
     .sort((a,b) => a.seconds-b.seconds);
-  const result: TempoEvent[] = [];
-  let i=0, j=0, quarter=0, seconds=0, bpm=grid.bpm;
-  while (i<fixed.length || j<moving.length) {
-    const stationary = fixed[i], translated = moving[j];
-    const stationaryTime = stationary ? seconds+(stationary.quarter-quarter)*60/bpm : Infinity;
-    if (translated && Math.abs(translated.seconds-stationaryTime)<=EPS) {
+  let quarter=0, seconds=0, bpm=grid.bpm;
+  return timed.map(({event,seconds:target},index): TempoEvent => {
+    if (index && Math.abs(target-timed[index-1].seconds)<=EPS)
       throw new Error("The move overlaps an unselected tempo point. Select that point too or choose another destination.");
-    } else if (translated && translated.seconds<stationaryTime) {
-      const targetQuarter=quarter+(translated.seconds-seconds)*bpm/60;
-      if (targetQuarter < quarter-EPS) throw new Error("Tempo points would cross in this move.");
-      result.push({ ...translated.event, quarter: Math.max(0,targetQuarter), origin: "manual" });
-      quarter=targetQuarter;seconds=translated.seconds;bpm=translated.event.bpm;j++;
-    } else {
-      result.push(stationary);quarter=stationary.quarter;seconds=stationaryTime;bpm=stationary.bpm;i++;
-    }
-  }
-  return result;
+    quarter+=(target-seconds)*bpm/60;
+    seconds=target;bpm=event.bpm;
+    return {...event,quarter:Math.max(0,quarter),origin:selected.has(event.id)?"manual":event.origin};
+  });
 }
 
 function movedSignatures(p: Project, grid: Project, selected: Set<string>, delta: number) {
-  const fixed = signaturesInOrder(grid);
-  const moving = signaturesInOrder(p).filter(event => selected.has(event.id))
-    .map(event => ({ event, quarter: quarterAtTime(grid,timeAtBar(p,event.bar)+delta) }))
-    .sort((a,b) => a.quarter-b.quarter);
-  const result = [...fixed, ...moving.map(({event,quarter}) => ({ ...event, quarter, origin: "manual" as const }))]
+  const result = signaturesInOrder(p).map((event): SignatureEvent => ({...event,
+    quarter:quarterAtTime(grid,timeAtQuarter(p,event.quarter!)+(selected.has(event.id)?delta:0)),
+    origin:selected.has(event.id)?"manual":event.origin}))
     .sort((a,b) => a.quarter!-b.quarter!);
   let quarter=0, denominator=grid.signature.denominator;
   for (let index=0; index<result.length; index++) {
@@ -97,8 +85,9 @@ export function moveArrangement(p: Project, selection: ArrangementSelection, del
     throw new Error("The selection would move before project start.");
   const clips=relatedClips(p,selection.clips,linked), ids=new Set(clips.map(clip => clip.id));
   const destination=arrangementDestination(p,selection);
-  const tempos=movedTempos(p,destination,selectedIds(selection,"tempo"),delta);
-  const signatures=movedSignatures(p,{...destination,tempos},selectedIds(selection,"signature"),delta);
+  const tempoIds=selectedIds(selection,"tempo");
+  const tempos=tempoIds.size?movedTempos(p,destination,tempoIds,delta):p.tempos;
+  const signatures=selection.maps.length?movedSignatures(p,{...destination,tempos},selectedIds(selection,"signature"),delta):p.signatures;
   let next=editProjectMap(p,tempos,signatures);
   next.clips=next.clips.map(clip => ids.has(clip.id)
     ? {...clip,start:Math.max(0,p.clips.find(original=>original.id===clip.id)!.start+delta)} : clip);

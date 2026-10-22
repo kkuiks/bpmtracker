@@ -1,29 +1,15 @@
-# Maintained project operations
+# Project tools
 
-Current development status is in [project-state.json](../project-state.json).
-The variable entry is [algorithms/variable](../algorithms/README.md), the app is
-[apps/daw](../apps/daw/README.md), and previous studies are in
-[reference](../reference/README.md).
+The tools support dataset collection, reference review, local storage and repository inspection. Application and algorithm entry points are listed in the [code map](../docs/CODE_MAP.md).
 
-| Area | Start here | Purpose |
+| Area | Entry | Purpose |
 | --- | --- | --- |
-| Repository navigation/audit | [repository](repository/README.md) | Current status, complete metadata inventory and source/document layout checks |
-| Requested sample collection | [NTM workflow](ntm_collection/README.md) | Canonical originals, supplied clocks, owner offset/scope and DAW review descriptors |
-| Sample/reference review | [sample review](sample_review/README.md) | Drafts, accepted-map materialization and shared native geometry conversion |
-| Historical path resolution | [project_storage.py](project_storage.py) | Resolve retained old data identifiers without changing clocks or frozen records |
-| Local storage | [LOCAL_DATA.md](LOCAL_DATA.md) | Samples, research results, models, receipts and private runtime boundaries |
+| Project status and repository metadata | [repository](repository/README.md) | Component status, source layout and static metadata inspection |
+| Recording collection | [NTM workflow](ntm_collection/README.md) | Original audio, supplied clocks and DAW review descriptors |
+| Reference review | [sample review](sample_review/README.md) | Drafts, accepted-map geometry and native conversion |
+| Historical paths | [project_storage.py](project_storage.py) | Resolve retained relocated data identifiers without changing clocks |
+| Data layout | [LOCAL_DATA.md](LOCAL_DATA.md) | Sources, references, research results, models and runtime state |
 
-The completed dated `confirm_daw_maps.mjs`, `enroll_daw_candidates.mjs` and
-`audit_offset_declarations.py` scripts moved to
-[reference/sample_operations](../reference/sample_operations/README.md).
-Current shared geometry remains `sample_review/daw_map_reference.mjs`.
-The old browser experiment listening tool moved to
-[reference/bpm_experiment_listening](../reference/bpm_experiment_listening/README.md).
-Native separate reference/current `.joljak` audition is the current standard.
+`data/samples/catalog.json` defines formal membership and accepted references. Acquisition and draft saving remain separate from registration. Offset-only revisions preserve the edited map; tempo/signature/phase revisions use the saved DAW geometry and retain their provenance and reviewed scope.
 
-`data/samples/catalog.json` governs sample membership and accepted references.
-Acquisition or draft saving does not enroll a recording. Offset-only finalization
-must preserve owner-edited maps; changed maps require DAW-geometry materialization.
-New revisions need their own owner decision and receipt paths. Browser review
-servers remain explicit opt-in. Paid acquisition, experiments, runtime tests,
-cleanup and source Git publication each follow the applicable owner request.
+Shared map conversion is implemented in `sample_review/daw_map_reference.mjs`. Completed dated registration scripts are indexed in [reference/sample_operations](../reference/sample_operations/README.md). The earlier browser listening utility is retained in [reference/bpm_experiment_listening](../reference/bpm_experiment_listening/README.md); current sample review uses ordinary Joljak projects with original audio and the project metronome.

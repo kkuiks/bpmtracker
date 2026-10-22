@@ -1,7 +1,7 @@
 # Current native-map checks
 
 These three tools check the continuous tempo/signature model and native listening
-exports. Run them only as part of an owner-requested check; ordinary builds and
+exports. Run them only as part of an focused check; ordinary builds and
 launches do not run them.
 
 | Tool | Scope |

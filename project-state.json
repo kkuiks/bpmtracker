@@ -1,121 +1,525 @@
 {
   "format": "joljak-project-state",
-  "version": 1,
-  "owner_decision_date": "2026-10-13",
-  "development_baseline": {
-    "id": "variable-L2-20261013",
-    "status": "owner-selected-development-standard",
-    "method": "L2_DENSE_PROPOSALS",
-    "entry_point": "algorithms/variable/baseline.py",
-    "implementation": "experiments/beat_event_stability_v1/core.py",
-    "configuration": "experiments/beat_event_stability_v1/common.py",
-    "primary_recorded_run": "data/research/runs/beat_event_stability_v1/20261012-full-v2",
-    "broader_fixed_verification": "data/research/runs/linear_validation_v1/20261012-frozen-L2-v1",
-    "owner_native_listening": "data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects",
-    "selection_basis": "Owner listening found current quality usable as the next development comparison, despite remaining fixed and variable errors.",
-    "old_approximately_99_percent_fixed_gate_is_not_a_current_development_blocker": true,
-    "measurement_scores_and_evaluation_rules_unchanged": true,
-    "accepted_reference_authority": "data/samples/catalog.json",
-    "fixed_comparator": "experiments/metronome_reconstruction_v1"
-  },
-  "next_objective": {
-    "status": "recommended-not-executed-after-full-L2-diagnosis",
-    "title": "Full L2 source-unit, bar-cost and initial-search comparisons",
-    "goal": "Separate H4 source-unit admission, bar evidence and initial-root coverage in a new finite full-integration campaign. Compare original L2 and trial006 under full and pinned/held conditions while preserving current practical fixed-material quality.",
-    "evidence": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/next-research.md",
-    "authorization": "A new campaign requires separate owner authorization; this documentation update starts no experiment.",
-    "requires_new_campaign_clock": true,
-    "closed_campaign_must_not_restart": true,
-    "previous_unexecuted_proposal": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/next-one-experiment.json",
-    "independent_holdout_preparation": "No new independent holdout was consumed by the diagnosis. New recording families require preparation and candidate freeze before evaluation; known recordings, excerpts and feature98 remain consumed development evidence."
-  },
-  "latest_diagnosis": {
-    "id": "full-L2-regression-diagnosis-v1-20261014",
-    "status": "complete-four-regressions-reproduced",
-    "documentation_updated_date": "2026-10-14",
-    "run_root": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1",
-    "source_document": "docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14",
-    "completed_utc": "2026-10-14T02:29:08.352123+00:00",
-    "comparison": {
-      "expected_known30_pairs": 30,
-      "full_L2_pairs_completed": 30,
-      "held_pairs_completed": 30,
-      "completed_cells": 240,
-      "failed_cells": 0,
-      "focused_materials": 7,
-      "initial_meter_factorial_cells": 56,
-      "common_parent_cost_decoder_cells": 20,
-      "reproduced_regressions": 4,
-      "original_valid_maps_reproduced": 119,
-      "original_map_raw_and_semantic_hashes_match": true,
-      "older_full_L2_baseline_maps_reproduced": 30,
-      "legal_common_maps": 2563,
-      "complete_neutral_traces": 112,
-      "full_L2_regression_passed": false
-    },
-    "supported_contributions": {
-      "daybreak_and_breathe_fire": "Pointwise bar-cost path ranking under full meter support; legacy bar substitution reverses the finite-pool ranking, not a full hybrid-predictor result.",
-      "neck_deep": "H4 additional tempo-unit proposals cause loss even with legacy cost/beam; H7-only preserves quality.",
-      "in_flames": "Retained initial-root scheduling and bootstrap retention; source-only root-first and one-slot qualified-root reserve interventions recover quality and repeat."
-    },
-    "limitations": {
-      "independent_generalization_verified": false,
-      "Windows_listening_verified": false,
-      "owner_approved_numerics": false,
-      "single_overfitting_cause_established": false,
-      "expected_tick_omission_separated_from_bar_normalization": false,
-      "diagnostic_interventions_adopted": false
-    },
-    "preservation": {
-      "closed_v2_clock_ledger_seal_and_failure_stub_preserved": true,
-      "original_v2_pairs_completed": 29,
-      "original_v2_pairs_expected": 30,
-      "protected_files_unchanged_at_diagnosis_completion": 3645,
-      "development_baseline_replaced": false,
-      "application_analyzer_changed": false,
-      "new_NN_forward": false
-    },
-    "evidence": {
-      "report": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/report.ko.md",
-      "status": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/status.json",
-      "protocol": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/protocol.json",
-      "provenance": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/provenance.json",
-      "comparison": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/comparison.tsv",
-      "factorial": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/factorial.tsv",
-      "score_comparison": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/score-comparison.tsv",
-      "components": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/component-ablation.tsv",
-      "search": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/search-comparison.tsv",
-      "reproduction": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/reproduce.md",
-      "sample_agent_handoff": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/sample-agent-handoff.md",
-      "next_research": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/next-research.md"
-    },
-    "delivery": {
-      "compact_zip": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/full-l2-diagnosis-20261014.zip",
-      "package_receipt": "data/research/runs/full_l2_regression_diagnosis_v1/20261014-01a137fb-v1/package-receipt.json",
-      "bytes": 6140642,
-      "sha256": "6977ffaa50e2dad07cf11e46082a1ce7dc3599aa2567bfefbb4fff3b20086eda",
-      "private_summary_commit": "408c226f2c2dc481ccbf20a55e774c20658b3db8",
-      "private_summary_path": "_local/docs/FULL_L2_REGRESSION_DIAGNOSIS_2026-10-14.md",
-      "private_publication_scope": "Summary and evidence paths only",
-      "report_and_zip_remotely_uploaded": false,
-      "full_run_remote_backup_verified": false
-    }
-  },
+  "version": 2,
+  "documentation_updated_date": "2026-10-22",
   "application": {
     "path": "apps/daw",
     "version_authority": "apps/daw/package.json",
     "launch": "Start Joljak.cmd",
     "analyzer": "fixed-quarter-bpm-meter-offset",
     "automatic_variable_analysis_deployed": false,
-    "playback_cache_rate_fix_version": "0.6.15"
+    "playback_cache_rate_fix_version": "0.6.15",
+    "map_declaration_time_preservation_version": "0.6.16",
+    "decoded_audio_cache_policy_version": "0.6.17",
+    "decoded_audio_cache_policy": "Shared buffers for unchanged linked imports; preserve current/history assets, prune unused buffers after jobs and release regenerable buffers on exit; saved-project/recovery regeneration changes no musical map.",
+    "decoded_audio_cache_cleanup_receipt": "data/storage/20261017-audio-cache-cleanup-v1/summary.json",
+    "decoded_audio_cache_verification": "Syntax, TypeScript compilation, production build and Windows app-file assembly complete; native cache/recovery/playback runtime tests unrun.",
+    "version": "0.6.17"
+  },
+  "development_baseline": {
+    "id": "variable-L2-20261013",
+    "method": "L2_DENSE_PROPOSALS",
+    "entry_point": "algorithms/variable/baseline.py",
+    "implementation": "experiments/beat_event_stability_v1/core.py",
+    "configuration": "experiments/beat_event_stability_v1/common.py",
+    "primary_recorded_run": "data/research/runs/beat_event_stability_v1/20261012-full-v2",
+    "broader_fixed_verification": "data/research/runs/linear_validation_v1/20261012-frozen-L2-v1",
+    "accepted_reference_authority": "data/samples/catalog.json",
+    "fixed_comparator": "experiments/metronome_reconstruction_v1",
+    "status": "maintained-comparison-baseline",
+    "native_listening_review": "data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects",
+    "selection_basis": "Measured variable-tempo comparison with retained fixed and variable limitations."
+  },
+  "current_research": {
+    "id": "l2-improvement-autoresearch-v1-G21",
+    "run_root": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1",
+    "phase_root": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af",
+    "source_document": "docs/AUTORESEARCH.md#g21-development-validation",
+    "comparison": {
+      "existing_formal_samples": 44,
+      "existing_auxiliaries": 2,
+      "development16": 16,
+      "unique_materials": 62,
+      "conditions_per_method": 108,
+      "three_method_normalized_rows": 324,
+      "candidate_actual_conditions": 108,
+      "old_control_rows_exact_reused": 152,
+      "new_control_rows_actual": 64,
+      "no_errors_or_missing_slots": true
+    },
+    "performance": {
+      "known_core_FULL_V_W": {
+        "L2": 0,
+        "G21": 0.3333333333333333
+      },
+      "known_core_successful_tempo_boundaries": {
+        "L2": 0,
+        "G21": 4,
+        "eligible": 17
+      },
+      "known_core_HELD_V_W": {
+        "L2": 0.16541267669858642,
+        "TRIAL006": 0.25,
+        "G21": 0.25
+      },
+      "new_tempo8_FULL_C_P": {
+        "C": 0.653132506470955,
+        "P": 0.5657963641488576,
+        "relation_to_L2": "equal"
+      },
+      "new_tempo8_FULL_V_W": {
+        "L2": 0.17469008341108794,
+        "G21": 0.17469008341108794
+      },
+      "new_tempo8_V_zero_count": 6,
+      "new_fixed6_C_P": 1,
+      "new_meter2_FULL_C": 0.47716216355237473,
+      "new_meter2_relation_to_L2": "equal",
+      "remaining_failures": "Opeth/BFMV timely changes unsolved; Allageon C/P .369671558 -> .256663672; Red Miso C/P=0. Failures remain in denominators.",
+      "metric_interpretation": "C/P are coverage with stability penalties; V/W are per-song localized post-change quality, not song or boundary success percentages. Coarse-unit assistance is not no-tap automatic inference."
+    },
+    "runtime": {
+      "matched_cached_NN_PCM_preparation_included_ratio": {
+        "known30": 1.6687058072656533,
+        "development16": 1.4141313462406484
+      },
+      "matched_cached_FULL_fit_ratio": {
+        "known30": 1.757788066380558,
+        "development16": 1.6044388558138023
+      },
+      "separate_G19_fresh_file": {
+        "audio_seconds": 234.0107029478458,
+        "end_to_end_seconds": 95.9011913209979,
+        "scope": "One existing recording replayed with fresh observations; not a G21 all-new-song latency guarantee."
+      }
+    },
+    "evidence": {
+      "status": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/status.json",
+      "report": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/delivery/final-G21-v2/report.ko.md",
+      "comparison": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/delivery/final-G21-v2/comparison.tsv",
+      "assessment": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/evaluations/G21-development16-v1/assessment.json",
+      "freeze": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/delivery/final-G21-v2/candidate-freeze.json",
+      "package_receipt": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/delivery/final-G21-v2/package-verification.json"
+    },
+    "status": "development-evaluated-independent-validation-pending",
+    "primary": {
+      "trial": "G21",
+      "scope": "FULL initial/meter search with discrete-unit assistance; separate HELD behavior identical to trial006",
+      "code": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full",
+      "held_code": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/held",
+      "parent": "G19",
+      "formal_L2_entry_replaced": false,
+      "app_analyzer_replaced": false
+    },
+    "verification": {
+      "full_L2_verified": true,
+      "full_L2_verification_scope": "Recorded development conditions only; independent generalization and Windows listening remain outstanding.",
+      "candidate_original_native_rescore_exact": 108,
+      "actual_repeated_maps_semantically_equal": 552,
+      "FULL_initial_unit_partition_cases": 62,
+      "HELD_exact_trial006_cases": 46,
+      "native_projects": 96,
+      "worklet_clicks": 60448,
+      "native_inverse_quality_maps": 64,
+      "protected_original_files_preserved_at_completion": 3645,
+      "generalization_verified": false,
+      "Windows_listening_verified": false
+    },
+    "reference_authority": {
+      "development16": "Manually revised reference evidence",
+      "final_reference_review": "pending",
+      "unchanged_all7_automatic_receipts_for_all_references": false,
+      "strictly_blind_evaluation": false
+    },
+    "independent_evaluation": {
+      "materials": 8,
+      "evaluated": false,
+      "specification": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/delivery/final-G21-v2/evaluation_request.json"
+    },
+    "broad_provider_label_evaluation": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/delivery/final-report.ko.md",
+    "formal_reference_grid_evaluation": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/final-report.ko.md",
+    "post_evaluation_repair": {
+      "id": "map-decoder-repair-v1",
+      "run_root": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1",
+      "status": "repair-experiments-complete-not-adopted",
+      "source_document": "docs/AUTORESEARCH.md#source-cost-and-map-selection-repair-study",
+      "report": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/report.ko.md",
+      "results": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/results-summary.json",
+      "reproduction": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/REPRODUCE.md",
+      "formal_sources": 44,
+      "broad_sources": 2604,
+      "new_policies_on_formal44": 18,
+      "new_policies_on_broad2604": 12,
+      "strict_broad_bar_denominator": 2363,
+      "primary_tolerance_seconds": 0.03,
+      "G21_bar_F1_formal_broad": [
+        0.8062100556525925,
+        0.8010716107353281
+      ],
+      "candidate_A": {
+        "method": "role_meter_suffix_mdl",
+        "entry_point": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/prefix_api.py",
+        "bar_F1_formal_broad": [
+          0.8157470716433161,
+          0.8085104359498998
+        ],
+        "bar_losses_formal_broad": [
+          1,
+          50
+        ]
+      },
+      "candidate_B": {
+        "method": "coded_literal_phase_role_suffix_mdl",
+        "entry_point": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/hierarchical_predictor.py",
+        "bar_F1_formal_broad": [
+          0.8174844458141258,
+          0.8045559741714519
+        ],
+        "bar_losses_formal_broad": [
+          1,
+          66
+        ]
+      },
+      "quarter_clock_and_tempo_events_preserved": true,
+      "new_changing_path_search": false,
+      "fresh_G21_API_calls_from_existing_observations": 8,
+      "neural_inference_calls": 0,
+      "independent_validation": false,
+      "baseline_or_app_replaced": false,
+      "additional_data_or_compute_block": null,
+      "preserved_failed_wrapper_or_legality_attempts": 4,
+      "review_source_snapshot": "reference/decoder_review/20261022/selection_repair"
+    }
+  },
+  "next_objective": {
+    "id": "broad-observation-to-map-data-expansion",
+    "status": "requested-broad-and-formal-comparisons-complete",
+    "title": "Broad decoder comparison and formal-sample follow-up",
+    "goal": "Evaluate continuous tempo-map decoding across broader musical styles using declared provider-reference capabilities and frozen source selection.",
+    "source_document": "docs/AUTORESEARCH.md#broad-observation-to-map-evaluation",
+    "primary_evaluation_target": "observation-to-tempo-map decoder",
+    "beat_this_training_overlap_excludes_dataset": false,
+    "existing_GTZAN": {
+      "original_feature_clips": 999,
+      "qualified_rows": 472,
+      "unique_qualified_feature_groups": 465,
+      "development_groups": 280,
+      "validation_groups": 87,
+      "formerly_reserved_groups_later_consumed": 98,
+      "all_465_are_known_material": true,
+      "complete_G21_full_set_evaluation_performed": false
+    },
+    "collection_run": "data/research/runs/observation_corpus_expansion_v1/20261017-remaining-collection-v1",
+    "remaining_collection_run": "data/research/runs/observation_corpus_expansion_v1/20261017-remaining-collection-v1",
+    "remaining_collection_status": "enumerated-with-unavailable-sources",
+    "live_collection_status": "data/research/runs/observation_corpus_expansion_v1/20261017-remaining-collection-v1/raveform-audio-status.json",
+    "datasets": {
+      "BRID": {
+        "state": "inventoried",
+        "original_inputs": 367,
+        "source_reference_pairs": 93,
+        "provider_event_qualification": {
+          "strict_source_extent_inputs": 93,
+          "limited_overlap_inputs": 0,
+          "downbeat_eligible_inputs": 93,
+          "tempo_grid_eligible_inputs": 0
+        }
+      },
+      "Ballroom": {
+        "state": "inventoried",
+        "original_inputs": 685,
+        "source_reference_pairs": 685,
+        "catalog_entries_without_source": 13,
+        "provider_event_qualification": {
+          "strict_source_extent_inputs": 684,
+          "limited_overlap_inputs": 1,
+          "downbeat_eligible_inputs": 685,
+          "tempo_grid_eligible_inputs": 0
+        }
+      },
+      "SMC": {
+        "state": "inventoried",
+        "original_inputs": 217,
+        "source_reference_pairs": 217,
+        "provider_downbeats": false,
+        "provider_event_qualification": {
+          "strict_source_extent_inputs": 217,
+          "limited_overlap_inputs": 0,
+          "downbeat_eligible_inputs": 0,
+          "tempo_grid_eligible_inputs": 0
+        }
+      },
+      "Hainsworth": {
+        "state": "inventoried",
+        "original_inputs": 222,
+        "source_reference_pairs": 222,
+        "provider_downbeats": true,
+        "provider_event_qualification": {
+          "strict_source_extent_inputs": 222,
+          "limited_overlap_inputs": 0,
+          "downbeat_eligible_inputs": 222,
+          "tempo_grid_eligible_inputs": 0
+        }
+      },
+      "Raveform": {
+        "state": "inventoried-with-unavailable-sources",
+        "annotated_target_rows": 1423,
+        "rows_attempted": 1423,
+        "original_inputs": 1387,
+        "source_reference_pairs": 1387,
+        "collection_failed_sources": 36,
+        "reference_container_extent_flags": 10,
+        "source_reference_alignment_qualified": false,
+        "provider_event_qualification": {
+          "strict_source_extent_inputs": 1364,
+          "limited_overlap_inputs": 23,
+          "downbeat_eligible_inputs": 1387,
+          "tempo_grid_eligible_inputs": 1343
+        },
+        "reference_decoded_extent_flags": 23,
+        "provider_tempo_grid_inconsistent_acquired_inputs": 44
+      }
+    },
+    "collection_counts": {
+      "scope": "Completed BRID, Ballroom, SMC, Hainsworth and curated Raveform inventories; existing GTZAN excluded. Inputs include274 unannotated auxiliaries.",
+      "source_inputs_available": 2878,
+      "source_provider_beat_reference_pairs": 2604,
+      "audio_inputs": 1754,
+      "original_feature_inputs": 1124,
+      "native_tempo_map_qualified": 0,
+      "new_model_or_evaluation_runs": 0,
+      "new_formal_enrollment": 0,
+      "stage": "Collection snapshot only; subsequent evaluation counts are recorded separately."
+    },
+    "reference_protocol_complete": true,
+    "preserve_frozen_G21_and_L2": true,
+    "source_limits": {
+      "ASAP": "Outside the current musical scope",
+      "Harmonix": "Deferred",
+      "Metric Modulations": "No confirmed compatible independent audio route"
+    },
+    "audio_quality_policy": "Best available original provider audio without transcoding or storage-driven target reduction.",
+    "collection_summary": "data/research/runs/observation_corpus_expansion_v1/20261017-remaining-collection-v1/collection-summary.json",
+    "collection_storage_receipt": "data/research/runs/observation_corpus_expansion_v1/20261017-remaining-collection-v1/storage-receipt.json",
+    "source_collection_pass_complete": true,
+    "source_downloads_active": false,
+    "evaluation_run": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1",
+    "evaluation": {
+      "status": "complete-evidence-and-interpretation-reviewed",
+      "protocol_frozen_at_utc": "2026-10-17T20:07:14.311737+00:00",
+      "provider_rows": 2927,
+      "eligible_inputs": 2604,
+      "strict_source_extent_inputs": 2580,
+      "limited_overlap_inputs": 24,
+      "primary_input_method_cases": 7812,
+      "all_proxy_condition_cases": 23436,
+      "proxy_case_count_includes_explicit_input_equivalent_reuse": true,
+      "models": [
+        "G21 FULL",
+        "L2_DENSE_PROPOSALS",
+        "application fixed linear estimator"
+      ],
+      "reference_scope": "provider annotation agreement; native ideal-map, written-meter and independently certified intentional-change metrics unsupported",
+      "initial_assistance": "Reference-derived initial annotated-pulse unit proxy; numerical hint discarded before fitting; not a measured human tap or certified written-quarter reference.",
+      "event_tolerances_seconds": [
+        0.01,
+        0.02,
+        0.03,
+        0.07
+      ],
+      "primary_event_tolerance_seconds": 0.03,
+      "shared_sensor": "local official final0, CPU; original published features have no synthetic PCM accents",
+      "provider_pulse_eligible_inputs": 2604,
+      "provider_downbeat_eligible_inputs": 2387,
+      "provider_tempo_grid_eligible_inputs": 1343,
+      "multiple_BPM_consistent_provider_tempo_grids": 269,
+      "audio_full_decode_and_strict_codec_passed": 1754,
+      "original_feature_identity_shape_finite_passed": 1124,
+      "original_reference_components_release_identical": 2733,
+      "execution_pilot": {
+        "inputs": 6,
+        "condition_method_outputs": 54,
+        "fixed_adapter_parity_passed": 6,
+        "infrastructure_errors": 0
+      },
+      "broad_performance_conclusion_available": true,
+      "qualification_report": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/qualification/qualification-report.ko.md",
+      "frozen_protocol": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/inference-freeze.json",
+      "live_progress": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/campaign-status.json",
+      "checkpoint": {
+        "stopped_at_utc": "2026-10-18T09:37:30.300483+00:00",
+        "prepared_inputs": 2066,
+        "primary_result_receipts": 4013,
+        "primary_score_receipts": 4011,
+        "all_condition_result_receipts": 12035,
+        "all_condition_score_receipts": 12033,
+        "saved_artifact_files_verified": 69734,
+        "resume_preflight_passed": true,
+        "checkpoint_receipt": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/execution-paused.json",
+        "complete_results_pending": false,
+        "status": "resumed-and-completed",
+        "resumed_at_utc": "2026-10-18T17:10:13.588757+00:00",
+        "checkpoint_counts_are_pause_snapshot": true
+      },
+      "execution_manager": "transient user service",
+      "all_eligible_source_preparations_complete": true,
+      "recovery_checkpoint": {
+        "prepared_inputs": 2604,
+        "primary_result_receipts": 5422,
+        "primary_score_receipts": 5422,
+        "all_condition_result_receipts": 16266,
+        "counts_are_checkpoint_snapshot": true,
+        "frozen_model_and_reference_bindings_verified": true,
+        "receipt": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/recoveries/20261018T233031Z/recovery-receipt.json"
+      },
+      "completed_at_utc": "2026-10-19T05:29:28.229641+00:00",
+      "actual_method_invocations": 7853,
+      "input_equivalent_reuses": 15583,
+      "invalid_or_unavailable_case_rows": 9,
+      "infrastructure_gaps": 0,
+      "primary_metric_denominators": {
+        "strict_provider_pulse": 2580,
+        "strict_literal_quarter": 2580,
+        "strict_provider_bar": 2363
+      },
+      "primary_macro_f1_30ms": {
+        "G21": {
+          "provider_pulse": 0.834786885785244,
+          "literal_quarter": 0.835213987431498,
+          "provider_downbeat": 0.8010716107353281
+        },
+        "L2": {
+          "provider_pulse": 0.8328716685466282,
+          "literal_quarter": 0.8334424862490769,
+          "provider_downbeat": 0.7996166706240436
+        },
+        "LINEAR_FIXED": {
+          "provider_pulse": 0.7894015773391764,
+          "literal_quarter": 0.7894015773391764,
+          "provider_downbeat": 0.7614826434424162
+        }
+      },
+      "paired_G21_L2_pulse_wins_ties_losses": [
+        117,
+        2383,
+        80
+      ],
+      "paired_G21_L2_bar_wins_ties_losses": [
+        79,
+        2233,
+        51
+      ],
+      "G21_L2_primary_elapsed_ratio": {
+        "n": 2604,
+        "sum": 4380.593178674095,
+        "mean": 1.6822554449593299,
+        "median": 1.6524316018428946,
+        "p95": 2.071282352448799,
+        "maximum": 4.116280842507647,
+        "above_two_times_rows": 180,
+        "at_most_two_times_rows": 2424,
+        "rows_without_paired_positive_timing": 0
+      },
+      "evidence_audit_passed": true,
+      "saved_report_reproduction_passed": true,
+      "scientific_interpretation_review_complete": true,
+      "conclusion": "Small G21 average provider-event gain over L2 with per-input regressions and additional cost; near tie on long Raveform audio. Provider BPM agreement does not certify intended changing maps or independent generalization.",
+      "report": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/delivery/final-report.ko.md",
+      "scientific_review": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/delivery/scientific-review.json",
+      "final_artifact_manifest": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/delivery/final-artifact-sha256.json"
+    },
+    "formal_follow_up": {
+      "status": "complete-evidence-and-interpretation-reviewed",
+      "catalog_entries_at_authorization": 44,
+      "catalog_authority": "data/samples/catalog.json",
+      "authorization": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/goal-addendum-20261018-formal-comparison.json",
+      "membership_snapshot": "data/research/runs/broad_map_evaluation_v1/20261018-full-corpus-v1/formal-follow-up-catalog-snapshot.json",
+      "scope": "Separate selected-reference/support qualification and three-method comparison; known development materials, not independent generalization.",
+      "completed": true,
+      "run": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1",
+      "qualified_formal_inputs": 44,
+      "source_roles": {
+        "complete_recordings": 33,
+        "original_excerpts": 10,
+        "approved_synthetic": 1
+      },
+      "primary_method_cases": 132,
+      "all_condition_cases": 396,
+      "initial_unit_condition": "accepted-quarter-grid discrete assistance; 97/100/103 percent sensitivity",
+      "prediction_origin_reference_rows": 1,
+      "historical_audio_digest_unrecorded_rows": 1,
+      "source_and_selected_reference_qualification_complete": true,
+      "inference_freeze": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/inference-freeze.json",
+      "inference_freeze_sha256": "cc9ea57f669410291657cb628f22a04f8166644253c59bb0c40d71000f660682",
+      "completed_at_utc": "2026-10-19T07:14:45.296744+00:00",
+      "calculation_completed_at_utc": "2026-10-19T06:22:52.891243+00:00",
+      "actual_fresh_invocations": 132,
+      "input_equivalent_reuses": 264,
+      "invalid_map_cases": 0,
+      "evidence_audit_passed": true,
+      "saved_report_reproduction_passed": true,
+      "scientific_interpretation_review_complete": true,
+      "report": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/final-report.ko.md",
+      "combined_report": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/combined-report.ko.md",
+      "scientific_review": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/scientific-review.json",
+      "resource_companion": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/resources-and-diagnostics.json",
+      "final_artifact_manifest": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/final-artifact-sha256.json",
+      "primary_macro_F1_30ms": {
+        "G21": {
+          "accepted_quarter": 0.8865736300833152,
+          "accepted_click": 0.8760161797818657,
+          "accepted_bar": 0.8062100556525925
+        },
+        "L2": {
+          "accepted_quarter": 0.8829028070297773,
+          "accepted_click": 0.8692235878585274,
+          "accepted_bar": 0.7921340280227581
+        },
+        "LINEAR_FIXED": {
+          "accepted_quarter": 0.8520850099200152,
+          "accepted_click": 0.847971208649701,
+          "accepted_bar": 0.8049843744930716
+        }
+      },
+      "paired_G21_L2_quarter_wins_ties_losses": [
+        3,
+        41,
+        0
+      ],
+      "paired_G21_L2_bar_wins_ties_losses": [
+        2,
+        40,
+        2
+      ],
+      "G21_L2_primary_elapsed_ratio": {
+        "n": 44,
+        "median": 1.7421181242923542,
+        "mean": 1.7807125220715407,
+        "p95": 2.0660358347499614,
+        "maximum": 2.6378545587319913,
+        "above_two_times_rows": 3
+      },
+      "conclusion": "Small average G21 quarter gain over L2, with bar tradeoffs and added cost; formal bar average is nearly tied with fixed. Accepted changing-map recovery remains incomplete and is not independent generalization.",
+      "execution_receipt": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/pipeline-status.json",
+      "automatic_reporting_receipt": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/postprocess-status.json",
+      "completion_status": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/completion-status.json"
+    },
+    "further_research_scheduled": false,
+    "combined_delivery": "data/research/runs/formal_map_comparison_v1/20261019-current44-v1/delivery/combined-report.ko.md",
+    "record_role": "completed_evaluation; historical key retained for compatibility"
   },
   "contracts": {
     "source_candidates_precede_tap": true,
-    "initial_tap_proxy_offsets_percent": [-3, 0, 3],
+    "initial_tap_proxy_offsets_percent": [
+      -3,
+      0,
+      3
+    ],
     "numeric_tap_discarded_after_discrete_initial_unit_selection": true,
     "initial_phase_parameters": 1,
     "independent_phase_resets_after_start": false,
-    "change_declarations": "Existing notated beat boundaries; partial-bar declarations allowed.",
+    "change_declarations": "New or moved signature declarations use existing notated beat boundaries; partial bars are allowed. Value edits preserve the declaration position.",
+    "map_declaration_edits": "Tempo/signature additions, changes and deletions preserve the absolute audio times of other declarations; bar/beat labels are recalculated. Explicit moves change only selected declaration times.",
     "known_clicks_continue_during_uncertainty": true,
     "equivalent_readings_do_not_excuse_unnecessary_changes": true,
     "reference_and_prediction_projects_are_separate": true,
@@ -129,150 +533,61 @@
     "application_reference_material": "apps/daw/reference",
     "maintained_operations": "tools",
     "navigation_and_historical_results": "docs",
-    "originals_and_research_evidence": "data"
+    "originals_and_research_evidence": "data",
+    "review_source_snapshots": "reference/decoder_review"
   },
-  "authorization": {
-    "source_commits_and_pushes": "owner-operated",
-    "new_experiments": "require an applicable owner request",
-    "private_notes": "standing exact-path main-only publication delegation",
-    "documentation_or_current_status_does_not_start_pending_work": true
-  },
-  "historical_circle_roadmap": {
-    "status": "planned-not-executed-by-reorganization",
-    "primary_recording": "Spiritbox - Circle With Me",
-    "sample_id": "legacy_circle",
-    "recorded_run_id": "r003",
-    "goal": "Track all three genuine small tempo changes while preserving bar phase and avoiding the erroneous final 2/4 declaration.",
-    "reference_transition_source_seconds": [
-      147.60216277313233,
-      184.1735548324585,
-      205.24670072861764
-    ],
-    "baseline_successful_tempo_boundaries": 0,
-    "baseline_eligible_tempo_boundaries": 3,
-    "baseline_pulse_valid_fraction": 0.7876068376068376,
-    "baseline_joint_stable_map_fraction": 0.6307692307692307,
-    "additional_small_change_comparisons": [
-      "Underoath - Desperate Times, Desperate Measures",
-      "Bullet For My Valentine - Over It"
-    ],
-    "fixed_regression_listening": [
-      "Real Friends - Waiting Room",
-      "In Flames - Meet Your Maker",
-      "Maxime Solemn - Breathe Fire",
-      "Mick Gordon - BFG Division"
-    ]
-  },
-  "current_research": {
-    "id": "autoresearch-v2-20261013",
-    "status": "closed-scoped-candidate-full-L2-not-adopted",
-    "documentation_updated_date": "2026-10-14",
-    "run_root": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2",
-    "source_document": "docs/AUTORESEARCH.md",
-    "private_topic_document": "_local/docs/VARIABLE_CLOCK_EXPLORATION.md",
-    "primary": {
-      "trial": "trial006",
-      "code": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/trials/trial006/candidate",
-      "scope": "Same preserved source-fitted initial map; held meter; complete continuous audio map",
-      "rank_objective": [
-        0.25,
-        0.25
-      ],
-      "direct_baseline_method": "PINNED_INITIAL_HELD_METER_L2",
-      "direct_baseline_rank_objective": [
-        0.16541267669858642,
-        0.16541267669858642
-      ],
-      "successful_boundaries": 3,
-      "direct_baseline_successful_boundaries": 2,
-      "known_development_boundaries": 17,
-      "known_development_recordings": 4,
-      "formal_L2_entry_replaced": false
+  "research_history": [
+    {
+      "candidate": "trial006",
+      "scope": "Held source-fitted initial and meter; full-search comparison regressed",
+      "full_comparison_pairs_completed": 29,
+      "full_comparison_pairs_expected": 30,
+      "documentation": "docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14"
     },
-    "parents": {
-      "fixed": "trial001_H7",
-      "coverage": "trial002_H4",
-      "speed": null,
-      "H3_disposition": "Faster paired timing but primary coverage regression; rejected"
-    },
-    "verification": {
-      "held_map_known_fixed_complete": 16,
-      "held_map_known_original_excerpts": 10,
-      "primary_and_H7_held_map_no_loss": true,
-      "full_L2_existing_baseline_reproduced": 26,
-      "full_L2_fixed_or_excerpt_regressions": 4,
-      "full_L2_pairs_completed": 29,
-      "full_L2_pairs_expected": 30,
-      "full_L2_incomplete_baseline_comparators": 1,
-      "full_L2_verified": false,
-      "fresh_raw_preparation_three_repeat_control_complete": false,
-      "generalization_verified": false,
-      "Windows_listening_verified": false,
-      "owner_approved_numerics": false
-    },
-    "budget": {
-      "submissions": 12,
-      "submission_limit": 24,
-      "probes": 5,
-      "probe_limit": 6,
-      "combined_timing_candidates": 2,
-      "timing_candidate_limit": 2,
-      "campaign_elapsed_minutes": 147.4863666653633,
-      "clock_reset": false,
-      "setup_closure_late_seconds": 210.93384504318237,
-      "validation_inference_auto_stopped_at_cap": true,
-      "validation_closure_late_seconds": 29.609130382537842
-    },
-    "local_time": {
-      "started": "2026-10-13T16:30:32.313661+09:00",
-      "finished": "2026-10-13T18:58:01.495661+09:00",
-      "timezone": "Asia/Seoul"
-    },
-    "evidence": {
-      "campaign_status": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-status.json",
-      "report": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/report.ko.md",
-      "boundary_comparison": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/boundary-comparison.tsv",
-      "input_and_evaluator_freeze": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/seal.json",
-      "validation_plan": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation-plan.json",
-      "known_held_map_regression": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/known/result.json",
-      "failed_full_L2_bridge": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/l2/result.json",
-      "corrected_full_L2_regression": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/validation/l2-corrected-unit/result.json",
-      "limits": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/verification-limitations.json",
-      "lineage": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/lineage.json",
-      "listen_guide": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/listen-guide.ko.md",
-      "listen_project_count": 56,
-      "reproduction": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/reproduce.md",
-      "resume": "data/research/runs/autoresearch_run_v2/20261013-campaign-v2/resume.md"
-    },
-    "preservation": "Closed runs and their artifact manifests remain unedited; no app change or algorithm deployment.",
-    "handoff_audit": {
-      "date": "2026-10-14",
-      "receipt": "data/storage/20261014-autoresearch-handoff-audit-v1/audit.json",
-      "report": "data/storage/20261014-autoresearch-handoff-audit-v1/report.ko.md",
-      "notes_publication_receipt": "data/storage/20261014-autoresearch-handoff-audit-v1/notes-publication.json",
-      "notes_published_commit": "f317f5bdc133daf026afe91a891e41470cad9348",
-      "source_HEAD_at_audit": "52c78ef2a1db3675869cb729609181f68a9ffb7c",
-      "closed_campaign_restarted": false,
-      "declared_local_inputs_and_artifacts_present": true,
-      "content_hashes_revalidated": false,
-      "same_PC_handoff_available": true,
-      "fresh_machine_recovery_ready": false,
-      "earlier_checkpoint_AutoResearch_coverage_rows": 0,
-      "newer_remote_research_backup_verified": false,
-      "safe_status_commands": [
-        "python3 -B tools/repository/status.py",
-        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-status.json",
-        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/campaign-clock.json",
-        "python3 -B -m json.tool data/research/runs/autoresearch_run_v2/20261013-campaign-v2/session/state.json"
-      ],
-      "archived_invoke_status_mutates_logs": true,
-      "next_campaign_protocol_frozen": false,
-      "next_campaign_clock_started": false,
-      "next_campaign_budget_approved": false,
-      "next_comparators_to_prescribe": [
-        "PINNED_INITIAL_HELD_METER_L2",
-        "trial006 incumbent under same input contract"
-      ]
+    {
+      "study": "Full L2 regression diagnosis",
+      "completed_cells": 240,
+      "full_pairs": 30,
+      "held_pairs": 30,
+      "reproduced_regressions": 4,
+      "documentation": "docs/AUTORESEARCH.md#full-l2-regression-diagnosis--2026-10-14"
     }
+  ],
+  "review_preparation": {
+    "as_of_date": "2026-10-22",
+    "status": "current-state-review-prepared",
+    "source_document": "docs/RESEARCH_REVIEW.md",
+    "source_snapshot": "reference/decoder_review/20261022",
+    "snapshot_manifest": "reference/decoder_review/20261022/manifest.json",
+    "aggregate_results": "reference/decoder_review/20261022/evaluation-summary.json",
+    "all_policy_comparison": "reference/decoder_review/20261022/policy-comparison.csv",
+    "purpose": "Technical review of current methods, measured outcomes, limitations and open questions",
+    "snapshot_runtime_entry": false,
+    "frozen_originals_preserved": true,
+    "new_experiments_for_review_preparation": false,
+    "next_architecture_selected": false,
+    "proposal_status": "Unselected, unranked possibilities for review; no established replacement or execution schedule",
+    "possible_directions": [
+      {
+        "status": "proposal",
+        "question": "Could source costs compare initial clocks, partial paths and completed maps more consistently?",
+        "limit": "Additivity alone did not prevent losses in the executed full-pool substitutions."
+      },
+      {
+        "status": "proposal",
+        "question": "Could time-directed search or a different path budget retain useful short episodes and returns?",
+        "limit": "No new tempo-path search was implemented in the selection-refinement study; broader search may also select worse maps."
+      },
+      {
+        "status": "proposal",
+        "question": "Could bar/accent roles and initial bar phase be distinguished more reliably while preserving quarter-clock quality?",
+        "limit": "Both implemented A/B refiners retain per-input regressions and do not improve tempo-change detection."
+      },
+      {
+        "status": "open_question",
+        "question": "How much error arises from source admission, observation ambiguity or reference precision rather than path selection?",
+        "limit": "Provider event labels do not certify written-meter or intentional-change correctness."
+      }
+    ]
   }
 }

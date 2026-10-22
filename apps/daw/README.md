@@ -1,15 +1,36 @@
 # Joljak audio workspace
 
-Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.6.15**.
+Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.6.17**.
 
-Project development now uses the owner-selected **L2 variable baseline**;
-see [current development](../../docs/DEVELOPMENT.md) and the
-[code map](../../docs/CODE_MAP.md). This application still uses its fixed-only
-Analyze command. Current source is in `src/`, `electron/`, `backend/` and
+Editing, adding or deleting a tempo/signature declaration keeps other declarations
+at their existing audio times. Moving selected declarations moves those points by
+the requested time shift while other points stay in place. Bar/beat labels follow
+the revised grid. Linear audio stays at its time; Musical audio follows its quarter
+anchors, with unchanged duration and playback speed.
+
+Variable-tempo inference is developed separately from this application; see
+[development status](../../docs/DEVELOPMENT.md) and the [code map](../../docs/CODE_MAP.md).
+The application uses its fixed-only Analyze command. Current source is in `src/`, `electron/`, `backend/` and
 `scripts/`; recorded UI checks, design references and the earlier remote installer
 are in [reference/](reference/README.md).
 
 The initial design target is fewer than ten tracks and projects under thirty minutes. Analysis produces one constant BPM, time signature and downbeat offset for a selected song or range. The project map can contain multiple editable tempo and signature events.
+
+## Audio cache lifetime
+
+Decoded audio caches now follow the editing session. Reimporting an unchanged
+linked source reuses its decoded buffers, while clips keep separate identities.
+The current project and its retained Undo/Redo assets remain available. Switching
+projects releases unused buffers after active audio jobs finish; normal exit
+removes regenerable decoded caches. Startup also retries cleanup after a crash.
+Original recordings, copied media, saved projects, automatic recovery and analysis
+records remain stored. Buffers whose originals are missing or changed are retained.
+
+Opening a saved project or accepting automatic recovery rebuilds missing buffers
+from the original audio. That can briefly show decoding progress; it does not
+change the tempo/signature map, original sample geometry, dirty state or Undo
+history. The cache lives under `%APPDATA%\Joljak\workspace\audio-cache` unless
+an explicit `JOLJAK_DATA` workspace is configured.
 
 ## Review formal samples in the DAW
 
@@ -35,7 +56,7 @@ boundary falls between project bars, the app identifies that import limitation
 and keeps the approved click available. Stored reference evidence remains separate
 from analysis inputs and raw model predictions.
 
-Hospital Hill also has the owner-requested **Compare 102 / 110 BPM** and **Open
+Hospital Hill also provides **Compare 102 / 110 BPM** and **Open
 102 / 110 draft** options. The comparison preserves the first approved downbeat
 and original musical quarter positions, then recomputes subsequent clock times;
 it does not silently reset phase at each original change timestamp.
@@ -56,12 +77,12 @@ For development, run **`Start Joljak.cmd`** in the repository root from Windows 
 The portable folder is `dist/Joljak-win-x64/` at the repository root. Updating this folder does not update the ZIP. An existing ZIP can seed the development cache, after which the launcher copies current application files from the checkout.
 
 After one launch through **Start Joljak.cmd**, Windows associates `.joljak` files
-with the current development executable for this user. Double-click opens the
+with the current development executable for the current Windows account. Double-click opens the
 project, including paths with spaces or Unicode. An existing instance receives
 the request in its current window. Opening the same file preserves its current
 unsaved state; opening a different file uses the ordinary unsaved-work confirmation.
 An explicit startup file takes priority over automatic recovery. Close an older
-running app and relaunch once after updating to 0.6.13. File → Open Project remains
+running app and relaunch once after updating. File → Open Project remains
 available. The registration uses HKCU and leaves Windows' protected UserChoice intact.
 
 ## Basic workflow
@@ -128,7 +149,7 @@ are magnified for visibility; this does not change playback gain or audio data.
 
 ## Review newly collected candidates
 
-Agents prepare `daw-review.json` from retained supplied-clock records following
+A `daw-review.json` descriptor pairs retained audio with supplied-clock records following
 the [collection workflow](../../tools/ntm_collection/README.md#prepare-and-review-a-batch-in-joljak).
 Use **Samples → Open candidate review…** and open that descriptor. Candidates
 remain labelled unaccepted and do not appear as new formal enrollment.
@@ -137,9 +158,9 @@ The Inspector shows **Initial proposal**, **Alignment adjustment** and **Total
 working offset**. For example, a +30 ms source offset with +20 ms adjustment means
 a +50 ms total working offset. **Audition original candidate click** retains the
 initial proposal; the ordinary working project click follows edited map/placement.
-Use **Save sample draft** to retain the proposed project and total offset, then
-report the desired reference and reviewed scope to the agent. Explicit approval
-is separate from draft saving.
+Use **Save sample draft** to retain the working project and total offset.
+Reference registration is a separate operation that records the chosen map,
+source timing and reviewed scope; draft saving does not change the accepted reference.
 
 Candidate workspaces add whole-bar project lead-in so positive source-offset
 alternatives can move audio earlier while keeping it inside the project. This
@@ -335,7 +356,7 @@ Older v1 projects open with preserved audio placement and saved predictions, who
 
 Source-rate PCM is used for analysis. Streamed SoXR HQ 48 kHz PCM is used for playback and audio export. WAV mix, stems and click share the selected start, sample rate and frame length. Stems respect mute/solo, volume, pan and master gain. Mono uses pan; stereo uses balance. Overlapping events follow the same front-event priority in playback and rendering.
 
-Opening a project or recovering a session restores the decoded playback rate and frame count from the local cache. This also supports generated listening projects that store only original-audio metadata. Incomplete caches are regenerated on project opening. Original sample-rate geometry, clip timing and tempo/signature maps remain unchanged. If 44.1 kHz audio sounded lower and slower after reopening in an older build, close Joljak and run **Start Joljak.cmd** to load 0.6.15, then open the same project again.
+Opening a project or recovering a session restores the decoded playback rate and frame count from the local cache. This also supports generated listening projects that store only original-audio metadata. Incomplete caches are regenerated on project opening. Original sample-rate geometry, clip timing and tempo/signature maps remain unchanged. If 44.1 kHz audio sounded lower and slower after reopening in an older build, close Joljak and run **Start Joljak.cmd** to load the current version, then open the same project again.
 
 JSON retains whole-project values separately from declared map coordinates, saved source-relative clocks and raw analyses. MIDI includes the active tempo/signature at its export origin as required for playback. It is a quantized interchange derivative with export-origin/bar markers, rather than an exact recording of the original source clock.
 
@@ -403,33 +424,16 @@ For a separate Windows PC connected with VS Code Remote SSH, run `npm run dev` o
 
 ## Validation status and limits
 
-| Version | Available evidence |
-| --- | --- |
-| Initial implementation | [Windows integration audit](reference/audits/README.md): 64 editing, playback, analysis, persistence, recovery and export cases, with recorded measurements and fixture limits. |
-| 0.4.2 | Import/track workflow comparison against native Cubase and controlled material. |
-| 0.4.4 | Audio-editing workflow comparison and timeline observations. |
-| 0.5.0 | Vite build and Windows app-file refresh; no new runtime, playback, regression, export round-trip or inference results. |
-| 0.6.0 | Formal sample library, source-reference audition and separate draft storage; Vite build and Windows app-file refresh only. No new app runtime, playback, persistence, export or inference checks. |
-| 0.6.1 | Louder click default and +12 dB relative control range; imported candidate-review descriptors and explicit total-offset proposals. Vite build and Windows app-file refresh only; no new runtime/playback or model checks. |
-| 0.6.2 | Combined candidate queues, source-only listening/manual drafts, source-description context and whole-bar lead-in for positive alignment proposals. Syntax parsing, Vite build and Windows app-file refresh only; no new runtime/playback, persistence, export or model checks. |
-| 0.6.3 | Unified Bars+Beats position entries for tempo, signature, audio, ranges and import placement, with matching Inspector/Info Line controls. Vite build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
-| 0.6.4 | Mixed audio/tempo/signature selection, cross-lane marquee, Ctrl A, atomic group movement and Bars/Beats shift controls with retained start state. UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
-| 0.6.5 | Whole-project tempo/signature values without automatic start points, cursor declarations from Transport, editable/removable first points, and compatible in-memory project migration. Basic syntax parsing, UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
-| 0.6.6 | Analysis application uses whole-project values for kinds without declared points and supports explicit reapplication of saved analysis to repair 0.6.5 placement. UI build and Windows app-file refresh only; no new runtime/playback, persistence, export, regression or model checks. |
-| 0.6.7 | First UI refinement: compact Project-window chrome, menus and zone controls, resizable panels, lower-zone tabs, restored Info Line fields, compact Inspector controls, volume/pan history correction, shared map-position collision checks, and T/Space tap feedback. Vite build and Windows app-file refresh only; no new app runtime/playback, persistence, export, regression or model checks. |
-| 0.6.8 | Unit 1 review fixes: toolbar sizing/scrollbar visibility, a legible import hint above the grid, neutral pan rails, and pan-center/0 dB reference lines and snapping. Vite build and Windows app-file refresh only; Windows interaction review remains with the owner. No new runtime/playback, persistence, export, regression or model checks. |
-| 0.6.9 | First focused refinement unit: shared numeric/gain/segmented-position controls, selection context, cancellation and text/project Undo routing. TypeScript/Vite build and Windows app refresh; 17 focused native Windows checks passed, with normal/small-window and invalid-input screenshots. Uses generated WAVs and isolated profiles; controlled dialogs and clipboard/pointer-cancel events. No fresh inference, export certification or long-run performance benchmark. |
-| 0.6.10 | Owner U1 feedback: footer BPM always declares at the captured cursor; integer BPM steps, unfocused hover wheel, fixed decimal/segment widths, live linked placement/trimming, and Inspector duplicate-key repair. TypeScript/Vite build and Windows app refresh; 11 focused native Windows checks passed, including 24 alternating duplicated-track selections and normal/1024x720 layouts. No fresh inference, export audit or long-run benchmark. |
-| 0.6.11 | Cursor drag clamps after grab-offset correction, fixing the 5 px origin residue; ruler/body stems share 1 px width and a painted coordinate, with a separate handle hit area. TypeScript/Vite and Windows app refresh; 7 focused native checks passed, including 16 off-center origin drags, playing-state behavior and cursor geometry. No inference, export audit or DPI sweep. |
-| 0.6.12 | Approved U2 workspace: compact chrome/Info Line/Inspector/Transport, timeline zoom footer, map visibility, display-only waveform magnification and one captured-context menu owner. TypeScript/Vite and app refresh; 13 distinct focused native UX checks plus a keyboard recheck passed at DPR 1, including real-playback value capture and range/mixed selection. See the audit README for limits. No fresh inference, full persistence/export audit or DPI sweep. |
+| Area / revision | Recorded evidence | Remaining scope |
+| --- | --- | --- |
+| Initial integration | 64 Windows editing, playback, analysis, persistence, recovery and export cases | Specific revision and fixtures; see the [integration audit](reference/audits/README.md) |
+| Controls and workspace, 0.6.9–0.6.12 | Focused native Windows checks for numeric editing, selection, cursor geometry and workspace/context menus | No comprehensive current-version playback/export/DPI regression |
+| Map declaration geometry, 0.6.16 | 13 focused geometry checks, including preservation of later declaration times after deletion | Current-version Windows interaction and playback review |
+| Decoded-cache lifetime, 0.6.17 | Syntax parsing, TypeScript compilation, frontend build and Windows app-file assembly | Native cache regeneration, recovery and playback checks |
 
-`npm run build` bundles the frontend; it does not run TypeScript project-wide type checking or the audit suites. Build, packaging and startup do not run audits or accuracy benchmarks. Earlier observations describe their respective revisions.
+`npm run build` bundles the frontend; project-wide TypeScript checking is a separate operation. Builds and packaging do not execute accuracy benchmarks or certify runtime behavior. Earlier observations retain their version-specific scope in [validation history](reference/VALIDATION_HISTORY.md).
 
-The 2026-10-07 benchmark evaluated 280 GTZAN development groups, 87 separate
-validation groups and 58 generated musical inputs outside the application.
-Its model scores and implementation-contract controls do not certify 0.5.0
-startup, playback, project persistence or export behavior. The app-file version
-and runtime-validation status in the table remain unchanged.
+Algorithm benchmark scores are recorded separately from application startup, editing, playback, project persistence and export validation. The variable-tempo research candidate is not the app analyzer.
 
 Cubase Pro 15 informs familiar editing interactions, including [import](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/importing_audio_and_midi/importing_audio_and_midi_importing_audio_files_t.html), [tool modifiers](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/preferences/preferences_editing_tool_modifiers_r.html), [normal sizing](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/parts_events/parts_and_events_resizing_events_with_the_object_selection_tool_normal_sizing_t.html) and [overlapping audio](https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/track_handling/track_handling_audio_overlapping_handling_t.html). Complete Cubase behavior is outside the implementation scope.
 

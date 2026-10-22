@@ -1,0 +1,101 @@
+{
+  "signatures": [
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      4
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      7,
+      4
+    ]
+  ],
+  "bpm_domain": [
+    30,
+    400
+  ],
+  "rational_denominator": 4,
+  "source_peak_floor": 0.2,
+  "source_run_sigma_seconds": 0.035,
+  "source_run_bad_mass": 1.5,
+  "source_run_budget": 48,
+  "source_minimum_fit_observations": 3,
+  "source_clock_budget": 512,
+  "initial_information_mass": 4.0,
+  "initial_fit_quality": 0.8,
+  "pulse_factors": [
+    0.5,
+    1.0,
+    2.0,
+    0.6666666666666666,
+    1.3333333333333333,
+    0.3333333333333333,
+    1.5,
+    0.75
+  ],
+  "initial_role_radius_log": 0.12,
+  "initial_candidate_budget": 96,
+  "initial_role_merge_log": 0.08,
+  "initial_family_path_reserve": 2,
+  "initial_path_budget": 8,
+  "map_path_budget": 4,
+  "pending_path_budget": 2,
+  "evidence_candidate_reserve": 16,
+  "extension_candidates": 48,
+  "max_declarations": 24,
+  "maximum_stagnant_search_depths": 3,
+  "proposal_phase_tolerance_seconds": 0.08,
+  "neural_sigma_seconds": 0.025,
+  "pcm_sigma_seconds": 0.035,
+  "beat_weight": 0.62,
+  "bar_weight": 0.28,
+  "pcm_weight": 0.1,
+  "observation_role_cost": 0.018,
+  "offbeat_role_cost": 0.025,
+  "tempo_change_cost": 1.2,
+  "meter_change_cost": 1.0,
+  "octave_change_extra_cost": 3.0,
+  "octave_ratio_tolerance": 0.03,
+  "gate_old_ceiling": 0.55,
+  "gate_new_floor": 0.65,
+  "gate_improvement": 0.12,
+  "gate_minimum_source_mass": 2.0,
+  "meter_prior": {
+    "4/4": 0.0,
+    "3/4": 0.006,
+    "6/8": 0.008,
+    "2/4": 0.024,
+    "4/2": 0.04,
+    "5/4": 0.016,
+    "6/4": 0.026,
+    "7/4": 0.018
+  },
+  "family_initial_prior": 0.04,
+  "evidence_clutter_probability": 0.05,
+  "minimum_proposal_pulse_density": 0.8,
+  "decoder_expansion_budget": 12,
+  "decoder_queue_budget": 128
+}

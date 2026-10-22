@@ -52,6 +52,7 @@ def refresh_app(package):
         'T or Space taps inside Analyze Audio, with pressed-button feedback. A tap chooses the metrical layer only. Apply & Align moves the song and linked stems onto the project grid.\n'
         'Use the Tempo/Signature tracks, Linear/Musical track switch and bottom Transport with click volume.\n'
         'Tempo/signature values hold until the next event. Drag the lower ruler/cursor to seek.\n'
+        'Editing or deleting tempo/signature declarations preserves other declarations at their audio times. Explicit moves shift selected points only.\n'
         'Stop keeps the current position; Start resumes. Second Stop returns to playback start.\n'
         'Bottom tempo always declares at the cursor, including the first point. Whole-project base tempo and preceding points are preserved.\n'
         'Bottom signature edits the whole-project value without declarations; otherwise it declares at an existing beat, including inside a bar.\n'
@@ -62,6 +63,7 @@ def refresh_app(package):
         'Drag individual position segments or double-click to paste a full position. Invalid input stays visible with an explanation. Text Undo stays in the active entry.\n'
         'Right-click events, ranges, tracks, empty lanes, ruler or map points for captured-target actions. Numeric readouts have Edit/Copy/Paste/Reset menus; active text keeps Windows text actions.\n'
         'Timeline zoom/scroll/Fit are below the arrangement. View restores the layout or toggles Inspector/maps/lower editors. Right-click Transport position or the ruler for Time Format.\n'
+        'Decoded caches are released when no longer needed and on exit. Originals, projects and recovery remain; missing buffers rebuild on opening.\n'
         'Restore Original Prediction changes saved values only. Apply & Align separately.\n\n'
         'Analysis supports constant tempo and 3/4 or 4/4; tempo and meter changes are not detected automatically.\n'
         'No recordings or accepted reference maps are included.\n', encoding='utf-8')

@@ -2,7 +2,7 @@
 
 **Current role:** shared source preparation, legal beat-boundary search, mismatch gate and native metrics for the selected L2 baseline. E0-E3 remain earlier recorded comparisons. See [the code map](../../docs/CODE_MAP.md).
 
-Owner-authorized redesign and resilient verification, 2026-10-12. This is an
+Recorded redesign and resilient verification, 2026-10-12. This is an
 isolated experiment; the DAW Analyze command and fixed estimator are unchanged.
 
 The intended unit is a musical beat and a source-supported evidence run, rather

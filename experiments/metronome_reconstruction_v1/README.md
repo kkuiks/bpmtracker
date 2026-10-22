@@ -1,6 +1,6 @@
 # Fixed-metronome reconstruction
 
-**Current role:** the fixed-only DAW analyzer and retained fixed comparison. Variable development now uses the owner-selected [L2 entry](../../algorithms/README.md); its adoption does not change this app analyzer or the original frozen cohorts.
+**Current role:** the fixed-only DAW analyzer and retained fixed comparison. Variable development now uses the maintained [L2 entry](../../algorithms/README.md); its adoption does not change this app analyzer or the original frozen cohorts.
 
 Estimate one constant quarter-note BPM, one constant time signature and one global downbeat offset from audio. Beat This supplies beat/downbeat observations; the estimator fits an ideal metronome grid across the input.
 

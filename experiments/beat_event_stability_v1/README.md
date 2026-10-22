@@ -1,8 +1,13 @@
 # Beat-event map stability research
 
-**Current status, 2026-10-13:** L2_DENSE_PROPOSALS is now the owner-selected variable development standard after native listening. Its code/configuration and all measured scores remain unchanged. The development entry is [algorithms/variable](../../algorithms/README.md). Earlier adoption/gate conclusions below are dated results, not a veto on this new baseline.
+**Current role:** measured L2_DENSE_PROPOSALS search, scoring and configuration, exposed through [algorithms/variable](../../algorithms/README.md). The measurements below retain their original cohorts and source versions; current evaluation is summarized in [development status](../../docs/DEVELOPMENT.md).
 
-Owner-authorized focus, 2026-10-12: improve ordinary fixed-song joint pulse/bar
+The latest isolated research candidate is G21; its results and the planned
+next step, broad observation-to-tempo-map data expansion, are maintained in
+[AutoResearch](../../docs/AUTORESEARCH.md) and [development status](../../docs/DEVELOPMENT.md).
+This module retains its dated L2 evidence; it is not a G21 large-corpus result.
+
+Recorded focus, 2026-10-12: improve ordinary fixed-song joint pulse/bar
 validity and prevent unnecessary map changes within the current variable design.
 This module keeps adaptive evidence, old-beat declarations, one initial phase,
 partial-bar signatures, ±3% initial unit-only taps, and uninterrupted clicks.

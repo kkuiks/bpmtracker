@@ -2,7 +2,7 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-Owner-authorized on 2026-10-11 after the role/meter selector failed its focus gate.
+Recorded on 2026-10-11 after the role/meter selector failed its focus gate.
 This study asks whether original-audio relative accent/repetition patterns provide
 information for choosing quarter-unit interpretations. It is a component probe,
 not a new tempo-map estimator or application model replacement.
@@ -83,7 +83,7 @@ does not establish robust compound-meter quarter interpretation. Train-time3:2
 unit examples are scarce, and there is no actual2x tempo change in the six
 development variable songs. Neither end-to-end clock nor app success is claimed.
 
-Agent recommendation: do not connect this ranker as an adopted automatic decoder
+Assessment: the results do not support this ranker as an automatic decoder
 or keep tuning the same representation. Retain the modest acoustic information
 and source clock components; pause this automatic-extension research direction
 unless materially different representation/data evidence is supplied. User review

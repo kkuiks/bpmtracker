@@ -4,6 +4,7 @@ import { DEFAULT_CLICK_GAIN, CLICK_GAIN_POLICY } from "./click-level";
 
 export type Asset = {
   id: string;
+  cacheId?: string;
   name: string;
   sourcePath: string;
   pcmPath: string;

@@ -1,50 +1,37 @@
 # Local data layout
 
-`data/` is checkout-local and ignored by source Git. It is also the separate
-private `kkuiks/joljak-data` Git checkout, with an exact compact-metadata
-allowlist. Large non-audio checkpoints use that private repository's release
-assets. Recordings, credentials and runtime caches remain excluded. The source
-code and launchers live outside it; source Git does not contain a data submodule.
+`data/` holds original sources, evaluation references and generated research artifacts. It is excluded from source Git. A separate private data checkout can preserve selected compact metadata and release attachments; source distribution does not include recordings, credentials, model files or complete experiment results.
 
-Current baseline selection and source roles are recorded in
-[`project-state.json`](../project-state.json). The owner-selected L2 recordings,
-additional-source verification and 21 native listening pairs retain their
-original `research/runs/` locations. Source reorganization moves only code and
-navigation; it does not shift recordings, references or frozen input paths.
-
-| Directory | Role | Authority or entry point |
+| Directory under `data/` | Role | Reference |
 | --- | --- | --- |
-| `samples/` | Canonical originals, accepted references, owner drafts and acquisition evidence | `samples/catalog.json` governs membership; [sample operations](sample_review/README.md) |
-| `research/runs/` | Preserved experiment inputs, raw predictions, scores and frozen source snapshots | Each recorded run's report and manifest |
-| `research/state/` | Retained preparation and diagnostic observations | The requesting experiment's documentation |
-| `research/previous/` | Selected historical failure and source evidence | Dated reports; these do not start another task |
-| `models/` | Official local estimator checkpoint | `final0.ckpt` |
-| `runtime/` | Reused collection dependencies and browser runtime | [collection tools](ntm_collection/README.md) |
-| `private/` | Account/session and private transport state | Never serve, publish or copy this into source or review assets |
-| `storage/` | Consolidation receipts and path-only relocation index | `20261008-consolidation/paths.json` and subsequent scoped maintenance receipts |
+| `samples/` | Canonical original recordings, accepted references, drafts and acquisition evidence | `samples/catalog.json` defines formal membership |
+| `samples/datasets/` | External audio/features, original annotations, acquisition receipts and dataset manifests | `registry.json` records representation and inventory state |
+| `research/runs/` | Experiment inputs, raw predictions, scores and frozen source/configuration snapshots | Each run's manifest and report |
+| `research/state/` | Prepared observations and diagnostics | Their experiment specification |
+| `research/previous/` | Retained earlier source/failure evidence | Historical reports |
+| `models/` | Model checkpoint | Official `final0.ckpt` |
+| `runtime/` | Collection dependencies and retained acquisition runtime | [collection documentation](ntm_collection/README.md) |
+| `private/` | Local credentials and session state | Excluded from review assets, source and published metadata |
+| `storage/` | Storage receipts, relocation index and backup/checkpoint metadata | [repository utilities](repository/README.md) |
 
-The complete 2026-10-13 source reorganization receipt is
-`storage/20261013-repository-organization-v1/`. It preserves a source-before
-snapshot, exact move/hash records, source-bytecode cleanup and the requested
-static layout audit. That snapshot is historical source, not a second current
-implementation or a new inference run.
+## Timing and provenance
 
-Accepted timestamps already use the original recording's audio axis. Do not add
-a saved source offset twice or reset bar phase at audio zero. Source maps, owner
-edits, model predictions and acceptance records remain separate.
+Accepted timestamps already use the original recording's audio axis. Applying a source offset twice changes the reference clock. Native source maps, manually edited maps, predictions and reference registrations retain separate provenance.
 
-Read current paths and roles from the indexes. Historical run filenames and
-references may describe an older layout or intentionally removed collection
-inputs; use `tools/project_storage.py` for retained relocated files. Missing
-historical inputs do not authorize paid reacquisition or revival of an old task.
-Keep actual media/source files in this checkout; the private-note link is the
-sole allowed project-note exception.
+Published feature containers retain provider augmentations, but inventories count original inputs separately. Alternate encodings and multiple stems do not establish independent recordings. Feature-frame extent is distinct from a certified original PCM clock.
 
-The initial data publication receipt is
-`storage/20261013-private-data-publication-v1/`. Its compact checkpoint record
-and publication receipt identify actual backed files, exclusions, remote commit,
-release and verified asset hashes. `data/README.md` and
-`data/backup_tools/restore.py` describe recovery. Windows recovery/analysis and
-uncommitted source are explicitly dated snapshots, not automatic enrollment or
-live application directories. Subsequent results require deliberate backup;
-the private repository does not schedule or auto-publish future work.
+Originals, extracted provider data, generated observations and source-only/evaluation manifests have distinct roles. Downloading a source does not establish reference alignment, a valid ideal tempo map or formal membership. [Research documentation](../docs/AUTORESEARCH.md#broad-observation-to-map-evaluation) describes current corpus qualification.
+
+Selected algorithm/evaluator source and aggregate-only review results are
+available in [reference/decoder_review](../reference/decoder_review/README.md).
+They are documented review copies, not raw-data distribution or a complete
+research backup. Original code freezes, event arrays, references and per-record
+outputs remain in their respective local research runs.
+
+## Paths and recovery
+
+Canonical originals live inside `data/samples/`; historical identifiers may describe older layouts. `tools/project_storage.py` resolves retained relocated files without reinterpreting timing or frozen results. Recordings and native project geometry remain separate from regenerable caches.
+
+Joljak's decoded buffers are session caches. Unchanged originals can rebuild missing buffers; original audio, saved projects, recovery files and analysis records have their own lifetime. See [audio cache behavior](../apps/daw/README.md#audio-cache-lifetime).
+
+Data checkpoints describe only the files actually selected and uploaded. A compact source/result archive is not a complete audio/model backup. The local `data/README.md` and backup tools describe restoration where those private assets are available.

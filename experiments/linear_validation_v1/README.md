@@ -1,13 +1,17 @@
 # Frozen L2 verification on additional fixed music
 
-**Current status, 2026-10-13:** this is completed verification evidence for the owner-selected L2 development baseline. The old approximately-99% broader fixed target was missed; the owner subsequently chose the observed quality as the development starting point after listening. Neither scores, references nor the frozen source changed. See [current development](../../docs/DEVELOPMENT.md).
+**Current status, 2026-10-13:** this is completed verification evidence for the maintained L2 development baseline. The broader fixed comparison missed its approximately-99% target; L2 remains the maintained comparison baseline. Neither scores, references nor the frozen source changed. See [current development](../../docs/DEVELOPMENT.md).
 
-Owner request, 2026-10-12: assess whether the current fixed-song performance
-maintains across more diverse linear music before accepting its present state.
+The latest isolated research candidate is G21; its results and the planned
+next step, broad observation-to-tempo-map data expansion, are maintained in
+[AutoResearch](../../docs/AUTORESEARCH.md) and [development status](../../docs/DEVELOPMENT.md).
+This module retains its dated L2 evidence; it is not a G21 large-corpus result.
+
+This study assesses fixed-song performance across more diverse linear music.
 This is verification, not parameter search or an estimator replacement.
 
 Keep `beat_event_stability_v1/20261012-full-v2` L2 code and configuration identical.
-Select every additional owner-approved fixed excerpt/synthetic source before
+Select every additional reviewed fixed excerpt/synthetic source before
 prediction, with guitar/synthetic auxiliaries separate. Use all 98 previously
 unrun reserved GTZAN exact-feature groups, across nine eligible genres, under
 their original approximately-constant annotation qualification. Historical

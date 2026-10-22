@@ -1,15 +1,15 @@
 # Interval-consensus A research
 
-**Current role:** retained source-clock I/O/helper dependencies. This failed consensus direction remains historical evidence. Its former stop/gate does not override the owner-selected [L2 development baseline](../../docs/DEVELOPMENT.md).
+**Current role:** retained source-clock I/O/helper dependencies. This failed consensus direction remains historical evidence. Its former stop/gate does not override the maintained [L2 development baseline](../../docs/DEVELOPMENT.md).
 
-An isolated, owner-approved follow-up after Step 0 and the seven-direction clock
+An isolated, reviewed follow-up after Step 0 and the seven-direction clock
 study. This tests candidate-specific support episodes and a matched whole-input
 control. It does not implement an automatic tempo map, meter inference or an app
-estimator replacement. Source commits remain owner-operated.
+estimator replacement. 
 
-The October 8 approval covers the A report and24 new constructed controls. Later
-event-anchor B, PCM-corrobation C and boundary/H4 work require their next decision.
-The owner permits assumed initial human BPM and beat unit. Source-only candidates
+The recorded study covers interval-consensus scoring and24 constructed controls.
+Event-anchor, PCM-corroboration and boundary alternatives were separate proposals.
+The diagnostic conditions include assumed initial BPM and beat unit. Source-only candidates
 and scores are prepared before this explicit assistance channel is used.
 
 The three policies are no input, discrete initial unit, and exact nominal initial

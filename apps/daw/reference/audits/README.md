@@ -76,9 +76,9 @@ node apps/daw/reference/audits/project-contract.cjs
 
 Fixtures, recording excerpts, screenshots, job outputs and runner results are local artifacts. Adapting these suites to later versions requires matching the current project schema and interactions; old expectations about v1 clock scopes do not describe the current application.
 
-## Refinement U1 — 0.6.9, 2026-10-11
+## Numeric controls and selection — 0.6.9, 2026-10-11
 
-The owner's explicit Windows UX inspection request covers this focused audit.
+This focused audit covers native Windows editing interactions.
 `refinement-u1-windows.cjs` records 17 native interaction/presentation checks for
 four linked WAV imports, fraction/invalid input, one-Undo scrub/fine/wheel edits,
 text Undo, exact-value copy/paste, segmented linked placement, fader cancellation,
@@ -88,11 +88,11 @@ signature edits during real playback, and normal/1024x720 presentation.
 The final report is `.daw-state/refinement-u1-20261011/u1-results.json`; review
 `u1-final.png`, `u1-small.png` and `u1-invalid.png`. The optional presentation-only
 run records `u1-presentation-results.json`. These generated media/profiles are
-separate from owner work. File-dialog paths are queued; clipboard and pointer
+separate from ordinary workspaces. File-dialog paths are queued; clipboard and pointer
 cancellation are controlled renderer events. The OS clipboard is not modified.
 Real IPC, Python decoding, native project opening and AudioWorklet playback run.
 No estimator invocation, sample operation, full export audit or long-run benchmark
-is included. This is not an automatic build/start check or owner UX acceptance.
+is included. This is not an automatic build/start check or a comprehensive usability evaluation.
 
 Explicit commands, in order:
 
@@ -111,13 +111,13 @@ errors after a presentation-only change. The runner assembles a separate small
 Electron application and reuses the retained Python runtime. It preserves the
 ordinary Joljak application/profile and does not start tests through the launcher.
 
-## Refinement U1 owner feedback — 0.6.10, 2026-10-11
+## Numeric and selection refinements — 0.6.10, 2026-10-11
 
-The owner requested cursor-only footer BPM declarations, whole-number BPM gestures,
+The revision adds cursor-only footer BPM declarations, whole-number BPM gestures,
 hover-wheel editing, stable numeric widths, live audio-position scrubbing, and a fix
 for accumulating Inspector controls after duplicated-track selection. The focused
 `refinement-u1-feedback-windows.cjs` audit passed **11 checks** in the actual Windows
-Electron app. It reuses the four U1 WAV fixtures and audit-owned runtime with a new
+Electron app. It reuses the four retained WAV fixtures and audit-owned runtime with a new
 isolated workspace/profile; native file opening, decoding and playback are real.
 Dialog paths are queued and project state is inspected through React.
 
@@ -143,8 +143,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File apps/daw/reference/audits/re
 
 ## Timeline cursor origin and stroke — 0.6.11, 2026-10-11
 
-The owner clarified that the origin problem occurred when returning/dragging the
-project cursor. The 0.6.10 native probe found that scrollbar/wheel origin was stable
+The origin problem occurred when returning/dragging the project cursor. The 0.6.10 native probe found that scrollbar/wheel origin was stable
 but grabbing the handle 5 px left of its center and dragging outside project zero
 left the cursor at 0.4166666667 seconds (5 px at 12 px/s). The pointer time had been
 clamped before adding the grab offset. Probe reports are observations, not passing
@@ -176,10 +175,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File apps/daw/reference/audits/ti
 The historical probe reports describe 0.6.10. Running the probe command against
 a newer prepared bundle records that newer app; it does not recreate old behavior.
 
-## Approved U2 workspace and menus — 0.6.12, 2026-10-11
+## Workspace layout and menus — 0.6.12, 2026-10-11
 
-The owner approved the concise interactive redesign for implementation and had
-requested direct Windows UX inspection and fixes. `refinement-u2-windows.cjs`
+This audit evaluates the implemented workspace layout and contextual menus. `refinement-u2-windows.cjs`
 uses the audit-owned Electron runtime, retained four WAV fixtures and unique
 profiles. File-dialog paths are queued; decoding, project opening, the renderer,
 clipboard and playback cursor are native. No inference or export job is started.
@@ -214,7 +212,7 @@ Screenshots include `u2-wide.png`, `u2-compact.png`, `u2-event-menu.png`,
 `u2-signature.png`, `u2-analysis-entry.png` and `u2-time-base.png`.
 Measured DPR is 1. This is a focused UX/connection audit, without a DPI sweep,
 human listening assessment, inference, full persistence/export validation,
-sample enrollment or performance benchmark. Owner product review remains pending.
+sample enrollment or performance benchmark. A comprehensive product usability evaluation is not established by this audit.
 
 Explicit Windows PowerShell commands from the checkout:
 
@@ -235,7 +233,7 @@ file is requested, and cancel/accept handling for a different file. Renderer err
 were empty; evidence is `.daw-state/project-opening-20261011/project-open-result.json`.
 
 TypeScript, Electron JavaScript and the two PowerShell scripts were parsed, and
-Vite/build assembly succeeded. The owner's existing app remained open and its
+Vite/build assembly succeeded. The ordinary app instance remained open and its
 application files were not refreshed. HKCU association registration runs on the
 next normal Start Joljak launch; Explorer double-click through that registered
 association is not claimed as already exercised. No media decoding, inference,
@@ -246,10 +244,10 @@ export or broad regression suite was run for this change.
 `continuous-map.cjs` exercises actual renderer map/arrangement functions and the
 Electron project validator. It checks mid-bar old-beat changes, compound eighth
 boundaries, tempo continuity, illegal destinations, v2 migration, a v3 JSON
-round trip, and preservation of the saved owner Juno project's audio/map timing.
+round trip, and preservation of the saved Juno project's audio/map timing.
 `continuous-map-backend.py` compares the export worker's clock geometry with those
 renderer fixtures and executes its JSON/MIDI map-export branch for v2/v3 maps.
-These are focused checks for the approved continuous-map redesign. Evidence is
+These are focused checks for the continuous-map representation. Evidence is
 under `data/research/design-reviews/20261011-continuous-beat-map-v1/implementation-checks/`.
 They do not establish loudspeaker listening or Windows GUI playback correctness.
 

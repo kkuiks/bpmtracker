@@ -159,6 +159,24 @@ export function editProjectMap(p: Project, tempos = p.tempos, signatures = p.sig
   });
   return refreshMusicalAnchors(next);
 }
+/** Manual declarations keep their audio times; only their grid coordinates change. */
+export function editMapAtTimes(p: Project, tempos = p.tempos, signatures = p.signatures,
+  whole: Partial<Pick<Project, "bpm" | "signature">> = {}): Project {
+  const timedTempos = tempos.map(event => ({ event, seconds: timeAtQuarter(p, event.quarter) }))
+    .sort((a, b) => a.seconds - b.seconds);
+  let quarter = 0, seconds = 0, bpm = whole.bpm ?? p.bpm;
+  const sameTempoMap = tempos === p.tempos && (whole.bpm === undefined || whole.bpm === p.bpm);
+  const positionedTempos = sameTempoMap ? tempos : timedTempos.map(({ event, seconds: target }) => {
+    quarter += (target - seconds) * bpm / 60;
+    seconds = target; bpm = event.bpm;
+    return { ...event, quarter };
+  });
+  const grid = { ...p, ...whole, tempos: positionedTempos };
+  const positionedSignatures = signatures.map(event => ({ ...event,
+    quarter: sameTempoMap ? event.quarter ?? quarterAtBar(p, event.bar)
+      : quarterAtTime(grid, timeAtQuarter(p, event.quarter ?? quarterAtBar(p, event.bar))) }));
+  return editProjectMap(p, positionedTempos, positionedSignatures, whole);
+}
 export function setTrackTimeBase(p: Project, trackId: string, timeBase: "linear" | "musical"): Project {
   return refreshMusicalAnchors({ ...p, tracks: p.tracks.map((track) => track.id === trackId ? { ...track, timeBase } : track) });
 }
@@ -166,17 +184,18 @@ export function putTempo(p: Project, event: TempoEvent): Project {
   const quarter = Math.max(0, event.quarter);
   const collision = p.tempos.find((t) => Math.abs(t.quarter - quarter) < EPS);
   const tempos = [...p.tempos.filter((t) => t.id !== event.id && t.id !== collision?.id), { ...event, id: collision?.id ?? event.id, quarter }];
-  return editProjectMap({ ...p, timingPolicy: "persistent" }, tempos);
+  return editMapAtTimes({ ...p, timingPolicy: "persistent" }, tempos);
 }
 export function putSignature(p: Project, event: SignatureEvent): Project {
   const quarter = Math.max(0, event.quarter ?? quarterAtBar(p, Math.max(1, Math.round(event.bar))));
   const existing = signaturesInOrder(p), collision = existing.find((s) => Math.abs(s.quarter! - quarter) < EPS);
   const before = { ...p, signatures: existing.filter((s) => s.id !== event.id && s.id !== collision?.id) };
   const pos = positionAtQuarter(before, quarter), beats=(quarter-pos.barStart)*pos.signature.denominator/4;
-  if (Math.abs(beats-Math.round(beats))>EPS) throw new Error("Place the signature on an existing beat boundary.");
+  const samePosition = existing.some(s => s.id === event.id && Math.abs(s.quarter! - quarter) < EPS);
+  if (!samePosition && Math.abs(beats-Math.round(beats))>EPS) throw new Error("Place the signature on an existing beat boundary.");
   const signatures = [...existing.filter((s) => s.id !== event.id && s.id !== collision?.id),
     { ...event, id: collision?.id ?? event.id, quarter }];
-  return editProjectMap({ ...p, timingPolicy: "persistent" }, undefined, signatures);
+  return editMapAtTimes({ ...p, timingPolicy: "persistent" }, undefined, signatures);
 }
 
 /** Migration keeps source-relative evidence intact; old scope clocks are not silently made global. */

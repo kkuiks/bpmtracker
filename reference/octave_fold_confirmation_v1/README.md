@@ -2,7 +2,7 @@
 
 **Reference status, 2026-10-13:** this completed study was moved intact to the reference area. Historical commands and decisions below are evidence, not current defaults or new execution requests. See [reference index](../README.md) and [current development](../../docs/DEVELOPMENT.md).
 
-Owner-requested component confirmation on 2026-10-11. This experiment reuses the
+Recorded component confirmation on 2026-10-11. This experiment reuses the
 immutable M3 physical clock bank, evidence tables, phase candidates and complete
 source-derived maps for all 21 real recordings from the region-composition run.
 It does not modify the app, accepted references, raw audio or prior frozen code.

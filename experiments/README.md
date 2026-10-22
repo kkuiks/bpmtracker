@@ -1,13 +1,13 @@
 # Measured implementations and shared experiment code
 
-The owner-selected variable development standard is **L2_DENSE_PROPOSALS**.
+The maintained variable development standard is **L2_DENSE_PROPOSALS**.
 Start at [algorithms/variable](../algorithms/README.md),
 [project-state.json](../project-state.json) and the [code map](../docs/CODE_MAP.md).
 The measured L2 implementation stays at its original path and keeps its original
 Python/configuration bytes, preserving the two current frozen runs.
 
-The DAW Analyze command still uses the fixed estimator. Recorded experiment
-pipelines and their old decisions remain evidence, not task queues or app defaults.
+The DAW Analyze command still uses the fixed estimator. Experiment pipelines retain version-specific measurements; application defaults
+are selected independently from these recorded studies.
 
 | Package | Current role |
 | --- | --- |
@@ -27,17 +27,21 @@ Their original `experiments.<package>` imports remain available via the package
 search path. No source trees or recording aliases were duplicated. Historical
 freezes must use original snapshots; their recorded paths/hashes were not rewritten.
 
-Current results remain under `data/research/runs/beat_event_stability_v1/20261012-full-v2/`
+The original measured L2 results remain under `data/research/runs/beat_event_stability_v1/20261012-full-v2/`
 and `data/research/runs/linear_validation_v1/20261012-frozen-L2-v1/`.
 The full native audition guide is in
 `data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects/`.
-The owner accepts this as a development baseline despite the missed old
-approximately-99% broader fixed condition. All numerical scores, source types,
+The broader fixed comparison missed its approximately-99% target; L2 remains the maintained comparison baseline. All numerical scores, source types,
 failures, accepted references and frozen source snapshots remain unchanged.
 
 Local results/observations are under `data/research/`; originals are under
 `data/samples/`; the official checkpoint is `data/models/final0.ckpt` and the CPU
 environment is `.venv-metronome-v1/`. The catalog does not alter frozen inputs or
-denominators. New experiments need their applicable owner request and new
-source/config/input provenance. Model scores, builds, native metronome geometry
+denominators. New experiments retain separate source/configuration and input provenance. Model scores, builds, native metronome geometry
 and actual Windows media playback remain separate evidence.
+
+Later broad/formal G21 comparisons and selection refiners are summarized in
+[the research review](../docs/RESEARCH_REVIEW.md). Selected measured code is
+available in [review snapshots](../reference/decoder_review/README.md); those
+copies do not change active imports or the frozen execution paths. Refiner
+regressions remain reported and no next architecture has been selected.

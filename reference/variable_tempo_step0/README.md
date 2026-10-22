@@ -51,7 +51,7 @@ fixed false proposals and boundary ambiguity remain. Local `report.md`,
 ## Environment and entry points
 
 Use the existing [CPU estimator environment](../../experiments/metronome_reconstruction_v1/README.md#environment)
-and local official final0 checkpoint. Outputs must be new and require their own owner instruction. The commands below
+and local official final0 checkpoint. Reproduction writes to a new output directory. The commands below
 illustrate the original creation-stage pipeline: `prepare` expects `<run>/corpus`
 during preparation. This scratch convention is separate from the permanent
 sample library; the retained October 7 corpus uses the canonical location above.
@@ -95,7 +95,7 @@ contracts separately from musical accuracy.
   changes. Phase-continuity estimates use supplied oracle phases and assume
   quarter-grid changes; preserve them separately from audio-only evidence.
 - Precise constructed transport does not certify perceptual uniqueness or
-  real-music generalization. Owner maps support practical agreement without
+  real-music generalization. Reviewed maps support practical agreement without
   independent millisecond certification. Every failure/miss remains recorded.
 - A wholly wrong hypothesis suggests replacement, not necessarily an internal
   tempo change. UNKNOWN never means grid termination.

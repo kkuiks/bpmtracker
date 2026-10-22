@@ -16,6 +16,7 @@ const { randomUUID } = require("node:crypto");
 const readline = require("node:readline");
 const fsSync = require("node:fs");
 const sampleLibrary = require("./sample-library.cjs");
+const audioCache = require("./audio-cache.cjs");
 
 let window;
 app.setName("Joljak");
@@ -59,6 +60,10 @@ const jobs = new Map(),
 // Only newly requested UI imports are disposable until the arrangement adopts
 // them. Existing project media/cache restoration never enters this registry.
 const imports = new Map();
+const registeredAssets = new Map(), restoringCaches = new Map();
+const openingCacheIds = new Set();
+let quitting = false, cacheCleanupTimer;
+let cacheCleanup = Promise.resolve();
 const appRoot = path.resolve(__dirname, "..");
 const repository = path.resolve(appRoot, "../..");
 const packagedAnalysis = path.join(process.resourcesPath, "analysis");
@@ -252,6 +257,52 @@ function requireAsset(id) {
   if (!asset) throw new Error("Audio is not registered in this project");
   return asset;
 }
+const audioCacheRoot = path.join(dataRoot, "audio-cache");
+const cacheFolderFor = (asset) => audioCache.cacheFolder(audioCacheRoot, asset);
+function queueCacheCleanup(all = false) {
+  cacheCleanup = cacheCleanup.catch(error => console.warn(error.message)).then(() =>
+    audioCache.pruneAudioCache(audioCacheRoot,
+      id => !all && (openingCacheIds.has(id) ||
+        [...registeredAssets.values()].some(asset => audioCache.cacheId(asset) === id)),
+      () => (all || !quitting) && !jobs.size && !imports.size && !restoringCaches.size));
+  return cacheCleanup;
+}
+function scheduleCacheCleanup() {
+  if (quitting) return;
+  clearTimeout(cacheCleanupTimer);
+  cacheCleanupTimer = setTimeout(() => {
+    void queueCacheCleanup().catch(error => console.warn("Audio cache cleanup:", error.message));
+  }, 250);
+}
+function ensureAssetCache(asset) {
+  if (quitting) return Promise.resolve(null);
+  const key = audioCache.cacheId(asset);
+  if (restoringCaches.has(key)) return restoringCaches.get(key);
+  const task = (async () => {
+    const folder = cacheFolderFor(asset);
+    playbackCachePaths(asset, folder);
+    try { await restoreCachedAsset(asset, folder); return null; }
+    catch { /* Rebuild only decoded buffers, never map or original geometry. */ }
+    const id = await startJob("decode", {
+      files: [{ id: asset.id, cacheId: key, path: asset.sourcePath, name: asset.name, expected: asset }],
+      output: audioCacheRoot, restore: true,
+    });
+    const release = () => {
+      if (restoringCaches.get(key) === task) restoringCaches.delete(key);
+      scheduleCacheCleanup();
+    };
+    const child = jobs.get(id);
+    if (child && child.exitCode === null && child.signalCode === null) {
+      child.once("close", release);
+      child.once("error", release);
+    } else release();
+    return id;
+  })();
+  restoringCaches.set(key, task);
+  const release = () => { if (restoringCaches.get(key) === task) restoringCaches.delete(key); };
+  void task.then(id => { if (!id) release(); }, release);
+  return task;
+}
 function playbackCachePaths(asset, cacheFolder) {
   // Decoder playback PCM is always 48 kHz. Saved projects can contain only the
   // original geometry, so do not carry its rate into a restored playback buffer.
@@ -264,7 +315,7 @@ function playbackCachePaths(asset, cacheFolder) {
 }
 async function restoreCachedAsset(asset, cacheFolder) {
   const cached = JSON.parse(await fs.readFile(path.join(cacheFolder, "asset.json"), "utf8"));
-  if (cached.id !== asset.id || cached.sampleRate !== asset.sampleRate ||
+  if (audioCache.cacheId(cached) !== audioCache.cacheId(asset) || cached.sampleRate !== asset.sampleRate ||
       cached.channels !== asset.channels || cached.frames !== asset.frames)
     throw new Error("Cached audio geometry differs from the saved original");
   const playbackRate = cached.playbackRate ?? (asset.sampleRate === 48000 ? 48000 : null);
@@ -291,8 +342,13 @@ async function finishImport(id, keep = false) {
   if (!record) return;
   if (keep) {
     if (!record.complete || record.discard) throw new Error("This import is no longer available.");
+    for (const assetId of record.assetIds) {
+      const asset = assets.get(assetId);
+      if (asset) registeredAssets.set(assetId, asset);
+    }
     imports.delete(id);
     await fs.rm(path.join(dataRoot, "jobs", `${id}.json`), { force: true });
+    scheduleCacheCleanup();
     return;
   }
   record.discard = true;
@@ -305,6 +361,7 @@ async function finishImport(id, keep = false) {
     await Promise.all(record.directories.map((directory) => fs.rm(directory, { recursive: true, force: true })));
     await fs.rm(path.join(dataRoot, "jobs", `${id}.json`), { force: true });
     imports.delete(id);
+    scheduleCacheCleanup();
   })();
   return record.cleaning;
 }
@@ -329,6 +386,7 @@ async function startJob(kind, body) {
   const jobPath = path.join(dataRoot, "jobs", `${id}.json`);
   const job = { ...body, id, kind };
   await atomicJson(jobPath, job);
+  if (quitting) throw new Error("Joljak is closing");
   const child = spawn(python, ["-u", worker, jobPath], {
     cwd: analysisRoot,
     windowsHide: true,
@@ -394,12 +452,14 @@ async function startJob(kind, body) {
               ? "Not enough available memory for this audio job. Close other memory-heavy applications and retry."
               : errorText || `Audio worker exited with code ${code}`,
       });
+    scheduleCacheCleanup();
   });
   return id;
 }
 
 app.whenReady().then(async () => {
   await fs.mkdir(dataRoot, { recursive: true });
+  scheduleCacheCleanup();
   protocol.handle("joljak", (request) => {
     const url = new URL(request.url);
     const root = path.join(appRoot, "dist");
@@ -520,11 +580,11 @@ app.whenReady().then(async () => {
   else await window.loadURL("joljak://app/index.html");
 });
 app.on("window-all-closed", () => app.quit());
-let quitting = false;
 app.on("before-quit", (event) => {
   if (quitting) return;
-  if (!imports.size) { for (const child of jobs.values()) child.kill(); return; }
   event.preventDefault(); quitting = true;
+  clearTimeout(cacheCleanupTimer);
+  preserveProjectImports({ assets: [...registeredAssets.values()] });
   const pending = [...imports.values()];
   for (const record of pending) record.discard = true;
   for (const child of jobs.values()) child.kill();
@@ -532,12 +592,14 @@ app.on("before-quit", (event) => {
     // A copied original must finish its outstanding file operation before its
     // private import directory can be removed on Windows.
     await Promise.allSettled(pending.map((record) => record.preparation));
+    await Promise.allSettled([...restoringCaches.values()]);
     await Promise.allSettled([...jobs.values()].map((child) => new Promise((resolve) => {
       if (child.exitCode !== null || child.signalCode !== null) { resolve(); return; }
       child.once("close", resolve); child.once("error", resolve); child.kill();
     })));
     await Promise.allSettled([...imports.keys()].map((id) => finishImport(id)));
-  })().finally(() => app.quit());
+    await queueCacheCleanup(true);
+  })().catch(error => console.warn("Audio cache cleanup:", error.message)).finally(() => app.quit());
 });
 
 ipcMain.on("joljak:window", (_event, action) => {
@@ -594,9 +656,10 @@ ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
   let prepared;
   const record = { assetIds: files.map((file) => file.id), preparing: true, complete: false, discard: false,
     preparation: new Promise((resolve) => { prepared = resolve; }),
-    directories: files.flatMap((file) => [path.join(dataRoot, "audio-cache", file.id), ...(copy ? [path.join(dataRoot, "media", file.id)] : [])]) };
+    directories: files.flatMap((file) => copy ? [path.join(dataRoot, "media", file.id)] : []) };
   imports.set(requestId, record);
   try {
+    const shared = new Map();
     for (const file of files) {
       if (record.discard) throw new Error("Import cancelled");
       if (copy) {
@@ -605,6 +668,20 @@ ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
         file.path = path.join(folder, file.name);
         await fs.copyFile(file.source, file.path, require("node:fs").constants.COPYFILE_EXCL);
       }
+      const info = await fs.stat(file.path);
+      const identity = JSON.stringify([path.resolve(file.path), info.size, info.mtimeMs]);
+      let cacheId = shared.get(identity);
+      file.cacheReuseOnly = Boolean(cacheId);
+      if (!cacheId) {
+        cacheId = await audioCache.reusableCache(audioCacheRoot, [...registeredAssets.values()], file.path);
+        file.cacheReuseOnly = Boolean(cacheId);
+        if (!cacheId) {
+          cacheId = file.id;
+          record.directories.push(path.join(audioCacheRoot, cacheId));
+        }
+        shared.set(identity, cacheId);
+      }
+      file.cacheId = cacheId;
     }
     if (record.discard) throw new Error("Import cancelled");
     const id = await startJob("decode", { id: requestId, files, output: path.join(dataRoot, "audio-cache") });
@@ -621,7 +698,15 @@ ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
 });
 ipcMain.handle("joljak:finish-import", (_event, id, keep) => finishImport(id, keep === true));
 ipcMain.handle("joljak:register-assets", async (_event, items) => {
-  for (const asset of items) assets.set(asset.id, asset);
+  for (const asset of items) audioCache.cacheId(asset);
+  registeredAssets.clear();
+  for (const asset of items) {
+    registeredAssets.set(asset.id, asset);
+    assets.set(asset.id, asset);
+  }
+  openingCacheIds.clear();
+  await Promise.allSettled(items.map(ensureAssetCache));
+  scheduleCacheCleanup();
 });
 ipcMain.handle("joljak:peaks", async (_event, id) => {
   const bytes = await fs.readFile(requireAsset(id).peaksPath);
@@ -705,9 +790,10 @@ ipcMain.handle("joljak:open", async (_event, requested) => {
   const filename = requested ?? selected.filePaths[0];
   const project = validProject(JSON.parse(await fs.readFile(filename, "utf8")));
   const missing = [];
+  for (const asset of project.assets) openingCacheIds.add(audioCache.cacheId(asset));
   for (const asset of project.assets) {
     asset.sourcePath = path.resolve(path.dirname(filename), asset.sourcePath);
-    const cacheFolder = path.join(dataRoot, "audio-cache", asset.id);
+    const cacheFolder = cacheFolderFor(asset);
     playbackCachePaths(asset, cacheFolder);
     try {
       await fs.access(asset.sourcePath);
@@ -724,22 +810,7 @@ ipcMain.handle("joljak:open", async (_event, requested) => {
       }
     }
     assets.set(asset.id, asset);
-    try {
-      await restoreCachedAsset(asset, cacheFolder);
-    } catch {
-      await startJob("decode", {
-        files: [
-          {
-            id: asset.id,
-            path: asset.sourcePath,
-            name: asset.name,
-            expected: asset,
-          },
-        ],
-        output: path.join(dataRoot, "audio-cache"),
-        restore: true,
-      });
-    }
+    await ensureAssetCache(asset);
   }
   return { path: filename, project, missing };
 });
@@ -756,10 +827,10 @@ ipcMain.handle("joljak:recovery", async () => {
     );
     const project = validProject(recovery.project);
     for (const asset of project.assets) {
-      const cacheFolder = path.join(dataRoot, "audio-cache", asset.id);
+      const cacheFolder = cacheFolderFor(asset);
       playbackCachePaths(asset, cacheFolder);
       try { await restoreCachedAsset(asset, cacheFolder); }
-      catch { /* Ordinary project opening regenerates an unavailable cache. */ }
+      catch { /* Registering an accepted recovery rebuilds missing buffers. */ }
     }
     return { ...recovery, project };
   } catch {
