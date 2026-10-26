@@ -1,20 +1,9 @@
-# Current native-map checks
+# 프로젝트 파일 검사
 
-These three tools check the continuous tempo/signature model and native listening
-exports. Run them only as part of an focused check; ordinary builds and
-launches do not run them.
+`project-contract.cjs`는 실제 프로젝트 validator를 사용해 정상 프로젝트와 잘못된 음원·트랙 참조, 소스 범위, 중복 ID를 확인합니다. 개인 음원이나 별도 라이브러리 없이 실행합니다.
 
-| Tool | Scope |
-| --- | --- |
-| [continuous-map.cjs](continuous-map.cjs) | Renderer/map geometry and source-preserving declarations |
-| [continuous-map-backend.py](continuous-map-backend.py) | Python map/export geometry adapter |
-| [continuous-map-projects.cjs](continuous-map-projects.cjs) | Project validator, actual renderer and metronome worklet against exported maps |
+```bash
+node apps/daw/audit/project-contract.cjs
+```
 
-The project audit explicitly does not decode or audibly play source audio.
-Its passing click geometry did not cover the cache-rate bug fixed in 0.6.15.
-Build, metronome geometry and actual Windows media playback are separate evidence.
-
-Recorded integration checks, UI refinements, launch checks and their fixtures
-are retained in [`../reference/audits`](../reference/audits/README.md).
-The complete native L2 audition pack remains at
-`data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/`.
+이 검사는 프로젝트 파일의 구조와 참조 계약을 다룹니다. 실제 재생과 분석의 실행 환경은 [앱 가이드](../README.md)에 설명되어 있습니다.

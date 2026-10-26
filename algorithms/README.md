@@ -1,23 +1,12 @@
-# Algorithm entry points
+# 분석 모듈
 
-The maintained variable-tempo entry is [`variable/baseline.py`](variable/baseline.py). It selects **L2_DENSE_PROPOSALS** and delegates to the measured fitter in [`experiments/beat_event_stability_v1`](../experiments/beat_event_stability_v1/README.md).
+[fixed](fixed/)는 DAW의 **Analyze Audio**에서 사용하는 고정 BPM·박자·다운비트 분석기입니다. 지원 조건과 처리 과정은 [분석 기능](../docs/ANALYSIS.md), 설치와 실행은 [앱 가이드](../apps/daw/README.md#소스에서-실행하기)를 참고하세요.
 
-The Windows application's Analyze Audio command uses the [fixed estimator](../experiments/metronome_reconstruction_v1/README.md). It returns one quarter BPM, one signature and one audio-relative downbeat offset. Variable research instead represents a continuous piecewise-constant tempo/signature map, with one initial phase and accumulated quarter position.
+- `infer.make_evidence`: Beat This의 박·다운비트 관측을 분석 입력으로 구성합니다.
+- `hinted.prepare_audio_family`: 오디오로 템포·박자·위치 후보와 점수를 준비합니다.
+- `hinted.select_from_family`: 선택적으로 입력한 Tap의 박 단위에 맞춰 결과를 고릅니다.
+- `config-tap-v2.json`: 분석 설정입니다.
+- `requirements-cpu.lock`: CPU 실행 의존성의 고정 버전입니다.
+- `payload.json`: 앱 실행·갱신·패키징에서 사용하는 분석 소스 목록입니다.
 
-**G21** is the preserved evaluated comparison candidate. It extends source-derived initial candidates and metrical-role evidence, then compares its complete map with L2 under the original source cost. It uses the same Beat This observations without neural retraining. Subsequent selection refiners remain experimental; none has replaced the maintained L2 entry or application analyzer.
-
-The [development guide](../docs/DEVELOPMENT.md) summarizes current results and limits. The [code map](../docs/CODE_MAP.md#current-g21-research-snapshot) locates the frozen candidate, and [research documentation](../docs/AUTORESEARCH.md) defines metrics, full versus held search, reference scope and reproduction requirements.
-
-The five-dataset decoder comparison completed on 2,604 qualified audio/feature inputs. At the primary 30ms tolerance, strict-cohort pulse F1 was G21 .83479, L2 .83287 and fixed .78940; bar F1 was .80107, .79962 and .76148. These are provider-label agreement scores under discrete initial-unit assistance, with different pulse/bar denominators. G21's small average gain includes regressions and a median 1.65x L2 API cost. Feature-only and waveform conditions, failed-input denominators and original code/configuration remain distinct.
-
-The separate formal44 comparison is also complete. Accepted quarter/bar F1 is G21 .88657/.80621, L2 .88290/.79213 and fixed .85209/.80498, with median G21/L2 API cost 1.74x. These known-material grid scores include bar regressions and tolerance-dependent rankings; G21's formal bar average is nearly tied with fixed. Application adoption and independent variable/meter validation remain outstanding.
-
-Eighteen post-comparison scoring/selection policies were evaluated on formal44,
-twelve also on broad2,604. Two tempo-preserving refiners improve some bar means
-but retain substantial per-input regressions and leave tempo-change detection
-unchanged. Their results are development evidence, not a selected new baseline.
-
-The [review brief](../docs/RESEARCH_REVIEW.md) describes current methods, results
-and unselected research questions. [Review source copies](../reference/decoder_review/README.md)
-make G21 and the refiners inspectable from a source-only checkout. The original
-local run paths remain the measured execution locations.
+CLI는 `python -m algorithms.fixed.hinted --help`로 확인할 수 있습니다. 음원을 처리할 때는 공식 모델을 `--checkpoint`로 지정합니다. DAW의 수동 템포·박자 맵 편집은 이 모듈과 별개로 동작합니다.

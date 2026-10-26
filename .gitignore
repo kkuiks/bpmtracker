@@ -1,6 +1,7 @@
 # Local data and workspace files
 /_local
 /data/
+/models/
 /.daw-state/
 /.daw-runtime/
 *.bpmtracker
@@ -14,6 +15,7 @@ AGENTS.md
 AGENTS.historical.md
 /.agents/
 /.codex/
+/.codex-attachments/
 /.aws/
 
 # Local configuration and generated environments

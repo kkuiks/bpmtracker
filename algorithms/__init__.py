@@ -1,1 +1,1 @@
-"""Maintained algorithm entry points; recorded studies remain separate."""
+"""Audio analysis modules used by BPMTracker."""

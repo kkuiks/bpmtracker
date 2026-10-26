@@ -76,7 +76,7 @@ let cacheCleanup = Promise.resolve();
 const appRoot = path.resolve(__dirname, "..");
 const repository = path.resolve(appRoot, "../..");
 const packagedAnalysis = path.join(process.resourcesPath, "analysis");
-const bundled = fsSync.existsSync(path.join(packagedAnalysis, "final0.ckpt"));
+const bundled = fsSync.existsSync(packagedAnalysis);
 const analysisRoot = bundled ? packagedAnalysis : repository;
 const worker = path.join(appRoot, "backend", "worker.py");
 const dataRoot =
@@ -86,16 +86,15 @@ const python =
   (bundled
     ? path.join(process.resourcesPath, "python", "python.exe")
     : process.platform === "win32"
-      ? path.join(repository, ".venv-daw-win", "Scripts", "python.exe")
-      : path.join(repository, ".venv-metronome-v1", "bin", "python"));
-const checkpoint = bundled
+      ? path.join(repository, ".venv", "Scripts", "python.exe")
+      : path.join(repository, ".venv", "bin", "python"));
+const checkpoint = process.env.BPMTRACKER_CHECKPOINT || (bundled
   ? path.join(packagedAnalysis, "final0.ckpt")
   : path.join(
       repository,
-      "data",
       "models",
       "final0.ckpt",
-    );
+    ));
 const send = (name, data) => {
   if (window && !window.isDestroyed())
     window.webContents.send(`bpmtracker:${name}`, data);
@@ -863,6 +862,9 @@ ipcMain.handle(
       throw new Error("Invalid selected audio range");
     if (tap !== null && (!Number.isFinite(tap) || tap <= 0))
       throw new Error("Tap BPM must be positive");
+    await fs.access(path.join(analysisRoot, "algorithms", "fixed", "payload.json")).catch(() => {
+      throw new Error("The analysis source is missing. Refresh the app with the current launcher.");
+    });
     await fs.access(checkpoint).catch(() => {
       throw new Error("The official fixed-metronome checkpoint is missing");
     });

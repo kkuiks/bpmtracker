@@ -1,17 +1,9 @@
-import { defineConfig, searchForWorkspaceRoot } from "vite";
-import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import previewDownloads from "./scripts/preview_downloads.ts";
 
 export default defineConfig({
-  define: {
-    BPMTRACKER_DESIGN_ASSETS: JSON.stringify(
-      `/@fs${fileURLToPath(new URL("../../.daw-state/u2-redesign-20261011/assets/", import.meta.url))}`,
-    ),
-  },
   plugins: [
     react(),
-    previewDownloads(),
     {
       name: "local-development-csp",
       apply: "serve",
@@ -27,7 +19,6 @@ export default defineConfig({
   build: { outDir: "dist", emptyOutDir: true, target: "chrome140" },
   server: {
     host: "127.0.0.1", port: 8998, strictPort: true,
-    fs: { allow: [searchForWorkspaceRoot(process.cwd()),
-      fileURLToPath(new URL("../../.daw-state/u2-redesign-20261011/", import.meta.url))] },
+
   },
 });

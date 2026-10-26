@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    "algorithms/__init__.py",
+    "algorithms/fixed/__init__.py",
+    "algorithms/fixed/grid.py",
+    "algorithms/fixed/infer.py",
+    "algorithms/fixed/hinted.py",
+    "algorithms/fixed/config-tap-v2.json",
+    "algorithms/fixed/requirements-cpu.lock",
+    "algorithms/fixed/payload.json"
+  ],
+  "legacyManagedPaths": [
+    "experiments"
+  ]
+}

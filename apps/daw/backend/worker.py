@@ -1,4 +1,4 @@
-"""Local media jobs and an adapter to the frozen fixed-metronome model.
+"""Local media jobs and an adapter to the fixed-tempo analyzer.
 
 No reference files are read. Source recordings are never edited. Analysis scopes
 are sample-aligned windows of a decoded original; raw hints are opened only after
@@ -130,10 +130,14 @@ def analyze(job):
     sys.path.insert(0, str(root))
     import torch
     from beat_this.inference import Audio2Frames
-    from experiments.metronome_reconstruction_v1.infer import make_evidence
-    from experiments.metronome_reconstruction_v1.hinted import prepare_audio_family, select_from_family, validate_hint_row
+    from algorithms.fixed.infer import make_evidence
+    from algorithms.fixed.hinted import prepare_audio_family, select_from_family, validate_hint_row
 
-    config_path = root / "experiments/metronome_reconstruction_v1/config-tap-v2.json"
+    module_file = Path(sys.modules[prepare_audio_family.__module__].__file__).resolve()
+    if module_file != (root / "algorithms/fixed/hinted.py").resolve():
+        raise RuntimeError("The analyzer must load from the selected product payload")
+
+    config_path = root / "algorithms/fixed/config-tap-v2.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
     asset = job["asset"]
     first = max(0, round(job["sourceStart"] * asset["sampleRate"]))

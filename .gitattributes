@@ -3,6 +3,3 @@
 *.cmd text eol=crlf
 *.bat text eol=crlf
 *.ps1 text eol=lf
-
-# Keep review-copy bytes independent of checkout line-ending conversion.
-reference/decoder_review/20261022/** -text
