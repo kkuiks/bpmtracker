@@ -47,7 +47,7 @@ def diagnostic_map(item, reference, first_offset_beats):
             "error_seconds": time - target,
             "error_reference_beats": (time - target) / (60 / left["bpm"] * 4 / left["denominator"])})
         anchor_time, anchor_q, bpm = time, q, right["bpm"]
-    return {"status": "map", "format": "joljak-continuous-beat-map", "version": 1,
+    return {"status": "map", "format": "bpmtracker-continuous-beat-map", "version": 1,
             "duration_seconds": item["source"]["duration_seconds"], "initial": dict(initial),
             "events": events, "reference_informed_evaluation_diagnostic": True,
             "inference_candidate": False, "free_phase_parameters_after_start": 0,
@@ -65,7 +65,7 @@ def main():
     old_manifest = ROOT / "data/research/runs/native_listening_review_v1/20261012-L2-all-weak-v1/listen-projects/manifest.json"
     old_rows = read(old_manifest)["rows"] if old_manifest.is_file() else []
     manifest, reference_problems, diagnostics = [], [], []
-    guide = ["# Auto Research 준비 청취 자료", "", "Start Joljak.cmd로 현재 앱을 실행하고 아래 .joljak을 열어 Click을 켜세요.",
+    guide = ["# Auto Research 준비 청취 자료", "", "Start BPMTracker.cmd로 현재 앱을 실행하고 아래 .bpmtracker을 열어 Click을 켜세요.",
              "모든 프로젝트는 원음 전체를 참조하며 원음 속도·길이를 바꾸지 않습니다. 승인 범위 밖 꼬리는 점수로 보장하지 않습니다.",
              "Windows 재생·실제 청취 검증은 이 준비 작업에서 수행하지 않았습니다.",
              "threshold_*는 이후 정답 BPM을 사용한 평가 전용 진단 맵입니다. 자동 추론·후보 성능에 포함하지 않습니다.", ""]
@@ -110,7 +110,7 @@ def main():
         for variant, mapping in selected:
             if mapping.get("status") != "map" or not validate(mapping)["legal"]:
                 continue
-            target = run / "listen-projects" / key / (variant + ".joljak")
+            target = run / "listen-projects" / key / (variant + ".bpmtracker")
             native = project(mapping, item["source"], item["title"], variant, target)
             native["notes"] += " Approved source support: " + str(reference["support"])
             if variant.startswith("threshold_"):
@@ -127,7 +127,7 @@ def main():
                 "reference_informed_diagnostic": variant.startswith("threshold_"),
                 "project_metronome": True, "click_audio_tracks": 0})
             short = ", ".join(f"{t + origin:.3f}" for t in cue_times)
-            guide.append(f"- `{key}/{variant}.joljak` — 프로젝트 이동 시간(초): {short or '전체 고정 구간'}")
+            guide.append(f"- `{key}/{variant}.bpmtracker` — 프로젝트 이동 시간(초): {short or '전체 고정 구간'}")
         guide.append("")
     write(run / "listen-projects/manifest.json", {"at_utc": stamp(), "rows": manifest,
         "reference_export_problems": reference_problems, "Windows_playback_exercised": False,

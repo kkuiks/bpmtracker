@@ -1,7 +1,7 @@
 /* Playback position, music and clicks advance on the same audio sample clock.
  * No requestAnimationFrame or wall-clock timer drives audible playback.
  */
-class JoljakTransport extends AudioWorkletProcessor {
+class BPMTrackerTransport extends AudioWorkletProcessor {
   constructor() {
     super();
     this.position = 0;
@@ -143,4 +143,4 @@ class JoljakTransport extends AudioWorkletProcessor {
     return true;
   }
 }
-registerProcessor('joljak-transport', JoljakTransport);
+registerProcessor('bpmtracker-transport', BPMTrackerTransport);

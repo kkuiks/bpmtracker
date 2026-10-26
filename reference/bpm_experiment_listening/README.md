@@ -1,6 +1,6 @@
 # Frozen BPM initialization listening pack
 
-**Historical browser preview.** Current audition uses separate native reference/current `.joljak` projects. See [current development](../../docs/DEVELOPMENT.md). This retained tool does not start a server unless explicitly invoked.
+**Historical browser preview.** Current audition uses separate native reference/current `.bpmtracker` projects. See [current development](../../docs/DEVELOPMENT.md). This retained tool does not start a server unless explicitly invoked.
 
 Prepare local, offline listening material from the **completed and frozen**
 initialization experiment. This tool renders saved accepted quarter events;

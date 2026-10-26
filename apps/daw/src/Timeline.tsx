@@ -505,7 +505,7 @@ export default function Timeline(props: Props) {
     const placement = fileDestination(event, inTrackList);
     setFileDrop(null);
     if (!placement) return;
-    const paths = [...event.dataTransfer.files].map((file) => window.joljak?.pathForFile(file)).filter((path): path is string => !!path);
+    const paths = [...event.dataTransfer.files].map((file) => window.bpmtracker?.pathForFile(file)).filter((path): path is string => !!path);
     if (paths.length) props.onImport(paths, placement.destination);
   };
   useEffect(() => {
@@ -985,7 +985,7 @@ export default function Timeline(props: Props) {
           interactionRoot.current?.focus({ preventScroll: true });
       }}>
       <div className="arrangement-body">
-      <ResizablePane axis="x" initialSize={216} minSize={176} maxSize={430} storageKey="joljak.ui.track-list-width" label="Track list width" className="track-pane" resetKey={props.layoutRevision}>
+      <ResizablePane axis="x" initialSize={216} minSize={176} maxSize={430} storageKey="bpmtracker.ui.track-list-width" label="Track list width" className="track-pane" resetKey={props.layoutRevision}>
       <div className="track-list" ref={headerScroller} style={{ height: scroll.height || "100%" }}
         onDragOver={(event) => filesOver(event, true)} onDragLeave={filesLeave} onDrop={(event) => filesDrop(event, true)}
         onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest(".track-head,.map-track-head,.track-list-ruler")) props.onAddTrack(); }}

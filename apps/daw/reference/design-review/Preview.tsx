@@ -18,7 +18,8 @@ import { putTempo, putSignature, quarterAtTime, timeAtQuarter, timeAtBar,
 import "../../src/styles.css";
 import "./review.css";
 
-const ASSETS = "/@fs/home/yooch/code/joljak/.daw-state/u2-redesign-20261011/assets/";
+declare const BPMTRACKER_DESIGN_ASSETS: string;
+const ASSETS = BPMTRACKER_DESIGN_ASSETS;
 const colors = ["#80b6ac", "#8da9ce", "#b29ccd", "#c0b17d"];
 const names = ["Drums", "Bass", "Guitars", "Vocals"];
 const query = new URLSearchParams(location.search);
@@ -182,7 +183,7 @@ function DesignReview() {
   };
   useEffect(()=>{
     if(dialog==="analysis"||dialog==="export"){
-      setDialog(null);notify("분석·내보내기 상세 창은 기존 Joljak 화면에 연결합니다. 이번 검토에서는 메인 화면과 우클릭 구성을 확인할 수 있습니다.");
+      setDialog(null);notify("분석·내보내기 상세 창은 기존 BPMTracker 화면에 연결합니다. 이번 검토에서는 메인 화면과 우클릭 구성을 확인할 수 있습니다.");
     }
   },[dialog]);
   const updateTrack = (patch: Partial<NonNullable<typeof selectedTrack>>, id = trackId, preview = false) => {
@@ -297,12 +298,12 @@ function DesignReview() {
   const setFooterTempo = (value:number,heldCursor:number) => commit(putTempo(history.current.current,{id:crypto.randomUUID(),quarter:quarterAtTime(history.current.current,heldCursor),bpm:value,origin:"manual"}),"Tempo at cursor");
   const topMenu = (name:string,button:HTMLButtonElement) => {
     const rect=button.getBoundingClientRect();let items:MenuItem[]=[];
-    if(name==="File")items=[{label:"New Project",key:"Ctrl+N",action:()=>reset("empty")},{label:"Open…",key:"Ctrl+O",action:()=>notify("프로젝트 열기는 현재 Joljak의 기존 파일 선택 창을 유지합니다.")},sep,{label:"Save",key:"Ctrl+S",action:()=>notify("이 시안의 편집은 임시 메모리에만 보관됩니다. 실제 프로젝트 저장은 기존 Joljak에 연결합니다.")},{label:"Save As…",key:"Ctrl+Shift+S",action:()=>notify("실제 프로젝트 저장은 기존 Joljak의 Save As 화면에 연결합니다.")},sep,{label:"Import Audio…",action:()=>showImport()},{label:"Export…",action:()=>setDialog("export")}];
+    if(name==="File")items=[{label:"New Project",key:"Ctrl+N",action:()=>reset("empty")},{label:"Open…",key:"Ctrl+O",action:()=>notify("프로젝트 열기는 현재 BPMTracker의 기존 파일 선택 창을 유지합니다.")},sep,{label:"Save",key:"Ctrl+S",action:()=>notify("이 시안의 편집은 임시 메모리에만 보관됩니다. 실제 프로젝트 저장은 기존 BPMTracker에 연결합니다.")},{label:"Save As…",key:"Ctrl+Shift+S",action:()=>notify("실제 프로젝트 저장은 기존 BPMTracker의 Save As 화면에 연결합니다.")},sep,{label:"Import Audio…",action:()=>showImport()},{label:"Export…",action:()=>setDialog("export")}];
     else if(name==="Edit")items=[{label:"Undo",key:"Ctrl+Z",disabled:!history.current.undoLabel?"Nothing to undo":undefined,action:()=>setProject(history.current.undo())},{label:"Redo",key:"Ctrl+Y",disabled:!history.current.redoLabel?"Nothing to redo":undefined,action:()=>setProject(history.current.redo())},sep,{label:"Copy",key:"Ctrl+C",disabled:!lead&&!range?"Select audio or a range":undefined,action:()=>clipboardCopy()},{label:"Paste",key:"Ctrl+V",disabled:!clipboard?"No copied audio":undefined,action:()=>paste(cursor,trackId)}];
     else if(name==="View")items=[{label:"Inspector",check:inspector,action:()=>setInspector(!inspector)},{label:"Tempo / Signature",check:maps,action:()=>setMaps(!maps)},{label:"Audio Editor",check:lower,action:()=>setLower(!lower)},sep,{label:"Zoom to Project",action:fit},{label:"Restore Layout",action:()=>{setInspector(true);setMaps(true);setLower(false);}}];
     else if(name==="Audio")items=[{label:"Import Audio…",action:()=>showImport()},{label:"Analyze Audio…",disabled:!lead&&!range?"Select an audio event or range":undefined,action:()=>setDialog("analysis")},{label:"Export…",action:()=>setDialog("export")}];
     else if(name==="Transport")items=[{label:playing?"Stop":"Start",key:"Space",action:()=>setPlaying(!playing)},{label:"Return to Start",action:()=>setCursor(0)},{label:"Cycle",check:cycle,action:()=>setCycle(!cycle)},{label:"Metronome",check:click,action:()=>setClick(!click)}];
-    else items=[{label:name==="Samples"?"Open candidate review…":"Project Settings…",action:()=>notify("이 명령은 현재 Joljak의 기존 화면을 유지합니다. 이번 시안은 메인 작업 화면과 우클릭을 검토합니다.")}];
+    else items=[{label:name==="Samples"?"Open candidate review…":"Project Settings…",action:()=>notify("이 명령은 현재 BPMTracker의 기존 화면을 유지합니다. 이번 시안은 메인 작업 화면과 우클릭을 검토합니다.")}];
     setMenu({x:rect.left,y:rect.bottom,items,invoker:button});
   };
   useEffect(() => {
@@ -390,7 +391,7 @@ function DesignReview() {
   </> : <div className="d-info-empty">{project.tracks.length?"No selection":""}</div>;
 
   const app = <div className={`d-app ${!inspector?"without-inspector":""}`} onContextMenu={areaContext}>
-    <header className="d-title"><Waves size={18}/><b>JOLJAK</b><span className="d-title-divider"/><span>{project.name}.joljak{history.current.undoLabel?" *":""}</span><div className="d-window-controls" aria-hidden="true"><Minus size={13}/><Square size={10}/><X size={14}/></div></header>
+    <header className="d-title"><Waves size={18}/><b>BPMTRACKER</b><span className="d-title-divider"/><span>{project.name}.bpmtracker{history.current.undoLabel?" *":""}</span><div className="d-window-controls" aria-hidden="true"><Minus size={13}/><Square size={10}/><X size={14}/></div></header>
     <nav className="d-menubar" aria-label="Menu bar">{["File","Edit","Project","Audio","Transport","View","Samples","Help"].map(name=><button key={name} onClick={e=>topMenu(name,e.currentTarget)}>{name}</button>)}</nav>
     <section className="d-toolbar" aria-label="Project toolbar">
       <div className="d-tool-group"><IconButton label="Undo (Ctrl+Z)" disabled={!history.current.undoLabel} onClick={()=>setProject(history.current.undo())}><Undo2/></IconButton><IconButton label="Redo (Ctrl+Y)" disabled={!history.current.redoLabel} onClick={()=>setProject(history.current.redo())}><Redo2/></IconButton></div>
@@ -498,20 +499,20 @@ function DesignReview() {
     </section></div>}
   </div>;
 
-  const references=<section className="review-references"><header><h1>배치의 근거</h1><p>실제 제품에서 확인한 구성을 Joljak의 핵심 작업에 맞춰 적용했습니다.</p></header><div className="review-reference-grid">
+  const references=<section className="review-references"><header><h1>배치의 근거</h1><p>실제 제품에서 확인한 구성을 BPMTracker의 핵심 작업에 맞춰 적용했습니다.</p></header><div className="review-reference-grid">
     <article><h2>1. Cubase · Inspector</h2><div className="reference-crop inspector-crop"><img src={ASSETS+"cubase-inspector.png"}/></div><p>트랙 이름 → 상태 버튼 → 슬라이더와 수치 → 접는 섹션. 같은 트랙의 조작과 결과를 가까이 둡니다.</p><a href="https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/project_window/project_window_inspector_r.html" target="_blank" rel="noreferrer">공식 Inspector 문서 ↗</a></article>
     <article><h2>2. Cubase · 도구와 Info Line</h2><div className="reference-crop toolbar-crop"><img src={ASSETS+"cubase-info-line.png"}/></div><p>도구는 아이콘 그룹, 선택 속성은 구분된 수치 열. 이벤트와 트랙의 편집 대상을 분명히 나눕니다.</p><a href="https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/project_window/project_window_toolbar_r.html" target="_blank" rel="noreferrer">공식 Toolbar 문서 ↗</a> · <a href="https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/project_window/project_window_info_line_c.html" target="_blank" rel="noreferrer">Info Line ↗</a></article>
     <article><h2>3. Cubase · Transport</h2><div className="reference-crop transport-crop"><img src={ASSETS+"cubase-inspector.png"}/></div><p>로케이터, 재생, 현재 위치, 템포를 인접한 고정 그룹으로 둡니다. 녹음·외부 동기화 등은 가져오지 않습니다.</p><a href="https://www.steinberg.help/r/cubase-pro/15.0/en/cubase_nuendo/topics/project_window/project_window_transport_r.html" target="_blank" rel="noreferrer">공식 Transport 문서 ↗</a></article>
-    <article><h2>4. Cubase · 우클릭</h2><div className="reference-crop menu-crop"><img src={ASSETS+"cubase-menu.png"}/></div><p>대상별 명령, 구분선, 오른쪽 단축키, 하위 메뉴와 체크 표시. Joljak에서는 필요한 명령만 표시합니다.</p><a href="https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/menus-and-context-menus" target="_blank" rel="noreferrer">Windows 메뉴 가이드 ↗</a></article>
+    <article><h2>4. Cubase · 우클릭</h2><div className="reference-crop menu-crop"><img src={ASSETS+"cubase-menu.png"}/></div><p>대상별 명령, 구분선, 오른쪽 단축키, 하위 메뉴와 체크 표시. BPMTracker에서는 필요한 명령만 표시합니다.</p><a href="https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/menus-and-context-menus" target="_blank" rel="noreferrer">Windows 메뉴 가이드 ↗</a></article>
     <article><h2>5. Ableton Live · Arrangement</h2><img className="review-product-image" src={ASSETS+"ableton-arrangement.png"}/><p>명확한 클립 경계, 이름 영역과 파형의 구분, 시간 선택 표시를 참고했습니다. Inspector와 Transport 배치는 Cubase를 따릅니다.</p><a href="https://www.ableton.com/en/manual/arrangement-view/" target="_blank" rel="noreferrer">공식 Arrangement 문서 ↗</a></article>
-    <article className="review-decisions"><h2>Joljak에서 유지할 규칙</h2><ul><li>새 트랙은 Linear. 시간 기준 전환은 물리적 위치를 보존합니다.</li><li>하단 BPM 입력은 현재 커서에 선언합니다. 입력한 정밀도는 유지합니다.</li><li>연결된 이벤트 편집과 트랙별 믹싱의 범위를 구분합니다.</li><li>원본 분석, 편집한 분석값, 프로젝트 맵은 각각 보존합니다.</li><li>녹음·VST·MIDI 연주 편집·FX·자동화는 추가하지 않습니다.</li></ul><p>이 화면은 U2 검토용입니다. 이후 분석 검토 화면은 별도 단계에서 다듬습니다.</p></article>
+    <article className="review-decisions"><h2>BPMTracker에서 유지할 규칙</h2><ul><li>새 트랙은 Linear. 시간 기준 전환은 물리적 위치를 보존합니다.</li><li>하단 BPM 입력은 현재 커서에 선언합니다. 입력한 정밀도는 유지합니다.</li><li>연결된 이벤트 편집과 트랙별 믹싱의 범위를 구분합니다.</li><li>원본 분석, 편집한 분석값, 프로젝트 맵은 각각 보존합니다.</li><li>녹음·VST·MIDI 연주 편집·FX·자동화는 추가하지 않습니다.</li></ul><p>이 화면은 U2 검토용입니다. 이후 분석 검토 화면은 별도 단계에서 다듬습니다.</p></article>
   </div><p className="review-reference-note">Cubase 캡처는 2026-10-06의 사용자 설정 환경입니다. 공장 기본 배치·단축키를 주장하지 않습니다.</p></section>;
 
   return <div className={`review-shell ${bare?"bare":""}`}>
-    {!bare&&<header className="review-bar"><b>Joljak <span>U2 / revised</span></b><div className="review-tabs"><button className={view==="proposal"?"active":""} onClick={()=>setView("proposal")}>새 구성</button><button className={view==="baseline"?"active":""} onClick={()=>{setView("baseline");reset("linked");}}>기존 화면</button><button className={view==="references"?"active":""} onClick={()=>setView("references")}>제품 참고</button></div><select aria-label="Review scene" value={scene} onChange={e=>{reset(e.target.value as Scene);setView("proposal");}}><option value="linked">연결된 4개 이벤트</option><option value="single">이벤트 하나</option><option value="range">범위 선택</option><option value="tempo">템포 포인트</option><option value="signature">박자표 포인트</option><option value="none">선택 없음</option><option value="empty">빈 프로젝트</option></select><select aria-label="Review size" value={size} onChange={e=>setSize(e.target.value)}><option value="window">현재 창 크기</option><option value="wide">1440 × 940</option><option value="compact">1024 × 720</option></select><button className="review-reset" onClick={()=>{reset();setView("proposal");}}>초기화</button><span className="review-scope">조작 검토용 · 실제 재생/저장/분석 없음</span></header>}
+    {!bare&&<header className="review-bar"><b>BPMTracker <span>U2 / revised</span></b><div className="review-tabs"><button className={view==="proposal"?"active":""} onClick={()=>setView("proposal")}>새 구성</button><button className={view==="baseline"?"active":""} onClick={()=>{setView("baseline");reset("linked");}}>기존 화면</button><button className={view==="references"?"active":""} onClick={()=>setView("references")}>제품 참고</button></div><select aria-label="Review scene" value={scene} onChange={e=>{reset(e.target.value as Scene);setView("proposal");}}><option value="linked">연결된 4개 이벤트</option><option value="single">이벤트 하나</option><option value="range">범위 선택</option><option value="tempo">템포 포인트</option><option value="signature">박자표 포인트</option><option value="none">선택 없음</option><option value="empty">빈 프로젝트</option></select><select aria-label="Review size" value={size} onChange={e=>setSize(e.target.value)}><option value="window">현재 창 크기</option><option value="wide">1440 × 940</option><option value="compact">1024 × 720</option></select><button className="review-reset" onClick={()=>{reset();setView("proposal");}}>초기화</button><span className="review-scope">조작 검토용 · 실제 재생/저장/분석 없음</span></header>}
     <div className={`review-stage ${view==="references"?"references":""} ${size!=="window"?"fixed-size":""}`}>
       {view==="references"?references:<div className="review-frame" style={size==="wide"?{width:1440,height:940}:size==="compact"?{width:1024,height:720}:undefined}>
-        {view==="baseline"?<div className="review-baseline"><img src={ASSETS+(size==="compact"?"baseline-compact.png":"baseline-wide.png")}/><span>실제 Joljak 0.6.10 캡처 · 0.6.11은 커서 표시/원점 이동 수정 · 30초 스템 4개 · 12 px/s</span></div>:app}
+        {view==="baseline"?<div className="review-baseline"><img src={ASSETS+(size==="compact"?"baseline-compact.png":"baseline-wide.png")}/><span>실제 BPMTracker 0.6.10 캡처 · 0.6.11은 커서 표시/원점 이동 수정 · 30초 스템 4개 · 12 px/s</span></div>:app}
       </div>}
     </div>
     {menu&&<ContextMenu key={`${menu.x}:${menu.y}:${menu.title}`} menu={menu} close={()=>setMenu(null)}/>}

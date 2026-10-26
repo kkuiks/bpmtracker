@@ -119,7 +119,7 @@ def prepare_descriptor(batch, slug=None, out=None):
             source_clock_label=review.get('clock_label'),
             source_offset_alternatives=review.get('candidates',[]),
             description=review.get('description','')))
-    result=dict(format='joljak-candidate-review',schema_version=1,
+    result=dict(format='bpmtracker-candidate-review',schema_version=1,
         paths_relative_to='data/samples',source_batch=batch.relative_to(SAMPLES).as_posix(),
         recordings=rows,counts=dict(supplied_clock=sum(r['source_clock_available'] for r in rows),
             source_only=sum(not r['source_clock_available'] for r in rows)),
@@ -134,7 +134,7 @@ def prepare_descriptor(batch, slug=None, out=None):
     save(output,result)
     return dict(daw_review=str(output.relative_to(SAMPLES)),candidates_prepared=len(rows),
         counts=result['counts'],unavailable=unavailable,already_accepted=already_accepted,
-        next_step='Joljak: Samples > Open candidate review > daw-review.json')
+        next_step='BPMTracker: Samples > Open candidate review > daw-review.json')
 
 
 def main():

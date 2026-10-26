@@ -39,7 +39,7 @@ def main():
         if not value:
             raise AssertionError(name)
         cases.append({"name": name, "passed": True})
-    with tempfile.TemporaryDirectory(prefix='joljak-clock-trace-') as temp:
+    with tempfile.TemporaryDirectory(prefix='bpmtracker-clock-trace-') as temp:
         directory = Path(temp)
         for index, (bpm, meter, weak) in enumerate([(120, 4, False), (83 + 1 / 3, 3, True)], 1):
             evidence = infer.make_evidence(*fixture(bpm, meter, weak), config)

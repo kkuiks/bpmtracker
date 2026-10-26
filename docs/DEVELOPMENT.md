@@ -1,6 +1,6 @@
 # Development status
 
-Joljak 0.6.17 provides a Windows audio workspace with a fixed-tempo analyzer and an editable project tempo/signature map. Variable-tempo inference is a separate research component. Its comparison baseline is **L2_DENSE_PROPOSALS**, with **G21** retained as a comparison candidate. Subsequent selection refiners remain experimental. Broad variable-tempo generalization has not been established.
+BPMTracker 0.6.17 provides a Windows audio workspace with a fixed-tempo analyzer and an editable project tempo/signature map. Variable-tempo inference is a separate research component. Its comparison baseline is **L2_DENSE_PROPOSALS**, with **G21** retained as a comparison candidate. Subsequent selection refiners remain experimental. Broad variable-tempo generalization has not been established.
 
 [Project metadata](../project-state.json) records component status. The [code map](CODE_MAP.md) locates implementations; [research results](AUTORESEARCH.md) define the evaluation conditions and metrics. The [review brief](RESEARCH_REVIEW.md) collects current algorithm behavior, results and questions for technical review.
 
@@ -11,7 +11,7 @@ Joljak 0.6.17 provides a Windows audio workspace with a fixed-tempo analyzer and
 | Audio workspace | Import songs/stems, arrange and edit events, range operations, Undo/Redo, transport and mixer | Earlier native Windows audits cover specific revisions and fixtures |
 | Analysis | One constant quarter BPM, signature and audio-relative downbeat offset per song/range | Uses the fixed estimator; variable research results are separate |
 | Project clock | Editable persistent tempo/signature events; Linear and Musical track coordinates | 0.6.16 has focused geometry evidence; a comprehensive current-version Windows regression is outstanding |
-| Save and export | `.joljak`, source collection, recovery, WAV mix/stems/click, JSON/MIDI tempo maps | Earlier integration evidence does not certify every subsequent revision |
+| Save and export | `.bpmtracker`, source collection, recovery, WAV mix/stems/click, JSON/MIDI tempo maps | Earlier integration evidence does not certify every subsequent revision |
 | Decoded audio | Shared buffers for unchanged linked imports; session and Undo/Redo retention; regeneration from unchanged originals | 0.6.17 syntax, compilation, frontend build and Windows assembly completed; native cache/recovery/playback checks are outstanding |
 
 Tempo-map edits preserve audio speed and duration. Linear tracks retain physical time; Musical tracks follow their stored quarter anchors. Other map declarations retain their audio times when declarations are edited or deleted. Raw analysis results remain separate from editable values and the shared project map.

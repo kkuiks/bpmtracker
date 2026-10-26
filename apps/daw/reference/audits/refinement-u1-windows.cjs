@@ -1,18 +1,18 @@
 // Explicit Windows UI audit. Real IPC/decoding/playback; no estimator invocation.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {_electron}=require(process.env.JOLJAK_PLAYWRIGHT);
-const output=process.env.JOLJAK_U1_AUDIT,exe=process.env.JOLJAK_U1_EXE;
+const {_electron}=require(process.env.BPMTRACKER_PLAYWRIGHT);
+const output=process.env.BPMTRACKER_U1_AUDIT,exe=process.env.BPMTRACKER_U1_EXE;
 delete process.env.ELECTRON_RUN_AS_NODE;
 const results=[],errors=[];let app,page;
-const visualOnly=process.env.JOLJAK_U1_VISUAL_ONLY==='1';
+const visualOnly=process.env.BPMTRACKER_U1_VISUAL_ONLY==='1';
 const report=path.join(output,visualOnly?'u1-presentation-results.json':'u1-results.json');
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function state(){return page.evaluate(()=>{
   const element=document.querySelector('.app-shell'),key=Object.keys(element).find(k=>k.startsWith('__reactFiber$'));
   let root=element[key];while(root.return)root=root.return;root=root.stateNode.current;
   function find(f){if(!f)return null;let hook=f.memoizedState;
-    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='joljak-project')return hook.memoizedState;hook=hook.next;}
+    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='bpmtracker-project')return hook.memoizedState;hook=hook.next;}
     return find(f.child)||find(f.sibling);}
   return JSON.parse(JSON.stringify(find(root)));
 });}
@@ -32,23 +32,23 @@ async function select(){await page.locator('.audio-clip').first().click({positio
 async function drag(node,dx,dy,cancel=false){const box=await node.boundingBox();assert.ok(box);const x=box.x+box.width/2,y=box.y+box.height/2;
   await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+dx,y+dy,{steps:8});await pause(40);
   if(cancel)await page.keyboard.press('Escape');await page.mouse.up();await pause(100);}
-async function load(project,name){const file=path.join(output,name+'.joljak');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
+async function load(project,name){const file=path.join(output,name+'.bpmtracker');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
   await queue([file]);await menu('File','Open Project');await page.waitForFunction(name=>document.querySelector('.title-project')?.textContent.includes(name),name);
   await pause(160);}
-async function playNative(){await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('joljak:command','play'));}
+async function playNative(){await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('bpmtracker:command','play'));}
 async function stop(){await page.locator('.stop-button').click();await pause(80);}
 async function range(){await page.locator('button[title="Range Selection (2)"]').click();
   const box=await page.locator('.audio-clip').first().boundingBox();
   await page.mouse.move(box.x+28,box.y+30);await page.mouse.down();await page.mouse.move(box.x+166,box.y+30,{steps:8});await page.mouse.up();await pause(70);}
 (async()=>{try{
   app=await _electron.launch({executablePath:exe,cwd:path.dirname(exe),env:{...process.env,
-    JOLJAK_DATA:path.join(output,'workspace-'+randomUUID()),JOLJAK_DEV_URL:''},timeout:90000});
+    BPMTRACKER_DATA:path.join(output,'workspace-'+randomUUID()),BPMTRACKER_DEV_URL:''},timeout:90000});
   page=await app.firstWindow();page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});page.on('dialog',dialog=>dialog.accept());
   await page.waitForSelector('.app-shell');
   await check('isolated 0.6.9 production app and four linked native WAV imports',async()=>{
-    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.9');assert.match(page.url(),/^joljak:\/\/app\//);
-    assert.equal(await page.evaluate(()=>window.joljak.kind),'electron');
+    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.9');assert.match(page.url(),/^bpmtracker:\/\/app\//);
+    assert.equal(await page.evaluate(()=>window.bpmtracker.kind),'electron');
     await queue(['Drums','Bass','Guitars','Vocals'].map(name=>path.join(output,'media',name+'.wav')));
     await menu('File','Import Audio');await page.locator('.modal').getByLabel('Placement').selectOption('stems');
     await page.locator('.modal').getByRole('button',{name:'Import Audio',exact:true}).click();

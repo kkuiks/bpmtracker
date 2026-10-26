@@ -21,7 +21,7 @@ async function main() {
   const electron = fs.readFileSync(path.join(root, 'apps/daw/electron/main.cjs'), 'utf8');
   const validator = electron.slice(electron.indexOf('function validProject('), electron.indexOf('async function atomicJson('));
   const validate = vm.runInNewContext(validator + '\nvalidProject;');
-  const base = { format: 'joljak-project', version: 3, id: 'test', name: 'continuity control',
+  const base = { format: 'bpmtracker-project', version: 3, id: 'test', name: 'continuity control',
     assets: [], tracks: [], clips: [], clocks: [], analyses: [], sampleRate: 48000,
     masterGain: 1, clickGain: 1, bpm: 120, signature: { numerator: 4, denominator: 4 },
     tempos: [], signatures: [], projectDuration: 12, rulerFormat: 'bars', timingPolicy: 'persistent' };
@@ -80,7 +80,7 @@ async function main() {
     const restored=music.upgradeProject(validate(JSON.parse(JSON.stringify(partial))));
     assert.deepEqual(music.projectClocks(restored),music.projectClocks(partial));
   });
-  const nativeFile=path.join(root,'data/samples/ntm/acle-kahney-tesseract-juno/registered/owner-approved-project-20261011-v1.joljak');
+  const nativeFile=path.join(root,'data/samples/ntm/acle-kahney-tesseract-juno/registered/owner-approved-project-20261011-v1.bpmtracker');
   if(fs.existsSync(nativeFile)) check('saved_owner_juno_project_keeps_audio_and_clock_geometry',()=>{
     const old=JSON.parse(fs.readFileSync(nativeFile,'utf8')),next=music.upgradeProject(old);
     assert.deepEqual(next.clips,old.clips);assert.deepEqual(next.assets,old.assets);

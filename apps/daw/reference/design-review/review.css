@@ -1,7 +1,7 @@
-@font-face { font-family: "Review Segoe"; src: local("Segoe UI"), url("/@fs/home/yooch/code/joljak/.daw-state/u2-redesign-20261011/assets/segoeui.ttf") format("truetype"); font-weight: 400; }
-@font-face { font-family: "Review Segoe"; src: local("Segoe UI Bold"), url("/@fs/home/yooch/code/joljak/.daw-state/u2-redesign-20261011/assets/segoeuib.ttf") format("truetype"); font-weight: 600 800; }
-@font-face { font-family: "Review Consolas"; src: local("Consolas"), url("/@fs/home/yooch/code/joljak/.daw-state/u2-redesign-20261011/assets/consola.ttf") format("truetype"); }
-@font-face { font-family: "Review Korean"; src: local("Malgun Gothic"), url("/@fs/home/yooch/code/joljak/.daw-state/u2-redesign-20261011/assets/malgun.ttf") format("truetype"); }
+@font-face { font-family: "Review Segoe"; src: local("Segoe UI"), url("/@fs/home/yooch/code/bpmtracker/.daw-state/u2-redesign-20261011/assets/segoeui.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Review Segoe"; src: local("Segoe UI Bold"), url("/@fs/home/yooch/code/bpmtracker/.daw-state/u2-redesign-20261011/assets/segoeuib.ttf") format("truetype"); font-weight: 600 800; }
+@font-face { font-family: "Review Consolas"; src: local("Consolas"), url("/@fs/home/yooch/code/bpmtracker/.daw-state/u2-redesign-20261011/assets/consola.ttf") format("truetype"); }
+@font-face { font-family: "Review Korean"; src: local("Malgun Gothic"), url("/@fs/home/yooch/code/bpmtracker/.daw-state/u2-redesign-20261011/assets/malgun.ttf") format("truetype"); }
 :root { color-scheme: dark; }
 html, body, #root { width:100%; height:100%; margin:0; overflow:hidden; }
 * { box-sizing:border-box; }

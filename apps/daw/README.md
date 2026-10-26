@@ -1,6 +1,6 @@
-# Joljak audio workspace
+# BPMTracker audio workspace
 
-Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. Joljak runs on Windows with an English interface. The current version is **0.6.17**.
+Arrange songs and stems on a shared tempo/signature map, inspect fixed-metronome predictions, and export aligned audio and maps. BPMTracker runs on Windows with an English interface. The current version is **0.6.17**.
 
 Editing, adding or deleting a tempo/signature declaration keeps other declarations
 at their existing audio times. Moving selected declarations moves those points by
@@ -29,8 +29,8 @@ records remain stored. Buffers whose originals are missing or changed are retain
 Opening a saved project or accepting automatic recovery rebuilds missing buffers
 from the original audio. That can briefly show decoding progress; it does not
 change the tempo/signature map, original sample geometry, dirty state or Undo
-history. The cache lives under `%APPDATA%\Joljak\workspace\audio-cache` unless
-an explicit `JOLJAK_DATA` workspace is configured.
+history. The cache lives under `%APPDATA%\BPMTracker\workspace\audio-cache` unless
+an explicit `BPMTRACKER_DATA` workspace is configured.
 
 ## Review formal samples in the DAW
 
@@ -61,7 +61,7 @@ Hospital Hill also provides **Compare 102 / 110 BPM** and **Open
 and original musical quarter positions, then recomputes subsequent clock times;
 it does not silently reset phase at each original change timestamp.
 
-**Save sample draft** writes an editable `project.joljak` and a `proposal.json`
+**Save sample draft** writes an editable `project.bpmtracker` and a `proposal.json`
 under `data/samples/reviews/daw-drafts/<sample-id>/<saved-time>/`. Normal project
 save also retains the reference snapshot and working map. Saving a draft does
 not replace the accepted reference, original offset, formal membership or frozen
@@ -70,13 +70,13 @@ until the sample is reopened; confirmation of a new reference is a separate step
 
 ## Run on Windows
 
-In an assembled portable bundle, run **`Joljak.exe`** and keep the complete folder together. The bundle contains Electron, Python 3.12, CPU analysis dependencies and the official Beat This final0 checkpoint. It runs offline without a separate Node.js, Python or WSL installation. Source recordings and evaluation references are not included.
+In an assembled portable bundle, run **`BPMTracker.exe`** and keep the complete folder together. The bundle contains Electron, Python 3.12, CPU analysis dependencies and the official Beat This final0 checkpoint. It runs offline without a separate Node.js, Python or WSL installation. Source recordings and evaluation references are not included.
 
-For development, run **`Start Joljak.cmd`** in the repository root from Windows Explorer. First launch requires the frontend build and `dist/Joljak-win-x64.zip`; it extracts the runtime into `%LOCALAPPDATA%\Joljak\development`. Later launches reuse that runtime and refresh the built UI, Electron code and Python adapter. Close the app before relaunching to load a new build.
+For development, run **`Start BPMTracker.cmd`** in the repository root from Windows Explorer. First launch requires the frontend build and `dist/BPMTracker-win-x64.zip`; it extracts the runtime into `%LOCALAPPDATA%\BPMTracker\development`. Later launches reuse that runtime and refresh the built UI, Electron code and Python adapter. Close the app before relaunching to load a new build.
 
-The portable folder is `dist/Joljak-win-x64/` at the repository root. Updating this folder does not update the ZIP. An existing ZIP can seed the development cache, after which the launcher copies current application files from the checkout.
+The portable folder is `dist/BPMTracker-win-x64/` at the repository root. Updating this folder does not update the ZIP. An existing ZIP can seed the development cache, after which the launcher copies current application files from the checkout.
 
-After one launch through **Start Joljak.cmd**, Windows associates `.joljak` files
+After one launch through **Start BPMTracker.cmd**, Windows associates `.bpmtracker` files
 with the current development executable for the current Windows account. Double-click opens the
 project, including paths with spaces or Unicode. An existing instance receives
 the request in its current window. Opening the same file preserves its current
@@ -92,7 +92,7 @@ available. The registration uses HKCU and leaves Windows' protected UserChoice i
 3. **Analyze Audio**: optionally tap with `T`, `Space` or the TAP button, or enter an approximate quarter BPM. Each tap gives pressed-button feedback; holding a key does not add repeated taps. This selects a metrical layer; precise BPM, meter and phase come from audio. There is no initial meter input.
 4. Audition the proposal, then use **Apply & Align**. The preview shows the target project bar and signed shift. The song and linked stems move together so the inferred first downbeat lands on that bar.
 5. Edit audio, project Tempo/Signature events or saved analysis values. **Restore Original Prediction** restores saved analysis values; use **Apply & Align** separately to update the map and placement.
-6. Save a `.joljak` project. **Save As → Collect original audio** gathers sources for portability. Export WAV mix/stems/click and tempo-map JSON/MIDI.
+6. Save a `.bpmtracker` project. **Save As → Collect original audio** gathers sources for portability. Export WAV mix/stems/click and tempo-map JSON/MIDI.
 
 ## Values, selection and Undo
 
@@ -150,7 +150,7 @@ are magnified for visibility; this does not change playback gain or audio data.
 ## Review newly collected candidates
 
 A `daw-review.json` descriptor pairs retained audio with supplied-clock records following
-the [collection workflow](../../tools/ntm_collection/README.md#prepare-and-review-a-batch-in-joljak).
+the [collection workflow](../../tools/ntm_collection/README.md#prepare-and-review-a-batch-in-bpmtracker).
 Use **Samples → Open candidate review…** and open that descriptor. Candidates
 remain labelled unaccepted and do not appear as new formal enrollment.
 
@@ -188,7 +188,7 @@ Multiple files open Import Audio so file order, placement and source storage can
 
 Placement can use the captured cursor/drop time, the last audio event end or a specified musical/seconds position. New tracks start **Linear**. Import onto an existing track retains its mixer settings and time base.
 
-The copy option stores originals in Joljak's app-local media directory. **Save As → Collect original audio** is the way to gather sources beside a portable project. Confirmed import preferences are remembered; cancellation restores the previous choices. Cancelled or failed imports release only their newly allocated media and cache files. Existing project assets and undo resources remain available.
+The copy option stores originals in BPMTracker's app-local media directory. **Save As → Collect original audio** is the way to gather sources beside a portable project. Confirmed import preferences are remembered; cancellation restores the previous choices. Cancelled or failed imports release only their newly allocated media and cache files. Existing project assets and undo resources remain available.
 
 - `T`, the track-list plus button, blank-list double-click or Project menu opens **Add Audio Track**, with name and count.
 - Click a track header to select a track. Ctrl-click selects individual tracks; Shift-click selects a contiguous range. Track focus preserves the selected event, range or map object.
@@ -356,7 +356,7 @@ Older v1 projects open with preserved audio placement and saved predictions, who
 
 Source-rate PCM is used for analysis. Streamed SoXR HQ 48 kHz PCM is used for playback and audio export. WAV mix, stems and click share the selected start, sample rate and frame length. Stems respect mute/solo, volume, pan and master gain. Mono uses pan; stereo uses balance. Overlapping events follow the same front-event priority in playback and rendering.
 
-Opening a project or recovering a session restores the decoded playback rate and frame count from the local cache. This also supports generated listening projects that store only original-audio metadata. Incomplete caches are regenerated on project opening. Original sample-rate geometry, clip timing and tempo/signature maps remain unchanged. If 44.1 kHz audio sounded lower and slower after reopening in an older build, close Joljak and run **Start Joljak.cmd** to load the current version, then open the same project again.
+Opening a project or recovering a session restores the decoded playback rate and frame count from the local cache. This also supports generated listening projects that store only original-audio metadata. Incomplete caches are regenerated on project opening. Original sample-rate geometry, clip timing and tempo/signature maps remain unchanged. If 44.1 kHz audio sounded lower and slower after reopening in an older build, close BPMTracker and run **Start BPMTracker.cmd** to load the current version, then open the same project again.
 
 JSON retains whole-project values separately from declared map coordinates, saved source-relative clocks and raw analyses. MIDI includes the active tempo/signature at its export origin as required for playback. It is a quantized interchange derivative with export-origin/bar markers, rather than an exact recording of the original source clock.
 
@@ -416,11 +416,11 @@ cd apps/daw
 npm run dev:windows
 ```
 
-Restart development launch after Electron or Python adapter changes. Build the UI before using `Start Joljak.cmd` for a built-app review. Frontend hot reload does not replace the packaged analysis runtime.
+Restart development launch after Electron or Python adapter changes. Build the UI before using `Start BPMTracker.cmd` for a built-app review. Frontend hot reload does not replace the packaged analysis runtime.
 
-Development configuration uses `JOLJAK_PYTHON` for Python, `JOLJAK_DATA` for the workspace and `JOLJAK_DEV_URL` for the Vite server. Production uses a local application protocol with a sandboxed preload bridge. Playback runs on an AudioWorklet sample clock; media, analysis and rendering jobs run in separate Python processes.
+Development configuration uses `BPMTRACKER_PYTHON` for Python, `BPMTRACKER_DATA` for the workspace and `BPMTRACKER_DEV_URL` for the Vite server. Production uses a local application protocol with a sandboxed preload bridge. Playback runs on an AudioWorklet sample clock; media, analysis and rendering jobs run in separate Python processes.
 
-For a separate Windows PC connected with VS Code Remote SSH, run `npm run dev` on the development host and forward port **8998** to local **127.0.0.1:8998**. The development server serves the prepared runtime, small app update and installer under `/__joljak_preview__/`. On the Windows PC, download `Install-Joljak-Preview.ps1` from that route and run it with Windows PowerShell. It installs under `%LOCALAPPDATA%\Joljak\remote-preview`, resumes partial runtime downloads and opens the folder containing **Start Remote Preview.cmd**. This command opens the real Windows app against the forwarded UI; audio files, playback, analysis and projects stay on that Windows PC. Frontend edits reload through the tunnel. Close the app and rerun the installer after Electron/Python application updates; the installed runtime is reused. The small update archive must be prepared from the current built application files.
+For a separate Windows PC connected with VS Code Remote SSH, run `npm run dev` on the development host and forward port **8998** to local **127.0.0.1:8998**. The development server serves the prepared runtime, small app update and installer under `/__bpmtracker_preview__/`. On the Windows PC, download `Install-BPMTracker-Preview.ps1` from that route and run it with Windows PowerShell. It installs under `%LOCALAPPDATA%\BPMTracker\remote-preview`, resumes partial runtime downloads and opens the folder containing **Start Remote Preview.cmd**. This command opens the real Windows app against the forwarded UI; audio files, playback, analysis and projects stay on that Windows PC. Frontend edits reload through the tunnel. Close the app and rerun the installer after Electron/Python application updates; the installed runtime is reused. The small update archive must be prepared from the current built application files.
 
 ## Validation status and limits
 

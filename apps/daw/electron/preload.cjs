@@ -1,11 +1,11 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
-const invoke = (name, ...args) => ipcRenderer.invoke(`joljak:${name}`, ...args);
+const invoke = (name, ...args) => ipcRenderer.invoke(`bpmtracker:${name}`, ...args);
 const subscribe = (name, callback) => {
   const listener = (_event, data) => callback(data);
-  ipcRenderer.on(`joljak:${name}`, listener);
-  return () => ipcRenderer.removeListener(`joljak:${name}`, listener);
+  ipcRenderer.on(`bpmtracker:${name}`, listener);
+  return () => ipcRenderer.removeListener(`bpmtracker:${name}`, listener);
 };
-contextBridge.exposeInMainWorld("joljak", {
+contextBridge.exposeInMainWorld("bpmtracker", {
   kind: "electron",
   chooseAudio: () => invoke("choose-audio"),
   sampleLibrary: (choose = false) => invoke("sample-library", choose),
@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld("joljak", {
   onOpenProject: (callback) => subscribe("open-project", callback),
   autosave: (project) => invoke("autosave", project),
   closingProject: (project) =>
-    ipcRenderer.sendSync("joljak:closing-project", project),
+    ipcRenderer.sendSync("bpmtracker:closing-project", project),
   recovery: () => invoke("recovery"),
   analyze: (asset, start, end, tap, clipId) =>
     invoke("analyze", asset.id, start, end, tap, clipId),
@@ -34,5 +34,5 @@ contextBridge.exposeInMainWorld("joljak", {
   onCommand: (callback) => subscribe("command", callback),
   pathForFile: (file) => webUtils.getPathForFile(file),
   reveal: (path) => invoke("reveal", path),
-  window: (action) => ipcRenderer.send("joljak:window", action),
+  window: (action) => ipcRenderer.send("bpmtracker:window", action),
 });

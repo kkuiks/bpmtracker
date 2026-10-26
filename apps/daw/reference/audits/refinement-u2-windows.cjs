@@ -2,11 +2,11 @@
 // Retained four-WAV fixtures; isolated profiles; no analysis or export job is run.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {_electron}=require(process.env.JOLJAK_PLAYWRIGHT);
-const output=process.env.JOLJAK_U2_AUDIT,exe=process.env.JOLJAK_U2_EXE;
-const contextOnly=process.env.JOLJAK_U2_CONTEXT_ONLY==='1';
-const keyboardOnly=process.env.JOLJAK_U2_KEYBOARD_ONLY==='1';
-const mapOnly=process.env.JOLJAK_U2_MAP_ONLY==='1';
+const {_electron}=require(process.env.BPMTRACKER_PLAYWRIGHT);
+const output=process.env.BPMTRACKER_U2_AUDIT,exe=process.env.BPMTRACKER_U2_EXE;
+const contextOnly=process.env.BPMTRACKER_U2_CONTEXT_ONLY==='1';
+const keyboardOnly=process.env.BPMTRACKER_U2_KEYBOARD_ONLY==='1';
+const mapOnly=process.env.BPMTRACKER_U2_MAP_ONLY==='1';
 delete process.env.ELECTRON_RUN_AS_NODE;
 const results=[],errors=[];let app,page;
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -15,7 +15,7 @@ async function state(){return page.evaluate(()=>{
   const element=document.querySelector('.app-shell'),key=Object.keys(element).find(k=>k.startsWith('__reactFiber$'));
   let root=element[key];while(root.return)root=root.return;root=root.stateNode.current;
   function find(f){if(!f)return null;let hook=f.memoizedState;
-    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='joljak-project')return hook.memoizedState;hook=hook.next;}
+    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='bpmtracker-project')return hook.memoizedState;hook=hook.next;}
     return find(f.child)||find(f.sibling);}
   return JSON.parse(JSON.stringify(find(root)));
 });}
@@ -31,7 +31,7 @@ async function command(menu,label){await page.getByRole('button',{name:menu,exac
 async function item(label){await page.locator('.owned-menu').getByRole('menuitem',{name:menuName(label)}).click();await pause(90);}
 async function field(label,value){const input=page.getByLabel(label,{exact:true});await input.locator('..').dblclick();
   await input.fill(String(value));await input.press('Enter');await pause(90);}
-async function load(project,name){const file=path.join(output,name+'.joljak');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
+async function load(project,name){const file=path.join(output,name+'.bpmtracker');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
   await queue([file]);await command('File','Open Project…');await page.waitForFunction(name=>document.querySelector('.title-project')?.textContent.includes(name),name);await pause(140);}
 async function select(index=0){await page.locator('.audio-clip').nth(index).click({position:{x:30,y:30}});await pause(70);}
 async function undo(){await page.keyboard.press('Control+z');await pause(90);}
@@ -48,14 +48,14 @@ async function visibleControls(){const names=['Project position','Tempo','Signat
     return [name,{x:r.x,y:r.y,width:r.width,height:r.height,visible:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight}];})),names);}
 (async()=>{try{
   app=await _electron.launch({executablePath:exe,cwd:path.dirname(exe),env:{...process.env,
-    JOLJAK_DATA:path.join(output,'workspace-'+randomUUID()),JOLJAK_DEV_URL:''},timeout:90000});
+    BPMTRACKER_DATA:path.join(output,'workspace-'+randomUUID()),BPMTRACKER_DEV_URL:''},timeout:90000});
   page=await app.firstWindow();page.setDefaultTimeout(12000);
   page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());await page.waitForSelector('.app-shell');
   await check('native 0.6.12 imports the retained linked stems in an isolated profile',async()=>{
-    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.12');assert.match(page.url(),/^joljak:\/\/app\//);
+    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.12');assert.match(page.url(),/^bpmtracker:\/\/app\//);
     await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setBounds({width:1440,height:940}));await pause(160);await screenshot('u2-empty');
-    await queue(['Drums','Bass','Guitars','Vocals'].map(name=>path.join(process.env.JOLJAK_U2_MEDIA,name+'.wav')));
+    await queue(['Drums','Bass','Guitars','Vocals'].map(name=>path.join(process.env.BPMTRACKER_U2_MEDIA,name+'.wav')));
     await command('File','Import Audio…');await page.locator('.modal').getByLabel('Placement').selectOption('stems');
     await page.locator('.modal').getByRole('button',{name:'Import Audio',exact:true}).click();
     await page.waitForFunction(()=>document.querySelectorAll('.audio-clip').length===4,null,{timeout:60000});await select();
@@ -188,7 +188,7 @@ async function visibleControls(){const names=['Project position','Tempo','Signat
     await page.locator('.play-button').click();await pause(200);await page.mouse.click(lane.x+12*scale,lane.y+44,{button:'right'});await pause(650);await item('Paste Here');await page.locator('.stop-button').click();let p=await state();
     const pasted=p.clips.filter(c=>!before.clips.some(original=>original.id===c.id));assert.equal(p.tracks.length,5);assert.deepEqual(pasted.map(c=>[c.start,c.duration,c.trackId]),[[14,6,p.tracks[2].id],[14,6,p.tracks[4].id]]);
     assert.deepEqual(p.tempos,before.tempos);assert.deepEqual(p.signatures,before.signatures);await undo();assert.deepEqual((await state()).clips,before.clips);
-    await queue(['Drums','Bass'].map(name=>path.join(process.env.JOLJAK_U2_MEDIA,name+'.wav')));
+    await queue(['Drums','Bass'].map(name=>path.join(process.env.BPMTRACKER_U2_MEDIA,name+'.wav')));
     const emptyLane=await page.locator('.track-lane').nth(1).boundingBox();await page.locator('.play-button').click();await pause(150);await page.mouse.click(emptyLane.x+17*scale,emptyLane.y+44,{button:'right'});
     await pause(650);await item('Import Audio Here…');assert.equal(Number(await page.getByLabel('Import position',{exact:true}).getAttribute('aria-valuenow')),17);
     await page.locator('.modal').getByRole('button',{name:'Cancel',exact:true}).click();await page.locator('.stop-button').click();assert.deepEqual(await state(),before);

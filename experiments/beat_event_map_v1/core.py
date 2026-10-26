@@ -29,7 +29,7 @@ def child_state(old,time,q,bpm,n,d):
 
 def prediction(head,duration,method,unit_id):
     initial={k:head['initial'][k] for k in ['bpm','numerator','denominator','bar_zero_source_seconds']}
-    result={'format':'joljak-continuous-beat-map','version':1,'status':'map','duration_seconds':duration,
+    result={'format':'bpmtracker-continuous-beat-map','version':1,'status':'map','duration_seconds':duration,
             'initial':initial,'events':head['events'],'source_score':head['score']/duration,
             'method':method,'unit_id':unit_id,'confidence_does_not_mute':True,
             'free_phase_parameters_after_start':0,'beat_definition':'notated denominator beat',

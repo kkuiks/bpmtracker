@@ -1,8 +1,8 @@
 // Explicit follow-up to the owner's U1 feedback; no analysis/model invocation.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {_electron}=require(process.env.JOLJAK_PLAYWRIGHT);
-const output=process.env.JOLJAK_U1_AUDIT,exe=process.env.JOLJAK_U1_EXE;
+const {_electron}=require(process.env.BPMTRACKER_PLAYWRIGHT);
+const output=process.env.BPMTRACKER_U1_AUDIT,exe=process.env.BPMTRACKER_U1_EXE;
 delete process.env.ELECTRON_RUN_AS_NODE;
 const results=[],errors=[];let app,page;
 const report=path.join(output,'u1-feedback-results.json');
@@ -11,7 +11,7 @@ async function state(){return page.evaluate(()=>{
   const element=document.querySelector('.app-shell'),key=Object.keys(element).find(k=>k.startsWith('__reactFiber$'));
   let root=element[key];while(root.return)root=root.return;root=root.stateNode.current;
   function find(f){if(!f)return null;let hook=f.memoizedState;
-    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='joljak-project')return hook.memoizedState;hook=hook.next;}
+    while(hook&&typeof hook==='object'){if(hook.memoizedState?.format==='bpmtracker-project')return hook.memoizedState;hook=hook.next;}
     return find(f.child)||find(f.sibling);}
   return JSON.parse(JSON.stringify(find(root)));
 });}
@@ -33,7 +33,7 @@ async function hold(node,dy){await node.waitFor({state:'visible'});const box=awa
   await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x,y+dy,{steps:8});await pause(60);}
 async function release(){await page.mouse.up();await pause(100);}
 async function wheel(node){await node.hover();await page.mouse.wheel(0,-90);await pause(340);}
-async function load(project,name){const file=path.join(output,name+'.joljak');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
+async function load(project,name){const file=path.join(output,name+'.bpmtracker');project.name=name;fs.writeFileSync(file,JSON.stringify(project));
   await queue([file]);await menu('File','Open Project');await page.waitForFunction(name=>document.querySelector('.title-project')?.textContent.includes(name),name);await pause(160);}
 const parts=label=>page.getByLabel(label,{exact:true}).locator('..').locator('[data-value-segment]');
 async function boxes(){return page.evaluate(()=>{
@@ -44,12 +44,12 @@ function sameBoxes(a,b){for(const name of Object.keys(a))for(const property of [
   assert.ok(Math.abs(a[name][property]-b[name][property])<.1,JSON.stringify({name,property,a:a[name],b:b[name]}));}
 (async()=>{try{
   app=await _electron.launch({executablePath:exe,cwd:path.dirname(exe),env:{...process.env,
-    JOLJAK_DATA:path.join(output,'workspace-'+randomUUID()),JOLJAK_DEV_URL:''},timeout:90000});
+    BPMTRACKER_DATA:path.join(output,'workspace-'+randomUUID()),BPMTRACKER_DEV_URL:''},timeout:90000});
   page=await app.firstWindow();page.setDefaultTimeout(12000);
   page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
   page.on('dialog',dialog=>dialog.accept());await page.waitForSelector('.app-shell');
   await check('isolated native 0.6.10 app imports the retained four linked WAV fixtures',async()=>{
-    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.10');assert.match(page.url(),/^joljak:\/\/app\//);
+    assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.10');assert.match(page.url(),/^bpmtracker:\/\/app\//);
     await queue(['Drums','Bass','Guitars','Vocals'].map(name=>path.join(output,'media',name+'.wav')));
     await menu('File','Import Audio');await page.locator('.modal').getByLabel('Placement').selectOption('stems');
     await page.locator('.modal').getByRole('button',{name:'Import Audio',exact:true}).click();
@@ -127,7 +127,7 @@ function sameBoxes(a,b){for(const name of Object.keys(a))for(const property of [
     await page.screenshot({path:path.join(output,'u1-feedback-inspector.png')});
   });
   await check('first tempo declaration during playback keeps the captured input target',async()=>{
-    await load(structuredClone(baseline),'Playback target');await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('joljak:command','play'));await pause(260);
+    await load(structuredClone(baseline),'Playback target');await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('bpmtracker:command','play'));await pause(260);
     const before=Number(await page.getByLabel('Project position',{exact:true}).getAttribute('aria-valuenow'));
     const input=page.getByLabel('Tempo',{exact:true});await input.dblclick();const after=Number(await page.getByLabel('Project position',{exact:true}).getAttribute('aria-valuenow'));
     await input.fill('132');await pause(800);assert.equal(await input.inputValue(),'132');await input.press('Enter');await pause(80);await page.locator('.stop-button').click();

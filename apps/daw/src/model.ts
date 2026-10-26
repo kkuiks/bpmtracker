@@ -91,7 +91,7 @@ export type SignatureEvent = {
 export type MapSelection = { kind: "tempo" | "signature"; id: string };
 export type ArrangementSelection = { clips: string[]; maps: MapSelection[] };
 export type Project = {
-  format: "joljak-project";
+  format: "bpmtracker-project";
   version: 3;
   id: string;
   name: string;
@@ -222,7 +222,7 @@ export interface DesktopApi {
 }
 declare global {
   interface Window {
-    joljak?: DesktopApi;
+    bpmtracker?: DesktopApi;
   }
 }
 
@@ -238,7 +238,7 @@ export const colors = [
   "#cc967b",
 ];
 export const createProject = (): Project => ({
-  format: "joljak-project",
+  format: "bpmtracker-project",
   version: 3,
   id: uid(),
   name: "Untitled project",

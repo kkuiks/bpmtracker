@@ -80,7 +80,7 @@ def main():
         check("annotation_fields_rejected_by_feature_worker", True)
     else:
         check("annotation_fields_rejected_by_feature_worker", False)
-    with tempfile.TemporaryDirectory(prefix="joljak-gtzan-controls-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="bpmtracker-gtzan-controls-") as temporary:
         root = Path(temporary)
         annotations = root / "gtzan/annotations/beats"
         annotations.mkdir(parents=True)

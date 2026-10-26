@@ -1,23 +1,23 @@
 $ErrorActionPreference='Stop'
 $Repo=Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)))
-$Audit=Join-Path $env:LOCALAPPDATA 'Joljak\audit\refinement-u1-feedback-20261011'
+$Audit=Join-Path $env:LOCALAPPDATA 'BPMTracker\audit\refinement-u1-feedback-20261011'
 # Reuse the audit-owned Electron and retained Python runtime; owner apps are separate.
-$Application=Join-Path $env:LOCALAPPDATA 'Joljak\audit\refinement-u1-20261011\application'
+$Application=Join-Path $env:LOCALAPPDATA 'BPMTracker\audit\refinement-u1-20261011\application'
 New-Item -ItemType Directory -Force -Path $Audit | Out-Null
 $Existing=& (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'scripts\start_windows.ps1') -PrepareOnly
-$env:JOLJAK_PYTHON=Join-Path $Existing 'resources\python\python.exe'
-$Exe=Join-Path $Application 'Joljak.exe'
-if (-not (Test-Path -LiteralPath $Exe) -or -not (Test-Path -LiteralPath $env:JOLJAK_PYTHON)) {throw 'Prepare the retained U1 audit runtime first.'}
-if (Get-Process -Name Joljak -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq $Exe}) {throw 'The audit application is still running.'}
+$env:BPMTRACKER_PYTHON=Join-Path $Existing 'resources\python\python.exe'
+$Exe=Join-Path $Application 'BPMTracker.exe'
+if (-not (Test-Path -LiteralPath $Exe) -or -not (Test-Path -LiteralPath $env:BPMTRACKER_PYTHON)) {throw 'Prepare the retained U1 audit runtime first.'}
+if (Get-Process -Name BPMTracker -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq $Exe}) {throw 'The audit application is still running.'}
 $Target=Join-Path $Application 'resources\app'
 if (Test-Path -LiteralPath $Target) {Remove-Item -LiteralPath $Target -Recurse -Force}
-Copy-Item -LiteralPath (Join-Path $Repo 'dist\Joljak-win-x64\resources\app') -Destination (Join-Path $Application 'resources') -Recurse
+Copy-Item -LiteralPath (Join-Path $Repo 'dist\BPMTracker-win-x64\resources\app') -Destination (Join-Path $Application 'resources') -Recurse
 Copy-Item -LiteralPath (Join-Path $Repo '.daw-state\refinement-u1-20261011\media') -Destination $Audit -Recurse -Force
-$env:JOLJAK_U1_EXE=$Exe
-$env:JOLJAK_U1_AUDIT=$Audit
-$env:JOLJAK_PLAYWRIGHT=Join-Path $Repo '.daw-runtime\audit-tools\playwright-core'
+$env:BPMTRACKER_U1_EXE=$Exe
+$env:BPMTRACKER_U1_AUDIT=$Audit
+$env:BPMTRACKER_PLAYWRIGHT=Join-Path $Repo '.daw-runtime\audit-tools\playwright-core'
 $env:ELECTRON_RUN_AS_NODE='1'
-Remove-Item Env:JOLJAK_DEV_URL -ErrorAction SilentlyContinue
+Remove-Item Env:BPMTRACKER_DEV_URL -ErrorAction SilentlyContinue
 & $Exe (Join-Path $PSScriptRoot 'refinement-u1-feedback-windows.cjs') | Out-Host
 $Result=$LASTEXITCODE
 $Evidence=Join-Path $Repo '.daw-state\refinement-u1-feedback-20261011'

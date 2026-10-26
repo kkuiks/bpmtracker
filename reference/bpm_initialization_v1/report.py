@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import tempfile
 
-os.environ.setdefault('MPLCONFIGDIR', tempfile.mkdtemp(prefix='joljak-init-mpl-'))
+os.environ.setdefault('MPLCONFIGDIR', tempfile.mkdtemp(prefix='bpmtracker-init-mpl-'))
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt

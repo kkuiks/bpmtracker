@@ -49,14 +49,14 @@ def reference_map(item,normalized):
         if event['time']>0 and current!=previous:
             event_at(event['time']).update(numerator=current[0],denominator=current[1])
         previous=current
-    return {'format':'joljak-continuous-beat-map','version':1,'status':'map','duration_seconds':item['duration_seconds'],
+    return {'format':'bpmtracker-continuous-beat-map','version':1,'status':'map','duration_seconds':item['duration_seconds'],
             'initial':{'bpm':initial_rate,'numerator':n,'denominator':d,'bar_zero_source_seconds':origin},
             'events':sorted(events.values(),key=lambda e:e['time']),
             'reference_conversion_only':True,'accepted_reference_sha256':item['reference_sha256'],
             'original_bpm_precision_preserved':True,'reference_not_resnapped_or_shifted':True,
             'simultaneous_numeric_declarations_merged':simultaneous}
 
-def uuid_for(value):return str(uuid.uuid5(uuid.NAMESPACE_URL,'joljak-continuous-map:'+value))
+def uuid_for(value):return str(uuid.uuid5(uuid.NAMESPACE_URL,'bpmtracker-continuous-map:'+value))
 
 def project(prediction,row,title,variant,destination):
     check=validate(prediction)
@@ -76,7 +76,7 @@ def project(prediction,row,title,variant,destination):
             signatures.append({'id':uuid_for(identity+f':signature{i}'),'quarter':q,'bar':bar,
                                'numerator':event['numerator'],'denominator':event['denominator'],'origin':'manual'})
             previous_q,previous_bar,previous_length=q,bar,event['numerator']*4/event['denominator']
-    return {'format':'joljak-project','version':3,'id':uuid_for(identity),'name':f'{title} — {variant}',
+    return {'format':'bpmtracker-project','version':3,'id':uuid_for(identity),'name':f'{title} — {variant}',
         'bpm':bpm,'signature':{'numerator':n,'denominator':d},'tempos':tempos,'signatures':signatures,
         'assets':[{'id':asset_id,'name':source.name,'sourcePath':os.path.relpath(source,destination.parent),
                    'pcmPath':'','peaksPath':'','sampleRate':row['sample_rate'],'channels':row['channels'],
@@ -121,7 +121,7 @@ def main():
     for ident in chosen:
         item=by_id[ident];row=sources[ident];prediction=read(run/'predictions/C1_CONTINUOUS_MAP/proxy100'/(ident+'.json'))
         for variant,mapping in [('reference',refs[ident]),('current',prediction)]:
-            target=run/'listen-projects'/ident/(variant+'.joljak');native=project(mapping,row,item['title'],variant,target);write(target,native)
+            target=run/'listen-projects'/ident/(variant+'.bpmtracker');native=project(mapping,row,item['title'],variant,target);write(target,native)
             write(target.with_suffix('.map.json'),mapping)
             manifest.append({'id':ident,'title':item['title'],'variant':variant,'project_path':str(target),
                              'map_path':str(target.with_suffix('.map.json')),'audio_path':row['audio_path'],

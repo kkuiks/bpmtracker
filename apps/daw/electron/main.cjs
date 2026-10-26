@@ -19,14 +19,23 @@ const sampleLibrary = require("./sample-library.cjs");
 const audioCache = require("./audio-cache.cjs");
 
 let window;
-app.setName("Joljak");
-if (process.env.JOLJAK_DATA) {
+app.setName("BPMTracker");
+if (process.env.BPMTRACKER_DATA) {
   // Custom workspaces, including explicit UX audits, also isolate browser preferences/cache.
-  app.setPath("userData", path.join(path.resolve(process.env.JOLJAK_DATA), "electron-profile"));
+  app.setPath("userData", path.join(path.resolve(process.env.BPMTRACKER_DATA), "electron-profile"));
 }
 const projectArgument = (args, cwd) => {
-  const file = args.find(value => typeof value === "string" && !value.startsWith("--") && /\.joljak$/i.test(value));
-  return file ? path.resolve(cwd, file) : null;
+  for (const value of args) {
+    if (typeof value !== "string" || value.startsWith("--")) continue;
+    const filename = path.resolve(cwd, value);
+    if (/\.bpmtracker$/i.test(filename)) return filename;
+    try {
+      const project = JSON.parse(fsSync.readFileSync(filename, "utf8"));
+      if (typeof project?.format === "string" && project.format.endsWith("-project") &&
+          [1, 2, 3].includes(project.version)) return filename;
+    } catch { /* Ignore non-project startup arguments. */ }
+  }
+  return null;
 };
 const initialProject = projectArgument(process.argv.slice(1), process.cwd());
 if (!app.requestSingleInstanceLock({ project: initialProject })) { app.quit(); return; }
@@ -45,7 +54,7 @@ app.on("second-instance", (_event, args, cwd, extra) => {
 });
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: "joljak",
+    scheme: "bpmtracker",
     privileges: {
       standard: true,
       secure: true,
@@ -71,9 +80,9 @@ const bundled = fsSync.existsSync(path.join(packagedAnalysis, "final0.ckpt"));
 const analysisRoot = bundled ? packagedAnalysis : repository;
 const worker = path.join(appRoot, "backend", "worker.py");
 const dataRoot =
-  process.env.JOLJAK_DATA || path.join(app.getPath("userData"), "workspace");
+  process.env.BPMTRACKER_DATA || path.join(app.getPath("userData"), "workspace");
 const python =
-  process.env.JOLJAK_PYTHON ||
+  process.env.BPMTRACKER_PYTHON ||
   (bundled
     ? path.join(process.resourcesPath, "python", "python.exe")
     : process.platform === "win32"
@@ -89,9 +98,9 @@ const checkpoint = bundled
     );
 const send = (name, data) => {
   if (window && !window.isDestroyed())
-    window.webContents.send(`joljak:${name}`, data);
+    window.webContents.send(`bpmtracker:${name}`, data);
 };
-let sampleRoot = process.env.JOLJAK_SAMPLE_ROOT || null;
+let sampleRoot = process.env.BPMTRACKER_SAMPLE_ROOT || null;
 async function sampleLibraryRoot(choose = false) {
   if (choose) {
     const result = await dialog.showOpenDialog(window, {
@@ -119,7 +128,7 @@ async function sampleLibraryRoot(choose = false) {
 function validProject(value) {
   if (
     !value ||
-    value.format !== "joljak-project" ||
+    typeof value.format !== "string" || !value.format.endsWith("-project") ||
     ![1, 2, 3].includes(value.version) ||
     !Array.isArray(value.assets) ||
     !Array.isArray(value.clips) ||
@@ -127,7 +136,7 @@ function validProject(value) {
     !Array.isArray(value.clocks) ||
     !Array.isArray(value.analyses)
   )
-    throw new Error("This is not a supported Joljak project");
+    throw new Error("This is not a supported BPMTracker project");
   if (
     typeof value.id !== "string" || typeof value.name !== "string" ||
     value.sampleRate !== 48000 ||
@@ -240,6 +249,7 @@ function validProject(value) {
       ![1, 2, 4, 8, 16, 32].includes(clock.values.denominator)
     )
       throw new Error("Invalid fixed clock in project");
+  value.format = "bpmtracker-project";
   return value;
 }
 async function atomicJson(filename, value) {
@@ -379,14 +389,14 @@ function preserveProjectImports(project) {
 async function startJob(kind, body) {
   await fs.access(python).catch(() => {
     throw new Error(
-      "Python audio runtime is missing. Use the packaged Windows app, or set JOLJAK_PYTHON to the current model environment.",
+      "Python audio runtime is missing. Use the packaged Windows app, or set BPMTRACKER_PYTHON to the current model environment.",
     );
   });
   const id = body.id || randomUUID();
   const jobPath = path.join(dataRoot, "jobs", `${id}.json`);
   const job = { ...body, id, kind };
   await atomicJson(jobPath, job);
-  if (quitting) throw new Error("Joljak is closing");
+  if (quitting) throw new Error("BPMTracker is closing");
   const child = spawn(python, ["-u", worker, jobPath], {
     cwd: analysisRoot,
     windowsHide: true,
@@ -460,7 +470,7 @@ async function startJob(kind, body) {
 app.whenReady().then(async () => {
   await fs.mkdir(dataRoot, { recursive: true });
   scheduleCacheCleanup();
-  protocol.handle("joljak", (request) => {
+  protocol.handle("bpmtracker", (request) => {
     const url = new URL(request.url);
     const root = path.join(appRoot, "dist");
     const filename = path.resolve(root, "." + decodeURIComponent(url.pathname));
@@ -475,7 +485,7 @@ app.whenReady().then(async () => {
     minHeight: 660,
     autoHideMenuBar: true,
     backgroundColor: "#202426",
-    title: "Joljak",
+    title: "BPMTracker",
     titleBarStyle: "hidden",
     titleBarOverlay: { color: "#202426", symbolColor: "#cbd4da", height: 32 },
     webPreferences: {
@@ -575,9 +585,9 @@ app.whenReady().then(async () => {
       },
     ]),
   );
-  if (process.env.JOLJAK_DEV_URL)
-    await window.loadURL(process.env.JOLJAK_DEV_URL);
-  else await window.loadURL("joljak://app/index.html");
+  if (process.env.BPMTRACKER_DEV_URL)
+    await window.loadURL(process.env.BPMTRACKER_DEV_URL);
+  else await window.loadURL("bpmtracker://app/index.html");
 });
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", (event) => {
@@ -602,13 +612,13 @@ app.on("before-quit", (event) => {
   })().catch(error => console.warn("Audio cache cleanup:", error.message)).finally(() => app.quit());
 });
 
-ipcMain.on("joljak:window", (_event, action) => {
+ipcMain.on("bpmtracker:window", (_event, action) => {
   if (action === "minimize") window.minimize();
   else if (action === "maximize")
     window.isMaximized() ? window.unmaximize() : window.maximize();
   else if (action === "close") window.close();
 });
-ipcMain.handle("joljak:choose-audio", async () => {
+ipcMain.handle("bpmtracker:choose-audio", async () => {
   const result = await dialog.showOpenDialog(window, {
     title: "Import Audio",
     properties: ["openFile", "multiSelections"],
@@ -616,16 +626,16 @@ ipcMain.handle("joljak:choose-audio", async () => {
   });
   return result.canceled ? [] : result.filePaths;
 });
-ipcMain.handle("joljak:sample-library", async (_event, choose) => {
+ipcMain.handle("bpmtracker:sample-library", async (_event, choose) => {
   const root = await sampleLibraryRoot(choose === true);
   return root ? sampleLibrary.list(root) : { root: null, tracks: [] };
 });
-ipcMain.handle("joljak:sample-reference", async (_event, id) => {
+ipcMain.handle("bpmtracker:sample-reference", async (_event, id) => {
   const root = await sampleLibraryRoot();
   if (!root) throw new Error("Select the formal sample catalog first");
   return sampleLibrary.reference(root, id);
 });
-ipcMain.handle("joljak:choose-candidate-review", async () => {
+ipcMain.handle("bpmtracker:choose-candidate-review", async () => {
   const root=await sampleLibraryRoot();
   if(!root)throw new Error("Select the sample catalog before opening a candidate review");
   const result=await dialog.showOpenDialog(window,{
@@ -634,18 +644,18 @@ ipcMain.handle("joljak:choose-candidate-review", async () => {
   });
   return result.canceled?null:sampleLibrary.candidateList(root,result.filePaths[0]);
 });
-ipcMain.handle("joljak:candidate-reference", async (_event, filename, id) => {
+ipcMain.handle("bpmtracker:candidate-reference", async (_event, filename, id) => {
   const root=await sampleLibraryRoot();
   if(!root)throw new Error("Select the sample catalog first");
   return sampleLibrary.candidateReference(root,filename,id);
 });
-ipcMain.handle("joljak:save-sample-draft", async (_event, input) => {
+ipcMain.handle("bpmtracker:save-sample-draft", async (_event, input) => {
   const project = validProject(input), root = await sampleLibraryRoot();
   if (!root || project.sampleReview?.reference?.libraryRoot !== root)
     throw new Error("Select the original library for this sample before saving its draft");
   return sampleLibrary.saveDraft(root, project);
 });
-ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
+ipcMain.handle("bpmtracker:decode", async (_event, paths, copy, requestId) => {
   if (!Array.isArray(paths) || paths.length === 0 || paths.length > 32)
     throw new Error("Choose between 1 and 32 audio files");
   if (typeof requestId !== "string" || !/^[0-9a-f-]{36}$/i.test(requestId) || imports.has(requestId) || jobs.has(requestId))
@@ -696,8 +706,8 @@ ipcMain.handle("joljak:decode", async (_event, paths, copy, requestId) => {
     prepared();
   }
 });
-ipcMain.handle("joljak:finish-import", (_event, id, keep) => finishImport(id, keep === true));
-ipcMain.handle("joljak:register-assets", async (_event, items) => {
+ipcMain.handle("bpmtracker:finish-import", (_event, id, keep) => finishImport(id, keep === true));
+ipcMain.handle("bpmtracker:register-assets", async (_event, items) => {
   for (const asset of items) audioCache.cacheId(asset);
   registeredAssets.clear();
   for (const asset of items) {
@@ -708,14 +718,14 @@ ipcMain.handle("joljak:register-assets", async (_event, items) => {
   await Promise.allSettled(items.map(ensureAssetCache));
   scheduleCacheCleanup();
 });
-ipcMain.handle("joljak:peaks", async (_event, id) => {
+ipcMain.handle("bpmtracker:peaks", async (_event, id) => {
   const bytes = await fs.readFile(requireAsset(id).peaksPath);
   return bytes.buffer.slice(
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   );
 });
-ipcMain.handle("joljak:chunk", async (_event, id, index) => {
+ipcMain.handle("bpmtracker:chunk", async (_event, id, index) => {
   const asset = requireAsset(id);
   if (!Number.isInteger(index) || index < 0)
     throw new Error("Invalid audio chunk");
@@ -737,26 +747,26 @@ ipcMain.handle("joljak:chunk", async (_event, id, index) => {
     bytes.byteOffset + bytes.byteLength,
   );
 });
-ipcMain.handle("joljak:save", async (_event, input, previous, copy) => {
+ipcMain.handle("bpmtracker:save", async (_event, input, previous, copy) => {
   const project = structuredClone(validProject(input));
   const result = previous
     ? { canceled: false, filePath: previous }
     : await dialog.showSaveDialog(window, {
         title: "Save Project",
-        defaultPath: `${project.name}.joljak`,
-        filters: [{ name: "Joljak Project", extensions: ["joljak"] }],
+        defaultPath: `${project.name}.bpmtracker`,
+        filters: [{ name: "BPMTracker Project", extensions: ["bpmtracker"] }],
       });
   if (result.canceled || !result.filePath) return null;
-  const target = result.filePath.endsWith(".joljak")
+  const target = (previous || result.filePath.endsWith(".bpmtracker"))
     ? result.filePath
-    : `${result.filePath}.joljak`;
-  project.name = path.basename(target, ".joljak");
+    : `${result.filePath}.bpmtracker`;
+  project.name = path.basename(target, path.extname(target));
   const directory = path.dirname(target);
   for (const asset of project.assets) {
     if (copy) {
       const media = path.join(
         directory,
-        `${path.basename(target, ".joljak")}.media`,
+        `${path.basename(target, path.extname(target))}.media`,
         asset.id,
       );
       await fs.mkdir(media, { recursive: true });
@@ -774,17 +784,20 @@ ipcMain.handle("joljak:save", async (_event, input, previous, copy) => {
   }
   return { path: target, project };
 });
-ipcMain.handle("joljak:pending-projects", () => {
+ipcMain.handle("bpmtracker:pending-projects", () => {
   rendererReady = true;
   return pendingProjects.splice(0);
 });
-ipcMain.handle("joljak:open", async (_event, requested) => {
-  if (requested !== undefined && (typeof requested !== "string" || !path.isAbsolute(requested) || !/\.joljak$/i.test(requested)))
-    throw new Error("Choose a valid .joljak project file.");
+ipcMain.handle("bpmtracker:open", async (_event, requested) => {
+  if (requested !== undefined && (typeof requested !== "string" || !path.isAbsolute(requested)))
+    throw new Error("Choose a valid .bpmtracker project file.");
   const selected = requested ? null : await dialog.showOpenDialog(window, {
     title: "Open Project",
     properties: ["openFile"],
-    filters: [{ name: "Joljak Project", extensions: ["joljak"] }],
+    filters: [
+      { name: "BPMTracker Project", extensions: ["bpmtracker"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
   });
   if (selected?.canceled) return null;
   const filename = requested ?? selected.filePaths[0];
@@ -814,16 +827,16 @@ ipcMain.handle("joljak:open", async (_event, requested) => {
   }
   return { path: filename, project, missing };
 });
-ipcMain.handle("joljak:autosave", async (_event, project) =>
-  atomicJson(path.join(dataRoot, "recovery.joljak"), {
+ipcMain.handle("bpmtracker:autosave", async (_event, project) =>
+  atomicJson(path.join(dataRoot, "recovery.bpmtracker"), {
     project: validProject(project),
     savedAt: new Date().toISOString(),
   }),
 );
-ipcMain.handle("joljak:recovery", async () => {
+ipcMain.handle("bpmtracker:recovery", async () => {
   try {
     const recovery = JSON.parse(
-      await fs.readFile(path.join(dataRoot, "recovery.joljak"), "utf8"),
+      await fs.readFile(path.join(dataRoot, "recovery.bpmtracker"), "utf8"),
     );
     const project = validProject(recovery.project);
     for (const asset of project.assets) {
@@ -838,7 +851,7 @@ ipcMain.handle("joljak:recovery", async () => {
   }
 });
 ipcMain.handle(
-  "joljak:analyze",
+  "bpmtracker:analyze",
   async (_event, id, start, end, tap, clipId) => {
     const asset = requireAsset(id);
     if (
@@ -853,7 +866,7 @@ ipcMain.handle(
     await fs.access(checkpoint).catch(() => {
       throw new Error("The official fixed-metronome checkpoint is missing");
     });
-    if ([...jobs.values()].some((child) => child.joljakAnalysis))
+    if ([...jobs.values()].some((child) => child.bpmtrackerAnalysis))
       throw new Error("One analysis can run at a time");
     const jobId = randomUUID(),
       hintPath = path.join(dataRoot, "jobs", `${jobId}.hint.json`);
@@ -874,16 +887,16 @@ ipcMain.handle(
       checkpoint,
       output: path.join(dataRoot, "analyses", jobId),
     });
-    jobs.get(result).joljakAnalysis = true;
+    jobs.get(result).bpmtrackerAnalysis = true;
     return result;
   },
 );
-ipcMain.handle("joljak:cancel", async (_event, id) => {
+ipcMain.handle("bpmtracker:cancel", async (_event, id) => {
   if (imports.has(id)) { await finishImport(id); return; }
   const child = jobs.get(id);
   if (child) child.kill();
 });
-ipcMain.handle("joljak:export", async (_event, project, options) => {
+ipcMain.handle("bpmtracker:export", async (_event, project, options) => {
   validProject(project);
   const result = await dialog.showOpenDialog(window, {
     title: "Choose Export Folder",
@@ -898,14 +911,14 @@ ipcMain.handle("joljak:export", async (_event, project, options) => {
     output: path.join(result.filePaths[0], `${name} ${stamp}`),
   });
 });
-ipcMain.handle("joljak:reveal", (_event, filename) =>
+ipcMain.handle("bpmtracker:reveal", (_event, filename) =>
   shell.showItemInFolder(filename),
 );
-ipcMain.on("joljak:closing-project", (event, project) => {
+ipcMain.on("bpmtracker:closing-project", (event, project) => {
   try {
     validProject(project);
     preserveProjectImports(project);
-    const filename = path.join(dataRoot, "recovery.joljak");
+    const filename = path.join(dataRoot, "recovery.bpmtracker");
     const temporary = filename + ".closing.tmp";
     fsSync.writeFileSync(
       temporary,

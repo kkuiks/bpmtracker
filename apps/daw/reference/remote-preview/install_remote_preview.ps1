@@ -1,24 +1,24 @@
 param(
-    [string]$BaseUrl = 'http://127.0.0.1:8998/__joljak_preview__',
+    [string]$BaseUrl = 'http://127.0.0.1:8998/__bpmtracker_preview__',
     [string]$InstallDirectory
 )
 $ErrorActionPreference = 'Stop'
 if (-not $InstallDirectory) {
-    $InstallDirectory = Join-Path $env:LOCALAPPDATA 'Joljak\remote-preview'
+    $InstallDirectory = Join-Path $env:LOCALAPPDATA 'BPMTracker\remote-preview'
 }
 $InstallDirectory = [System.IO.Path]::GetFullPath($InstallDirectory)
-$appDirectory = Join-Path $InstallDirectory 'Joljak-win-x64'
-$executable = Join-Path $appDirectory 'Joljak.exe'
+$appDirectory = Join-Path $InstallDirectory 'BPMTracker-win-x64'
+$executable = Join-Path $appDirectory 'BPMTracker.exe'
 $launcher = Join-Path $appDirectory 'Start Remote Preview.cmd'
-$running = Get-Process Joljak -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $executable }
+$running = Get-Process BPMTracker -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $executable }
 if ($running) {
-    throw 'Close the preview Joljak window before updating its application files.'
+    throw 'Close the preview BPMTracker window before updating its application files.'
 }
 New-Item -ItemType Directory -Force -Path $InstallDirectory | Out-Null
 $curl = (Get-Command curl.exe -CommandType Application -ErrorAction Stop).Source
 Write-Host ('Installation folder: {0}' -f $InstallDirectory)
 
-function Receive-JoljakArchive {
+function Receive-BPMTrackerArchive {
     param([string]$RemoteName, [string]$LocalName, [switch]$Resume)
     $url = $BaseUrl.TrimEnd('/') + '/' + $RemoteName
     $destination = Join-Path $InstallDirectory $LocalName
@@ -53,16 +53,16 @@ $runtimePresent = (Test-Path -LiteralPath $executable) -and
 if (-not $runtimePresent) {
     if (-not (Test-Path -LiteralPath $runtimeArchive)) {
         Write-Host 'Downloading the Windows runtime once (approximately 527 MiB).'
-        $runtimeArchive = Receive-JoljakArchive 'Joljak-win-x64.zip' 'runtime.zip' -Resume
+        $runtimeArchive = Receive-BPMTrackerArchive 'BPMTracker-win-x64.zip' 'runtime.zip' -Resume
     }
     Write-Host 'Extracting the Windows runtime. Please wait.'
     Expand-Archive -LiteralPath $runtimeArchive -DestinationPath $InstallDirectory -Force
 }
 Write-Host 'Downloading the current application and preview launcher.'
-$appArchive = Receive-JoljakArchive 'Joljak-remote-preview-app.zip' 'app.zip'
+$appArchive = Receive-BPMTrackerArchive 'BPMTracker-remote-preview-app.zip' 'app.zip'
 Expand-Archive -LiteralPath $appArchive -DestinationPath $InstallDirectory -Force
 if (-not (Test-Path -LiteralPath $executable) -or -not (Test-Path -LiteralPath $launcher)) {
-    throw ('Installation is incomplete. Expected Joljak.exe and Start Remote Preview.cmd in {0}.' -f $appDirectory)
+    throw ('Installation is incomplete. Expected BPMTracker.exe and Start Remote Preview.cmd in {0}.' -f $appDirectory)
 }
 Write-Host ''
 Write-Host 'Installed. Keep VS Code connected and forward remote port 8998 to local 127.0.0.1:8998.'

@@ -15,7 +15,7 @@ import argparse
 APP = Path(__file__).resolve().parents[1]
 ROOT = APP.parents[1]
 RUNTIME = ROOT / '.daw-runtime'
-OUTPUT = ROOT / 'dist' / 'Joljak-win-x64'
+OUTPUT = ROOT / 'dist' / 'BPMTracker-win-x64'
 PYTHON_VERSION = '3.12.10'
 
 
@@ -24,14 +24,14 @@ def download(url, target):
         return
     target.parent.mkdir(parents=True, exist_ok=True)
     print(f'Download {target.name}', flush=True)
-    request = urllib.request.Request(url, headers={'User-Agent': 'Joljak-Build/0.1'})
+    request = urllib.request.Request(url, headers={'User-Agent': 'BPMTracker-Build/0.1'})
     with urllib.request.urlopen(request, timeout=120) as source, target.open('wb') as destination:
         shutil.copyfileobj(source, destination, length=1024 * 1024)
 
 
 def refresh_app(package):
     resource = OUTPUT / 'resources'
-    if not (OUTPUT / 'Joljak.exe').is_file() or not (resource / 'python/python.exe').is_file():
+    if not (OUTPUT / 'BPMTracker.exe').is_file() or not (resource / 'python/python.exe').is_file():
         raise SystemExit('Assemble the complete Windows runtime before refreshing application files')
     target = resource / 'app'
     for directory in ['dist', 'electron', 'backend']:
@@ -39,9 +39,9 @@ def refresh_app(package):
             shutil.rmtree(target / directory)
         shutil.copytree(APP / directory, target / directory,
                         ignore=shutil.ignore_patterns('__pycache__'), dirs_exist_ok=True)
-    (target / 'package.json').write_text(json.dumps({'name': 'joljak-daw', 'productName': 'Joljak', 'version': package['version'], 'main': 'electron/main.cjs'}, indent=2), encoding='utf-8')
+    (target / 'package.json').write_text(json.dumps({'name': 'bpmtracker-daw', 'productName': 'BPMTracker', 'version': package['version'], 'main': 'electron/main.cjs'}, indent=2), encoding='utf-8')
     (OUTPUT / 'START HERE.txt').write_text(
-        'Joljak\n\nRun Joljak.exe on Windows. Keep the whole folder together.\n'
+        'BPMTracker\n\nRun BPMTracker.exe on Windows. Keep the whole folder together.\n'
         'No Node.js, Python, WSL or network connection is needed at runtime.\n\n'
         'Import WAV, MP3 or FLAC. Select a song or a range inside one reference event, then Analyze Audio.\n'
         'Drop a file at its timeline position, or use Import Audio for one track, different tracks or linked stems.\n'
@@ -70,10 +70,10 @@ def refresh_app(package):
 
 
 def replace_archive():
-    temporary = ROOT / 'dist/Joljak-win-x64.next.zip'
+    temporary = ROOT / 'dist/BPMTracker-win-x64.next.zip'
     try:
         shutil.make_archive(str(temporary.with_suffix('')), 'zip', root_dir=OUTPUT.parent, base_dir=OUTPUT.name)
-        temporary.replace(ROOT / 'dist/Joljak-win-x64.zip')
+        temporary.replace(ROOT / 'dist/BPMTracker-win-x64.zip')
     finally:
         # This builder owns this temporary archive. Do not retain a failed
         # duplicate of the large portable runtime on the host's limited disks.
@@ -106,14 +106,14 @@ def main():
     print('Extract Windows Electron runtime', flush=True)
     with zipfile.ZipFile(electron_zip) as archive:
         archive.extractall(OUTPUT)
-    (OUTPUT / 'electron.exe').replace(OUTPUT / 'Joljak.exe')
+    (OUTPUT / 'electron.exe').replace(OUTPUT / 'BPMTracker.exe')
     resource = OUTPUT / 'resources'
     target = resource / 'app'
     target.mkdir(parents=True, exist_ok=True)
     shutil.copytree(APP / 'dist', target / 'dist', dirs_exist_ok=True)
     shutil.copytree(APP / 'electron', target / 'electron', dirs_exist_ok=True)
     shutil.copytree(APP / 'backend', target / 'backend', ignore=shutil.ignore_patterns('__pycache__'), dirs_exist_ok=True)
-    (target / 'package.json').write_text(json.dumps({'name': 'joljak-daw', 'productName': 'Joljak', 'version': package['version'], 'main': 'electron/main.cjs'}, indent=2), encoding='utf-8')
+    (target / 'package.json').write_text(json.dumps({'name': 'bpmtracker-daw', 'productName': 'BPMTracker', 'version': package['version'], 'main': 'electron/main.cjs'}, indent=2), encoding='utf-8')
     analysis = resource / 'analysis'
     (analysis / 'experiments').mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / 'experiments/__init__.py', analysis / 'experiments/__init__.py')
@@ -165,7 +165,7 @@ def main():
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(info) as source, destination.open('wb') as output:
                     shutil.copyfileobj(source, output)
-    (OUTPUT / 'START HERE.txt').write_text('Joljak\n\nRun Joljak.exe on Windows. No Node.js, Python, WSL or network connection is needed after assembly.\n\nImport your own WAV, MP3 or FLAC files. Use 1/2/3 for object/range/split tools. Select a song event or a range inside it, then Analyze Audio. Tap input chooses only the initial beat unit. Apply a proposal to its analyzed scope; Restore Original Prediction restores saved analysis values; apply separately to change the grid.\n\nNo recordings or reviewed reference maps are included. Analysis supports constant tempo and 3/4 or 4/4.\n', encoding='utf-8')
+    (OUTPUT / 'START HERE.txt').write_text('BPMTracker\n\nRun BPMTracker.exe on Windows. No Node.js, Python, WSL or network connection is needed after assembly.\n\nImport your own WAV, MP3 or FLAC files. Use 1/2/3 for object/range/split tools. Select a song event or a range inside it, then Analyze Audio. Tap input chooses only the initial beat unit. Apply a proposal to its analyzed scope; Restore Original Prediction restores saved analysis values; apply separately to change the grid.\n\nNo recordings or reviewed reference maps are included. Analysis supports constant tempo and 3/4 or 4/4.\n', encoding='utf-8')
     refresh_app(package)
     if args.zip:
         replace_archive()

@@ -39,15 +39,16 @@ async function main(){
  const indexFile=path.join(SAMPLES,'ntm-library-index.json'),index=await read(indexFile);
  const generated=[],plans=[];
  const {build}=await import(pathToFileURL(path.join(ROOT,'apps/daw/node_modules/rolldown/dist/index.mjs')).href);
- const temp=await fs.mkdtemp(path.join(os.tmpdir(),'joljak-enroll-map-math-'));
+ const temp=await fs.mkdtemp(path.join(os.tmpdir(),'bpmtracker-enroll-map-math-'));
  try{
   await build({input:path.join(ROOT,'apps/daw/src/music.ts'),platform:'node',output:{file:path.join(temp,'music.mjs'),format:'esm'}});
   const music=await import(pathToFileURL(path.join(temp,'music.mjs')).href);
   for(const row of descriptor.recordings){
    const draftRoot=path.join(SAMPLES,'reviews/daw-drafts',row.id);
    const dates=(await fs.readdir(draftRoot,{withFileTypes:true})).filter(e=>e.isDirectory()).map(e=>e.name).sort();
-   const folder=path.join(draftRoot,dates.at(-1)),projectFile=path.join(folder,'project.joljak'),proposalFile=path.join(folder,'proposal.json');
-   const project=await read(projectFile),proposal=await read(proposalFile),review=project.sampleReview;
+   const folder=path.join(draftRoot,dates.at(-1)),proposalFile=path.join(folder,'proposal.json');
+   const proposal=await read(proposalFile),projectFile=path.join(folder,proposal.project_file??'project.bpmtracker');
+   const project=await read(projectFile),review=project.sampleReview;
    const clip=project.clips.find(c=>c.id===review.clipId),audio=project.assets.find(a=>a.id===clip?.assetId);
    if(!clip||!audio||review.reference.id!==row.id||proposal.sample_id!==row.id||review.loadedVariant!=='accepted')throw new Error('Saved review identity mismatch');
    const origin=clip.start-clip.sourceStart,sourceEnd=clip.sourceStart+clip.duration;
@@ -67,7 +68,7 @@ async function main(){
    const audioAsset={path:row.audio_path,bytes:audioStat.size,sha256:source.audio_sha256??null};
    const audioHashSource=source.audio_sha256?'retained_collection_metadata':'not_recorded_in_retained_metadata; no original recording hash performed';
    const home=path.join(SAMPLES,'ntm',row.slug,'registered'),refPath=rel(path.join(home,'reference-owner-daw-20261010-v1.json'));
-   const approvedProjectPath=rel(path.join(home,'owner-approved-project-20261010-v1.joljak'));
+   const approvedProjectPath=rel(path.join(home,'owner-approved-project-20261010-v1.bpmtracker'));
    if(await exists(path.join(SAMPLES,refPath))||await exists(path.join(SAMPLES,approvedProjectPath)))throw new Error('Versioned target already exists');
    const originalClocks=[];
    if(supplied){

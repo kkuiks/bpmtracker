@@ -32,6 +32,6 @@ outputs remain in their respective local research runs.
 
 Canonical originals live inside `data/samples/`; historical identifiers may describe older layouts. `tools/project_storage.py` resolves retained relocated files without reinterpreting timing or frozen results. Recordings and native project geometry remain separate from regenerable caches.
 
-Joljak's decoded buffers are session caches. Unchanged originals can rebuild missing buffers; original audio, saved projects, recovery files and analysis records have their own lifetime. See [audio cache behavior](../apps/daw/README.md#audio-cache-lifetime).
+BPMTracker's decoded buffers are session caches. Unchanged originals can rebuild missing buffers; original audio, saved projects, recovery files and analysis records have their own lifetime. See [audio cache behavior](../apps/daw/README.md#audio-cache-lifetime).
 
 Data checkpoints describe only the files actually selected and uploaded. A compact source/result archive is not a complete audio/model backup. The local `data/README.md` and backup tools describe restoration where those private assets are available.

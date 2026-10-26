@@ -74,7 +74,7 @@ export default function ImportAudioDialog({ project, paths, mode, copy, destinat
     {mode === "sequence" && multiple && <p className="field-help">Files follow the order above and join end to end on the target track.</p>}
     <label className="checkbox-label">
       <input type="checkbox" checked={copy} disabled={busy} onChange={(e) => onCopy(e.target.checked)}/>
-      Copy originals into Joljak's local media storage
+      Copy originals into BPMTracker's local media storage
     </label>
     <p className="field-help">Unchecked: reference the existing files. This choice is remembered for file drops. Save As can collect originals into a portable project folder.</p>
     {!valid && <p className="form-error">{paths.length > 32 ? "Import up to 32 files at a time." : "Choose an available target and insertion position."}</p>}

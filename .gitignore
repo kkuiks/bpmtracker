@@ -3,8 +3,8 @@
 /data/
 /.daw-state/
 /.daw-runtime/
-*.joljak
-*.joljak.autosave
+*.bpmtracker
+*.bpmtracker.autosave
 
 # Local planning files
 /*[Pp]roposal*.md

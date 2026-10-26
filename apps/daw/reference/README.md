@@ -8,7 +8,7 @@ The maintained application is in `../src`, `../electron`, `../backend` and
 | --- | --- |
 | [audits](audits/README.md) | Recorded integration/UI checks and their fixtures; command paths were updated after relocation |
 | [design-review.html](design-review.html) and [design-review](design-review/) | Workspace presentation reference, already implemented in the app |
-| [remote-preview installer](remote-preview/install_remote_preview.ps1) | Earlier remote installer; current ordinary workspacesflow uses Start Joljak.cmd locally |
+| [remote-preview installer](remote-preview/install_remote_preview.ps1) | Earlier remote installer; current ordinary workspacesflow uses Start BPMTracker.cmd locally |
 | [validation history](VALIDATION_HISTORY.md) | Dated implementation/verification claims formerly mixed into the root overview |
 
 The source reference page is available from a manually started Vite server at

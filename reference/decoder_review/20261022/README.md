@@ -22,8 +22,10 @@ results, reference limitations and open questions.
 
 ## Use and reproduction boundary
 
-Python and configuration copies are byte-identical to their listed originals.
-Their path calculations, imports, comments and metadata are deliberately retained
+Application identifiers in the review copies use the current BPMTracker name.
+Configuration and algorithm parameters are unchanged. The manifest distinguishes
+current copy hashes from recorded original hashes where naming changed.
+Path calculations, imports and recorded evaluation metadata are retained
 for review. **Do not use this folder as a relocated runtime package.** In
 particular, repair imports and the formal evaluator's support table still depend
 on their original run environment. The hierarchy predictor imports its literal

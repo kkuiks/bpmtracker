@@ -32,7 +32,7 @@ async function main(){
  if(writing&&await fs.stat(path.join(out,'confirmation.json')).then(()=>true,()=>false))
   throw new Error('Confirmation receipt already exists; preserve it and use a new revision');
  const {build}=await import(pathToFileURL(path.join(ROOT,'apps/daw/node_modules/rolldown/dist/index.mjs')).href);
- const temp=await fs.mkdtemp(path.join(os.tmpdir(),'joljak-confirm-map-math-'));
+ const temp=await fs.mkdtemp(path.join(os.tmpdir(),'bpmtracker-confirm-map-math-'));
  try{
   await build({input:path.join(ROOT,'apps/daw/src/music.ts'),platform:'node',output:{file:path.join(temp,'music.mjs'),format:'esm'}});
   const music=await import(pathToFileURL(path.join(temp,'music.mjs')).href);

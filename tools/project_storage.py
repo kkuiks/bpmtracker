@@ -12,7 +12,6 @@ DATA = ROOT / "data"
 SAMPLES = DATA / "samples"
 RUNS = DATA / "research/runs"
 MODELS = DATA / "models"
-HISTORICAL_ROOT = "/home/yooch/code/joljak"
 
 
 @lru_cache(maxsize=1)
@@ -25,9 +24,24 @@ def _relocations():
                                          key=lambda item: len(item[0]), reverse=True))
 
 
+@lru_cache(maxsize=1)
+def _historical_roots():
+    files, prefixes = _relocations()
+    roots = {ROOT.as_posix()}
+    identifiers = [*files, *(old for old, _ in prefixes)]
+    for value in identifiers:
+        for marker in ("/samples/", "/data/"):
+            if value.startswith("/") and marker in value:
+                roots.add(value.split(marker, 1)[0])
+        if value.startswith("/") and value.endswith("/samples"):
+            roots.add(value[:-len("/samples")])
+    return tuple(sorted(roots, key=len, reverse=True))
+
+
 def _native(value):
-    if value.startswith(HISTORICAL_ROOT + "/"):
-        return ROOT / value[len(HISTORICAL_ROOT) + 1:]
+    for historical in _historical_roots():
+        if value.startswith(historical + "/"):
+            return ROOT / value[len(historical) + 1:]
     return Path(value)
 
 
@@ -39,17 +53,19 @@ def resolve_path(value):
     text = str(path).replace("\\", "/")
     files, prefixes = _relocations()
     candidates = [text]
+    roots = _historical_roots()
     if not path.is_absolute():
-        candidates.extend((HISTORICAL_ROOT + "/" + text,
-                           HISTORICAL_ROOT + "/samples/" + text))
+        for historical in roots:
+            candidates.extend((historical + "/" + text,
+                               historical + "/samples/" + text))
     try:
         relative = path.relative_to(SAMPLES).as_posix()
-        candidates.append(HISTORICAL_ROOT + "/samples/" + relative)
+        candidates.extend(historical + "/samples/" + relative for historical in roots)
     except ValueError:
         pass
     try:
         relative = path.relative_to(RUNS).as_posix()
-        candidates.append(HISTORICAL_ROOT + "/samples/experiments/" + relative)
+        candidates.extend(historical + "/samples/experiments/" + relative for historical in roots)
     except ValueError:
         pass
     # New directory layout plus an old relative member in a frozen descriptor.

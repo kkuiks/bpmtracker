@@ -72,7 +72,7 @@ node apps/daw/reference/audits/project-contract.cjs
 .venv-metronome-v1/bin/python apps/daw/reference/audits/backend.py
 ```
 
-`session-routing.cjs` requires the local Vite server and Playwright at `.daw-runtime/audit-tools/playwright-core`. `windows.cjs` and `windows-extended.cjs` run with the bundled Windows Electron Node runtime. Set `JOLJAK_PLAYWRIGHT`, `JOLJAK_EXE` and `JOLJAK_AUDIT` to the tooling, native executable and an isolated test directory.
+`session-routing.cjs` requires the local Vite server and Playwright at `.daw-runtime/audit-tools/playwright-core`. `windows.cjs` and `windows-extended.cjs` run with the bundled Windows Electron Node runtime. Set `BPMTRACKER_PLAYWRIGHT`, `BPMTRACKER_EXE` and `BPMTRACKER_AUDIT` to the tooling, native executable and an isolated test directory.
 
 Fixtures, recording excerpts, screenshots, job outputs and runner results are local artifacts. Adapting these suites to later versions requires matching the current project schema and interactions; old expectations about v1 clock scopes do not describe the current application.
 
@@ -109,7 +109,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File apps/daw/reference/audits/re
 Use `-VisualOnly` for just startup/import, normal/small presentation and renderer
 errors after a presentation-only change. The runner assembles a separate small
 Electron application and reuses the retained Python runtime. It preserves the
-ordinary Joljak application/profile and does not start tests through the launcher.
+ordinary BPMTracker application/profile and does not start tests through the launcher.
 
 ## Numeric and selection refinements — 0.6.10, 2026-10-11
 
@@ -235,7 +235,7 @@ were empty; evidence is `.daw-state/project-opening-20261011/project-open-result
 TypeScript, Electron JavaScript and the two PowerShell scripts were parsed, and
 Vite/build assembly succeeded. The ordinary app instance remained open and its
 application files were not refreshed. HKCU association registration runs on the
-next normal Start Joljak launch; Explorer double-click through that registered
+next normal Start BPMTracker launch; Explorer double-click through that registered
 association is not claimed as already exercised. No media decoding, inference,
 export or broad regression suite was run for this change.
 

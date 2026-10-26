@@ -146,7 +146,7 @@ def batch_states(audio, states, left, right):
                        [s.numerator for s in states],[s.denominator for s in states],left,right)
 
 def prediction_from_state(state,duration,source_score):
-    return {'format':'joljak-continuous-beat-map','version':1,'status':'map',
+    return {'format':'bpmtracker-continuous-beat-map','version':1,'status':'map',
             'duration_seconds':duration,'initial':state.initial,'events':list(state.events),
             'source_score':source_score,'confidence_does_not_mute':True,
             'free_phase_parameters_after_start':0,'beat_definition':'notated denominator beat',

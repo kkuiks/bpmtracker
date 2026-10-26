@@ -33,8 +33,8 @@ G21 is a frozen evaluated candidate, separate from the maintained L2 entry. Its 
 | `evaluations/G21-development16-v1/` | Candidate/control comparisons |
 | `delivery/final-G21-v2/` | Results, failures, reference scope, runtime and reproduction manifest |
 
-The original run artifacts require local research data. Selected byte-identical
-source/configuration copies are available in
+The original run artifacts require local research data. Selected
+source/configuration review copies are available in
 [reference/decoder_review/20261022/g21_full](../reference/decoder_review/20261022/g21_full/).
 These copies support inspection rather than relocating the measured runtime.
 [Research documentation](AUTORESEARCH.md#reproduction) records the reproduction
@@ -57,7 +57,7 @@ tempo-path search, baseline replacement or app integration resulted.
 | [evaluation](../reference/decoder_review/20261022/evaluation/) | Original provider-event and accepted-grid evaluator source |
 
 The [snapshot manifest](../reference/decoder_review/20261022/manifest.json)
-binds each review copy to its original path and bytes. Its path calculations
+records each original path and the original/current byte identities. Its path calculations
 and imports are preserved; it is not a standalone runtime package. The
 [aggregate summary](../reference/decoder_review/20261022/evaluation-summary.json)
 contains no raw observations or accepted reference vectors.
@@ -66,7 +66,7 @@ contains no raw observations or accepted reference vectors.
 
 | Concern | Source |
 | --- | --- |
-| Launch and packaging | [scripts](../apps/daw/scripts/), [Start Joljak.cmd](../Start%20Joljak.cmd) |
+| Launch and packaging | [scripts](../apps/daw/scripts/), [Start BPMTracker.cmd](../Start%20BPMTracker.cmd) |
 | Electron IPC, jobs, project/cache restoration | [main.cjs](../apps/daw/electron/main.cjs) |
 | Decoded-buffer lifetime and reuse | [audio-cache.cjs](../apps/daw/electron/audio-cache.cjs) |
 | Import, analysis and export workers | [worker.py](../apps/daw/backend/worker.py) |

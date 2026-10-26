@@ -38,7 +38,7 @@ def pinned_head(prepared, pinned, score):
 def constant_map(pinned, duration):
     if not pinned.get('initial'):
         return {'status': 'no_source_clock', 'duration_seconds': duration, 'events': []}
-    return {'format': 'joljak-continuous-beat-map', 'version': 1, 'status': 'map',
+    return {'format': 'bpmtracker-continuous-beat-map', 'version': 1, 'status': 'map',
             'duration_seconds': duration, 'initial': dict(pinned['initial']),
             'events': [], 'method': CONSTANT, 'unit_id': pinned.get('unit_id'),
             'free_phase_parameters_after_start': 0, 'initial_meter_held': True,

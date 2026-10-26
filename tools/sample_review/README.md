@@ -4,7 +4,7 @@ The shared `daw_map_reference.mjs` converter materializes editable DAW maps into
 
 ## DAW review
 
-Use **Samples** for formal recordings and the [candidate-review workflow](../ntm_collection/README.md#prepare-and-review-a-batch-in-joljak) for newly acquired sources. Original audio, supplied clocks, editable drafts and accepted references remain separate.
+Use **Samples** for formal recordings and the [candidate-review workflow](../ntm_collection/README.md#prepare-and-review-a-batch-in-bpmtracker) for newly acquired sources. Original audio, supplied clocks, editable drafts and accepted references remain separate.
 
 An alignment-only revision preserves the existing tempo/signature map. A revision that changes BPM, signature events or bar phase uses the saved DAW geometry rather than an offset-only source finalizer. The reference record retains source identity, total offset, reviewed intervals, unknown margins and map provenance. A saved draft does not change formal membership or previous evaluation results.
 

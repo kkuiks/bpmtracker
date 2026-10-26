@@ -29,7 +29,7 @@ class BackendAudit(unittest.TestCase):
 
     def project(self, names=('mono48.wav','stereo44.wav')):
         assets=[self.assets[n] for n in names]
-        return {'format':'joljak-project','version':1,'id':'audit','name':'Audit','sampleRate':48000,'masterGain':.8,'clickGain':.6,
+        return {'format':'bpmtracker-project','version':1,'id':'audit','name':'Audit','sampleRate':48000,'masterGain':.8,'clickGain':.6,
             'assets':assets,'tracks':[{'id':str(i),'name':f'Track {i}','gain':.6,'pan':-.25 if i==0 else .3,'mute':False,'solo':False} for i in range(len(assets))],
             'clips':[{'id':str(i),'trackId':str(i),'assetId':a['id'],'start':.25+i*.125,'sourceStart':.4,'duration':3} for i,a in enumerate(assets)],
             'clocks':[{'id':'clock','clipId':'0','sourceStart':.4,'sourceEnd':3.4,'values':{'bpm':160,'numerator':4,'denominator':4,'offset':.137}}], 'analyses':[]}

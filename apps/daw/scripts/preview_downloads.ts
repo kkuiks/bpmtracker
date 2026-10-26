@@ -7,14 +7,14 @@ import type { Plugin } from "vite";
 /** Download only the three preview installation artifacts over the UI tunnel. */
 export default function previewDownloads(): Plugin {
   const distribution = fileURLToPath(new URL("../../../dist/", import.meta.url));
-  const prefix = "/__joljak_preview__/";
+  const prefix = "/__bpmtracker_preview__/";
   const artifacts = new Map([
-    ["Install-Joljak-Preview.ps1", fileURLToPath(new URL("./install_remote_preview.ps1", import.meta.url))],
-    ["Joljak-win-x64.zip", resolve(distribution, "Joljak-win-x64.zip")],
-    ["Joljak-remote-preview-app.zip", resolve(distribution, "Joljak-remote-preview-app.zip")],
+    ["Install-BPMTracker-Preview.ps1", fileURLToPath(new URL("./install_remote_preview.ps1", import.meta.url))],
+    ["BPMTracker-win-x64.zip", resolve(distribution, "BPMTracker-win-x64.zip")],
+    ["BPMTracker-remote-preview-app.zip", resolve(distribution, "BPMTracker-remote-preview-app.zip")],
   ]);
   return {
-    name: "joljak-preview-downloads",
+    name: "bpmtracker-preview-downloads",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {

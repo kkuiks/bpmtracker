@@ -6,7 +6,7 @@ import json
 import os
 
 CODE_ROOT = Path(__file__).resolve().parents[2]
-ROOT = Path(os.environ.get('JOLJAK_WORKSPACE_ROOT',str(CODE_ROOT)))
+ROOT = Path(os.environ.get('BPMTRACKER_WORKSPACE_ROOT',str(CODE_ROOT)))
 PARENT = ROOT / 'data/research/runs/continuous_beat_map_v1/20261011T154900Z-v3'
 POLICIES = ['proxy97', 'proxy100', 'proxy103']
 CONFIG = {

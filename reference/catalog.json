@@ -1,5 +1,5 @@
 {
-  "format": "joljak-reference-source-catalog",
+  "format": "bpmtracker-reference-source-catalog",
   "version": 1,
   "experimental_packages": [
     "audio_metrical_discriminator_v1",

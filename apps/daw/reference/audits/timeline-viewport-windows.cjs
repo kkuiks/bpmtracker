@@ -1,11 +1,11 @@
 // Focused native viewport/cursor audit requested during the owner's U1 review.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const {randomUUID}=require('node:crypto');
-const {_electron}=require(process.env.JOLJAK_PLAYWRIGHT);
-const output=process.env.JOLJAK_UI_AUDIT,exe=process.env.JOLJAK_UI_EXE,probe=process.env.JOLJAK_UI_PROBE==='1';
+const {_electron}=require(process.env.BPMTRACKER_PLAYWRIGHT);
+const output=process.env.BPMTRACKER_UI_AUDIT,exe=process.env.BPMTRACKER_UI_EXE,probe=process.env.BPMTRACKER_UI_PROBE==='1';
 delete process.env.ELECTRON_RUN_AS_NODE;
-const cursorOnly=process.env.JOLJAK_UI_CURSOR_ONLY==='1';
-const playbackOnly=process.env.JOLJAK_UI_PLAYBACK_ONLY==='1';
+const cursorOnly=process.env.BPMTRACKER_UI_CURSOR_ONLY==='1';
+const playbackOnly=process.env.BPMTRACKER_UI_PLAYBACK_ONLY==='1';
 const report=path.join(output,probe?(cursorOnly?'viewport-cursor-probe.json':'viewport-probe.json'):playbackOnly?'viewport-playback-results.json':'viewport-results.json');
 const results=[],errors=[];let app,page;
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -27,12 +27,12 @@ async function field(label,value){const input=page.getByLabel(label,{exact:true}
   await input.fill(String(value));await input.press('Enter');await pause(100);}
 (async()=>{try{
   app=await _electron.launch({executablePath:exe,cwd:path.dirname(exe),env:{...process.env,
-    JOLJAK_DATA:path.join(output,'workspace-'+randomUUID()),JOLJAK_DEV_URL:''},timeout:90000});
+    BPMTRACKER_DATA:path.join(output,'workspace-'+randomUUID()),BPMTRACKER_DEV_URL:''},timeout:90000});
   page=await app.firstWindow();page.setDefaultTimeout(12000);
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('dialog',d=>d.accept());
   await page.waitForSelector('.app-shell');
   if(!probe)assert.equal(await app.evaluate(({app})=>app.getVersion()),'0.6.11');
-  await app.evaluate(({dialog},file)=>dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]}),process.env.JOLJAK_UI_PROJECT);
+  await app.evaluate(({dialog},file)=>dialog.showOpenDialog=async()=>({canceled:false,filePaths:[file]}),process.env.BPMTRACKER_UI_PROJECT);
   await page.getByRole('button',{name:'File',exact:true}).click();await page.locator('.app-dropdown').getByRole('button',{name:/^Open Project/}).click();
   await page.waitForFunction(()=>document.querySelectorAll('.audio-clip').length===4);await pause(200);
   await observe('native horizontal scroll repeatedly settles at the exact origin',async()=>{
@@ -63,7 +63,7 @@ async function field(label,value){const input=page.getByLabel(label,{exact:true}
   });
   await observe('playing cursor drag stays at zero while held and retains the left viewport',async()=>{
     await scroll(0);await field('Project position','5.1.1.0');
-    await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('joljak:command','play'));
+    await app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].webContents.send('bpmtracker:command','play'));
     await page.waitForFunction(()=>document.querySelector('.play-button')?.getAttribute('aria-pressed')==='true');await pause(250);
     const playing=await page.locator('.play-button').getAttribute('aria-pressed');assert.equal(playing,'true');
     const head=await page.locator('.ruler-playhead').boundingBox(),p=await pose();await page.mouse.move(head.x+1,head.y+3);await page.mouse.down();

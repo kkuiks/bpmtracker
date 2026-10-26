@@ -34,7 +34,7 @@ export class AudioEngine {
         this.context = new AudioContext({ sampleRate: 48000, latencyHint: "interactive" });
         await this.context.audioWorklet.addModule(new URL("transport-worklet.js", document.baseURI).href);
         if (this.disposed) return;
-        this.node = new AudioWorkletNode(this.context, "joljak-transport", {
+        this.node = new AudioWorkletNode(this.context, "bpmtracker-transport", {
           numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2],
         });
         this.node.port.onmessage = ({ data }) => {

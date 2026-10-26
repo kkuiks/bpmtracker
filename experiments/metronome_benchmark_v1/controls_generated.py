@@ -20,7 +20,7 @@ def main():
     def check(name,value):
         if not value:raise AssertionError(name)
         cases.append({'name':name,'passed':True})
-    with tempfile.TemporaryDirectory(prefix='joljak-generated-origin-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='bpmtracker-generated-origin-') as temporary:
         root=Path(temporary)
         a=render_case(root/'a','a',Fraction(257,2),4,4501,'straight',bars=3)
         b=render_case(root/'b','b',Fraction(257,2),4,4501,'leading_shift',bars=3)

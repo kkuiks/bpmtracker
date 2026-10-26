@@ -118,7 +118,7 @@ type EditContext = {
 };
 function importPreferences(): { mode: ImportOptions["mode"]; copy: boolean } {
   try {
-    const value = JSON.parse(localStorage.getItem("joljak.import-preferences") ?? "null");
+    const value = JSON.parse(localStorage.getItem("bpmtracker.import-preferences") ?? "null");
     return { mode: ["sequence", "tracks", "stems"].includes(value?.mode) ? value.mode : "sequence", copy: value?.copy === true };
   } catch { return { mode: "sequence", copy: false }; }
 }
@@ -164,7 +164,7 @@ function InspectorSection({ title, children, initiallyOpen = false, badge }: {
 }
 
 export default function App() {
-  const api = window.joljak;
+  const api = window.bpmtracker;
   const history = useRef(new ProjectHistory(createProject()));
   const [project, setProject] = useState(history.current.current);
   const projectRef = useRef(project);
@@ -214,9 +214,9 @@ export default function App() {
   const [metronome, setMetronome] = useState(false),
     [mixer, setMixer] = useState(false),
     [inspector, setInspector] = useState(true);
-  const [showMaps, setShowMaps] = useState(() => localStorage.getItem("joljak.ui.maps") !== "hidden");
+  const [showMaps, setShowMaps] = useState(() => localStorage.getItem("bpmtracker.ui.maps") !== "hidden");
   const [layoutRevision, setLayoutRevision] = useState(0);
-  const toggleMaps = () => setShowMaps(value => { const next = !value; localStorage.setItem("joljak.ui.maps", next ? "shown" : "hidden"); return next; });
+  const toggleMaps = () => setShowMaps(value => { const next = !value; localStorage.setItem("bpmtracker.ui.maps", next ? "shown" : "hidden"); return next; });
   const [meter, setMeter] = useState([0, 0]);
   const peaks = useRef(new Map<string, Float32Array>()),
     [, refreshPeaks] = useState(0);
@@ -578,7 +578,7 @@ export default function App() {
     catch(e){tell(String(e));}
   };
   const startPlayback = () => {
-    if (!api) { tell("Open Joljak as a desktop app to play local audio."); return; }
+    if (!api) { tell("Open BPMTracker as a desktop app to play local audio."); return; }
     const audio = engine.current;
     if (!audio || audio.playing) return;
     if (audio.position >= project.projectDuration) void audio.play(loop.enabled ? loop.start : 0);
@@ -586,7 +586,7 @@ export default function App() {
   };
   const togglePlay = () => {
     if (!api) {
-      tell("Open Joljak as a desktop app to play local audio.");
+      tell("Open BPMTracker as a desktop app to play local audio.");
       return;
     }
     const audio = engine.current;
@@ -949,7 +949,7 @@ export default function App() {
     const request = uid(); importRequest.current = request; setImportBusy(true);
     try {
       confirmedImportPrefs.current = { mode: importMode, copy: copyMedia };
-      try { localStorage.setItem("joljak.import-preferences", JSON.stringify({ mode: importMode, copy: copyMedia })); } catch { /* Import works without preference storage. */ }
+      try { localStorage.setItem("bpmtracker.import-preferences", JSON.stringify({ mode: importMode, copy: copyMedia })); } catch { /* Import works without preference storage. */ }
       const options: ImportOptions = {
         mode: importMode,
         copy: copyMedia,
@@ -1469,9 +1469,9 @@ export default function App() {
         action: () => { if (editorClip) setEditorClipId(null); else { const clip = projectRef.current.clips.find(clip => clip.id === editorId); if (clip) editAudio(clip); } } },
       { id: "mixconsole", label: "MixConsole", checked: mixer, action: () => { setMixer(value => !value); setEditorClipId(null); } }, separator,
       { label: "Fit Project", shortcut: "Shift F", action: fit }, { label: "Restore Layout", action: () => {
-        for (const key of ["joljak.ui.inspector-width", "joljak.ui.track-list-width", "joljak.ui.lower-height"]) localStorage.removeItem(key);
+        for (const key of ["bpmtracker.ui.inspector-width", "bpmtracker.ui.track-list-width", "bpmtracker.ui.lower-height"]) localStorage.removeItem(key);
         setLayoutRevision(value => value + 1);
-        setInspector(true); setShowMaps(true); localStorage.setItem("joljak.ui.maps", "shown"); setMixer(false); setEditorClipId(null);
+        setInspector(true); setShowMaps(true); localStorage.setItem("bpmtracker.ui.maps", "shown"); setMixer(false); setEditorClipId(null);
       } }];
     showPopup({ x: box?.left ?? 8, y: box?.bottom ?? 58, appMenu: name, invoker: node, items,
       navigate: direction => { const order = ["file", "edit", "project", "audio", "transport", "view"]; openAppMenu(order[(order.indexOf(name) + direction + order.length) % order.length]); } });
@@ -1792,7 +1792,7 @@ export default function App() {
       <header className="title-bar">
         <div className="wordmark">
           <Waves size={20} strokeWidth={1.5} />
-          <span>JOLJAK</span>
+          <span>BPMTRACKER</span>
           <i />
         </div>
         <span className="title-project">
@@ -1871,7 +1871,7 @@ export default function App() {
       </section>
       <main className="workspace">
         {inspector && (
-          <ResizablePane axis="x" initialSize={220} minSize={190} maxSize={380} storageKey="joljak.ui.inspector-width" label="Inspector width" className="inspector-pane" resetKey={layoutRevision}>
+          <ResizablePane axis="x" initialSize={220} minSize={190} maxSize={380} storageKey="bpmtracker.ui.inspector-width" label="Inspector width" className="inspector-pane" resetKey={layoutRevision}>
           <aside className="inspector">
             <div className="panel-heading">
               <span>Inspector</span>
@@ -2143,7 +2143,7 @@ export default function App() {
               </button>
             </div>
           )}
-          {(editorClip || mixer) && <ResizablePane axis="y" initialSize={300} minSize={240} maxSize={560} storageKey="joljak.ui.lower-height" label="Lower zone height" className="lower-zone" resetKey={layoutRevision}>
+          {(editorClip || mixer) && <ResizablePane axis="y" initialSize={300} minSize={240} maxSize={560} storageKey="bpmtracker.ui.lower-height" label="Lower zone height" className="lower-zone" resetKey={layoutRevision}>
           {(paneHeight) => <><div className="lower-zone-body">
           {editorClip && <div className="lower-editor-panel" aria-hidden={mixer} style={{ visibility: mixer ? "hidden" : "visible", pointerEvents: mixer ? "none" : "auto" }}>
           <AudioEditor key={editorClip.id} project={project} clip={editorClip} peaks={peaks.current.get(editorClip.assetId)} paneHeight={paneHeight - 33}

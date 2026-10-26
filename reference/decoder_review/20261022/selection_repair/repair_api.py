@@ -35,7 +35,7 @@ def fixed_from_family(family,unit,duration):
     period=60./bpm*sig['numerator']*4./sig['denominator']
     phase=best['offset_seconds']%period
     if phase>1e-8:phase-=period
-    return {'format':'joljak-continuous-beat-map','version':1,'status':'map','duration_seconds':duration,
+    return {'format':'bpmtracker-continuous-beat-map','version':1,'status':'map','duration_seconds':duration,
             'initial':{'bpm':bpm,'numerator':sig['numerator'],'denominator':sig['denominator'],'bar_zero_source_seconds':phase},'events':[]}
 
 
@@ -72,7 +72,7 @@ def predict_with_trace(packet):
     outputs={}
     for variant in VARIANTS:
         selected=max(scored,key=lambda r:(r['scores'][variant],-len(r['geometry']['events']),-r['candidate_index']))
-        outputs[variant]={'format':'joljak-continuous-beat-map','version':1,'status':'map',
+        outputs[variant]={'format':'bpmtracker-continuous-beat-map','version':1,'status':'map',
                           'duration_seconds':packet['duration_seconds'],**selected['geometry'],'method':variant,
                           'source_score':selected['scores'][variant]/packet['duration_seconds'],
                           'selection_candidate_index':selected['candidate_index'],'free_phase_parameters_after_start':0}

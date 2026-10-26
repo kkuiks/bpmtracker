@@ -19,7 +19,7 @@ review copies rather than active imports or new default algorithms.
 | [audio_metrical_discriminator_v1](audio_metrical_discriminator_v1/README.md) | Conditional original-audio metrical discrimination; not the selected L2 model |
 | [octave_fold_confirmation_v1](octave_fold_confirmation_v1/README.md) | Earlier half/double correction checks |
 | [clock_continuation_repair_v1](clock_continuation_repair_v1/README.md) | Click preservation under disconnected segment clocks, before the continuous-map redesign |
-| [bpm_experiment_listening](bpm_experiment_listening/README.md) | Recorded browser listening artifacts/launcher; ordinary native `.joljak` audition is current |
+| [bpm_experiment_listening](bpm_experiment_listening/README.md) | Recorded browser listening artifacts/launcher; ordinary native `.bpmtracker` audition is current |
 | [sample_operations](sample_operations/README.md) | Completed dated confirmation, enrollment and offset-audit scripts |
 
 All seven study packages moved at the same directory depth, preserving their

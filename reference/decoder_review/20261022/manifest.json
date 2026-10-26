@@ -17,9 +17,11 @@
     {
       "path": "g21_full/candidate_core.py",
       "source": "data/research/runs/l2_improvement_autoresearch_v1/20261014-01a138e6-v1/phases/phase-B-c250ba38c4af/trials/G21/full/candidate_core.py",
-      "bytes": 19470,
-      "sha256": "600ce7684e38449aba106bb24c143fa8ef769bb5c603c01e73ac74256af89bb3",
-      "copy": "byte-identical-review-snapshot"
+      "bytes": 19474,
+      "sha256": "4b5bd55b1e109b9d0a8a979338bb2ca09b40ca153499f1e64b8d5b222186f068",
+      "copy": "application-name-normalized-review-copy",
+      "recorded_source_sha256": "600ce7684e38449aba106bb24c143fa8ef769bb5c603c01e73ac74256af89bb3",
+      "recorded_source_bytes": 19470
     },
     {
       "path": "g21_full/candidate_common.py",
@@ -115,9 +117,11 @@
     {
       "path": "selection_repair/repair_api.py",
       "source": "data/research/runs/map_decoder_repair_v1/20261020-source-selection-v1/repair_api.py",
-      "bytes": 4686,
-      "sha256": "0a5e8fb3427d3309fd59ea84a861cee67833481052d500029821116acd791041",
-      "copy": "byte-identical-review-snapshot"
+      "bytes": 4694,
+      "sha256": "0a1e808a0e990bb685646d3ddd30fffe37a6b8c542644b877ac9ce7f0a6e2d0d",
+      "copy": "application-name-normalized-review-copy",
+      "recorded_source_sha256": "0a5e8fb3427d3309fd59ea84a861cee67833481052d500029821116acd791041",
+      "recorded_source_bytes": 4686
     },
     {
       "path": "evaluation/broad_score_maps.py",
@@ -154,5 +158,7 @@
       "sha256": "52645af007703e15881d0236b4cba76135f8da00f53541fefc578714d1e20ffb",
       "copy": "curated-aggregate-summary"
     }
-  ]
+  ],
+  "application_identifiers_normalized": true,
+  "recorded_evaluation_results_unchanged": true
 }

@@ -63,7 +63,7 @@ def main():
     def check(name, passed):
         cases.append({"name": name, "passed": bool(passed)})
 
-    with tempfile.TemporaryDirectory(prefix="joljak-benchmark-controls-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="bpmtracker-benchmark-controls-") as temporary:
         root = Path(temporary)
         path = root / "fixture.mid"
         fixture_midi(path, tempos=((0, 500_000), (480, 500_000)), signatures=((0, 4, 4), (480, 4, 4)))

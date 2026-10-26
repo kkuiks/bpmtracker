@@ -1,6 +1,6 @@
 # Nail The Mix collection tools
 
-Download selected source materials, extract supplied MIDI/DAW clocks and prepare an interactive Master/click alignment review in Joljak. The tools preserve original recordings and clocks while storing reviewed audio-relative references separately. They are collection utilities, not an audio inference model.
+Download selected source materials, extract supplied MIDI/DAW clocks and prepare an interactive Master/click alignment review in BPMTracker. The tools preserve original recordings and clocks while storing reviewed audio-relative references separately. They are collection utilities, not an audio inference model.
 
 Review uses the Windows DAW and a `daw-review.json` descriptor. The retained browser route is a separate manually started compatibility tool.
 
@@ -10,7 +10,7 @@ Review uses the Windows DAW and a `daw-review.json` descriptor. The retained bro
 2. Download selected materials using an authenticated member session. Existing files, partial transfers and transfer records support resuming a batch.
 3. Extract the original Master and supplied clocks, including native DAW project bundles. Keep their original time coordinates and audio geometry.
 4. Prepare source-clock metadata, an initial offset proposal from a corresponding source-stem segment, and the DAW candidate-review descriptor.
-5. Use Joljak to compare the full Master and supplied clock, edit the working map/alignment and save a separate sample draft. Record the selected total offset and reviewed reference scope.
+5. Use BPMTracker to compare the full Master and supplied clock, edit the working map/alignment and save a separate sample draft. Record the selected total offset and reviewed reference scope.
 6. Register the reviewed working map and scope with its reference revision record. Use `finalize_selected.py` only for an unchanged supplied map with an alignment-only revision. If tempo, signature or bar phase was edited, materialize the saved DAW geometry instead; see the [sample-review tools](../sample_review/README.md). Retired fixed-batch finalizers are available through Git history.
 
 Archive-link generation consumes the provider's download allowance. Completed transfers and intentionally removed archives retain their disposition records, so absent ZIPs do not automatically trigger another download. Remaining download allowance comes from the current provider response rather than an inferred reset date.
@@ -33,7 +33,7 @@ Collection reads member metadata by the selected numeric session ID and checks b
 
 Masters hosted on the member site use the authenticated browser request context. Signed archive transfers stream separately and retain their private transport links and resumable transfer receipts.
 
-## Prepare and review a batch in Joljak
+## Prepare and review a batch in BPMTracker
 
 New source preparation automatically writes `daw-review.json` beside the batch
 index. To adapt an already prepared batch, read its existing records directly:
@@ -56,7 +56,7 @@ Combined candidate-review indexes can use `--out <review-directory>` to keep the
 
 To review a prepared descriptor:
 
-1. Start Joljak from **Start Joljak.cmd** on Windows. Restart a closed app if a
+1. Start BPMTracker from **Start BPMTracker.cmd** on Windows. Restart a closed app if a
    newly built version is required.
 2. Open **Samples → Open candidate review…** and select the batch's
    `daw-review.json`. **Select catalog…** connects `data/samples/catalog.json` if
@@ -67,7 +67,7 @@ To review a prepared descriptor:
    changes, and edit the Tempo/Signature tracks or **Alignment adjustment**.
    **Audition original candidate click** compares the unchanged initial proposal.
    Source-clock scope and unannotated margins stay explicit.
-5. Use **Save sample draft**. This saves a `project.joljak` and `proposal.json`
+5. Use **Save sample draft**. This saves a `project.bpmtracker` and `proposal.json`
    under `data/samples/reviews/daw-drafts/<id>/<saved-time>/`. Continue a saved
    edit with **File → Open**; opening the catalog entry starts from its source
    reference rather than a saved working draft.

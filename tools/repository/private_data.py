@@ -32,6 +32,17 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
+def data_repository_name():
+    remote = subprocess.check_output(
+        ["git", "-C", str(DATA), "remote", "get-url", "origin"], text=True
+    ).strip()
+    remote_path = remote.split(":", 1)[1] if remote.startswith("git@") else urlsplit(remote).path
+    parts = [part for part in remote_path.removesuffix(".git").split("/") if part]
+    if len(parts) < 2:
+        raise ValueError("The data checkout needs a repository remote")
+    return "/".join(parts[-2:])
+
+
 def sha(path):
     h = hashlib.sha256()
     with path.open("rb") as f:
@@ -169,7 +180,9 @@ def prepare(args):
         if not path.is_file() or path.is_symlink():
             excluded.append({"path": row["path"], "reason": "windows-record-missing"})
             continue
-        relative = path.relative_to("/mnt/c/Users/yooch/AppData/Roaming/Joljak/workspace")
+        parts = path.parts
+        workspace = len(parts) - 1 - parts[::-1].index("workspace")
+        relative = Path(*parts[workspace + 1:])
         target = DATA / "snapshots/windows-workspace" / args.checkpoint / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, target)
@@ -177,7 +190,7 @@ def prepare(args):
     # Repository-management files are restored from Git, not frozen archives.
     rows = sorted(selected.values(), key=lambda r: r["path"])
     selection = {"schema_version": 1, "checkpoint_id": args.checkpoint,
-                 "archive_paths_relative_to": "joljak/data", "files": len(rows),
+                 "archive_paths_relative_to": f"{ROOT.name}/data", "files": len(rows),
                  "bytes": sum(r["bytes"] for r in rows), "rows": rows,
                  "sanitized": sanitized, "excluded": excluded,
                  "source_recordings_and_credentials_excluded": True,
@@ -233,7 +246,7 @@ def package(args):
                 members.append({**row, "sha256": reader.digest.hexdigest(), "archive": name})
         assets.append({"name": name, "bytes": archive.stat().st_size, "sha256": sha(archive), "files": len(group)})
         print(json.dumps({"part": number, "of": len(groups), **assets[-1]}), flush=True)
-    manifest = {"schema_version": 1, "checkpoint_id": args.checkpoint, "repository": "kkuiks/joljak-data", "files": len(members), "bytes": selection["bytes"],
+    manifest = {"schema_version": 1, "checkpoint_id": args.checkpoint, "repository": data_repository_name(), "files": len(members), "bytes": selection["bytes"],
                 "archives": assets, "rows": members, "sanitized": selection["sanitized"], "excluded": selection["excluded"],
                 "original_audio_included": False, "click_only_exception": CLICK[5:], "source_index_unchanged_required": True}
     write_json(out / "manifest.json", manifest)
@@ -250,7 +263,7 @@ def git_paths(args):
     checkpoint = DATA / "storage" / args.checkpoint
     rows = json.loads((checkpoint / "selection.json").read_text())["rows"]
     chosen = ["README.md", ".gitignore", "backup_tools/README.md", "backup_tools/restore.py", f"storage/{args.checkpoint}/checkpoint.json", f"storage/{args.checkpoint}/coverage.json", f"storage/{args.checkpoint}/publication.json"]
-    sample_text = {".json", ".jsonl", ".beats", ".yaml", ".csv", ".txt", ".md", ".joljak", ".plist", ".jams"}
+    sample_text = {".json", ".jsonl", ".beats", ".yaml", ".csv", ".txt", ".md", ".bpmtracker", ".plist", ".jams"}
     report_names = {"manifest.json", "protocol.json", "report.json", "summary.json", "config.json", "catalog.json"}
     for row in rows:
         relative = row["path"]
@@ -258,7 +271,7 @@ def git_paths(args):
         if row["bytes"] > 2 * 1024 * 1024:
             continue
         if ((relative.startswith("samples/") and path.suffix.lower() in sample_text)
-                or (relative.startswith("research/") and (path.suffix.lower() in {".md", ".joljak"} or path.name in report_names))
+                or (relative.startswith("research/") and (path.suffix.lower() in {".md", ".bpmtracker"} or path.name in report_names))
                 or relative.startswith("snapshots/sanitized-metadata/")):
             chosen.append(relative)
     chosen = sorted(set(chosen))

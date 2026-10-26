@@ -117,7 +117,7 @@ async function list(root) {
 async function candidateDescriptor(root, filename) {
   const descriptorPath=await member(root,path.relative(root,filename));
   const descriptor=await json(descriptorPath);
-  if(descriptor.format!=="joljak-candidate-review"||descriptor.schema_version!==1||!Array.isArray(descriptor.recordings))
+  if(typeof descriptor.format!=="string"||!descriptor.format.endsWith("-candidate-review")||descriptor.schema_version!==1||!Array.isArray(descriptor.recordings))
     throw new Error("Select a prepared daw-review.json candidate descriptor");
   return {descriptor,descriptorPath,stat:await fs.stat(descriptorPath)};
 }
@@ -230,10 +230,10 @@ async function saveDraft(root, project) {
     approved_support_seconds:current.support,approved_no_grid_seconds:current.noGrid,
     project_bpm:project.bpm,project_signature:project.signature,
     project_tempos:project.tempos,project_signatures:project.signatures,note:review.note,
-    project_file:"project.joljak",accepted_reference_and_catalog_unchanged:true};
-  await fs.writeFile(path.join(directory,"project.joljak"),JSON.stringify(snapshot,null,2)+"\n",{flag:"wx"});
+    project_file:"project.bpmtracker",accepted_reference_and_catalog_unchanged:true};
+  await fs.writeFile(path.join(directory,"project.bpmtracker"),JSON.stringify(snapshot,null,2)+"\n",{flag:"wx"});
   await fs.writeFile(path.join(directory,"proposal.json"),JSON.stringify(proposal,null,2)+"\n",{flag:"wx"});
-  return path.join(directory,"project.joljak");
+  return path.join(directory,"project.bpmtracker");
 }
 
 module.exports={list,reference,saveDraft,catalog,candidateReference,candidateList};

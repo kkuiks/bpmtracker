@@ -1,11 +1,11 @@
 {
-  "format": "joljak-project-state",
+  "format": "bpmtracker-project-state",
   "version": 2,
   "documentation_updated_date": "2026-10-22",
   "application": {
     "path": "apps/daw",
     "version_authority": "apps/daw/package.json",
-    "launch": "Start Joljak.cmd",
+    "launch": "Start BPMTracker.cmd",
     "analyzer": "fixed-quarter-bpm-meter-offset",
     "automatic_variable_analysis_deployed": false,
     "playback_cache_rate_fix_version": "0.6.15",

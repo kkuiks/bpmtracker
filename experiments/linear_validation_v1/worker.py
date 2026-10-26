@@ -24,7 +24,7 @@ def fixed_map(family, packet, duration):
     phase = best['offset_seconds'] % length
     if phase > 1e-8:
         phase -= length
-    return {'format': 'joljak-continuous-beat-map', 'version': 1, 'status': 'map',
+    return {'format': 'bpmtracker-continuous-beat-map', 'version': 1, 'status': 'map',
             'duration_seconds': duration,
             'initial': {'bpm': bpm, 'numerator': signature['numerator'],
                         'denominator': signature['denominator'], 'bar_zero_source_seconds': phase},

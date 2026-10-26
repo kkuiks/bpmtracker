@@ -30,7 +30,7 @@ comparison from the same source family and encoded discrete layer.
 
 Report the unchanged native pulse/bar/change metric and original-event F1 at
 70ms, per cohort, genre and tap policy. Failures remain in the denominators.
-Prepare ordinary reference/current `.joljak` pairs only where real audio exists.
+Prepare ordinary reference/current `.bpmtracker` pairs only where real audio exists.
 No reinterpretation or sample exclusion may be introduced after results.
 
 Completed run: `data/research/runs/linear_validation_v1/20261012-frozen-L2-v1/`.

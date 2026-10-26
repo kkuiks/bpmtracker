@@ -23,7 +23,7 @@ def download(destination: Path) -> dict:
     partial = destination.with_suffix(destination.suffix + ".partial")
     if not destination.exists():
         start = partial.stat().st_size if partial.exists() else 0
-        request = urllib.request.Request(URL, headers={"User-Agent": "Joljak-Benchmark/1.0"})
+        request = urllib.request.Request(URL, headers={"User-Agent": "BPMTracker-Benchmark/1.0"})
         if start:
             request.add_header("Range", f"bytes={start}-")
         with urllib.request.urlopen(request, timeout=45) as response:

@@ -11,7 +11,7 @@ async function project(page) {
       if (!f) return null;
       let hook = f.memoizedState;
       while (hook && typeof hook === 'object') {
-        if (hook.memoizedState?.format === 'joljak-project') return hook.memoizedState;
+        if (hook.memoizedState?.format === 'bpmtracker-project') return hook.memoizedState;
         hook = hook.next;
       }
       return find(f.child) || find(f.sibling);
@@ -30,7 +30,7 @@ async function project(page) {
         window.auditJob = null;
         window.cancelled = [];
         const asset = {id:crypto.randomUUID(),name:'source.wav',sampleRate:48000,channels:1,frames:480000,duration:10,peakBins:1875,peakBinFrames:256,pcmPath:'/audit/audio.f32',peaksPath:'/audit/peaks.f32',sourcePath:'/audit/source.wav'};
-        window.joljak = {
+        window.bpmtracker = {
           kind:'electron', recovery:async()=>null, autosave:async()=>{}, closingProject:()=>true,
           registerAssets:async()=>{}, peaks:async()=>new Float32Array(3750).buffer,
           chooseAudio:async()=>['/audit/source.wav'],
