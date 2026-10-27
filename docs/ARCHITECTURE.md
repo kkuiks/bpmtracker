@@ -12,7 +12,6 @@ BPMTracker는 Windows 데스크톱 앱입니다. React 화면과 Electron이 프
 | 오디오 재생 | `src/audio.ts`, `public/transport-worklet.js` | 버퍼 전송, 샘플 시계와 믹싱·클릭 |
 | 오디오 작업 | `backend/worker.py` | 원음 디코딩, 재생용 변환, 분석과 출력 |
 | 분석기 | `algorithms/fixed/` | 고정 템포·박자·다운비트 추정 |
-| 라이브러리 | `electron/sample-library.cjs` | 사용자가 선택한 음원·타이밍 라이브러리 읽기와 초안 저장 |
 
 ## 오디오 흐름
 

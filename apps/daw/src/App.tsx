@@ -45,13 +45,10 @@ import Transport, { SignatureField, TimeField } from "./Transport";
 import ProjectMapEditor from "./ProjectMapEditor";
 import ImportAudioDialog, { type ImportStart } from "./ImportAudioDialog";
 import { AddAudioTrackDialog, RemoveTracksDialog } from "./TrackDialogs";
-import SampleLibraryDialog from "./SampleLibrary";
 import { DEFAULT_CLICK_GAIN } from "./click-level";
-import SampleReviewPanel from "./SampleReviewPanel";
 import SelectionMove from "./SelectionMove";
 import ResizablePane from "./ResizablePane";
 import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
-import { sampleWorkspace, sampleClicks, type SampleReference } from "./samples";
 import { clockPlacement, editMapAtTimes, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
 import {
   applyAnalysis,
@@ -111,7 +108,7 @@ type AnalysisScope = {
   whole: boolean;
   name: string;
 };
-type Modal = "import" | "samples" | "analyze" | "export" | "help" | "save-as" | "project-setup" | "add-track" | "remove-tracks" | null;
+type Modal = "import" | "analyze" | "export" | "help" | "save-as" | "project-setup" | "add-track" | "remove-tracks" | null;
 type EditContext = {
   projectId: string; owner: number; selection: ArrangementSelection; range: TimeRange | null;
   linked: boolean; cursor: number; trackId: string | null; point?: number;
@@ -196,7 +193,6 @@ export default function App() {
       {...previous,maps:previous.maps.map(item=>item.id===selectedMap.id&&item.kind===selectedMap.kind?next:item)}:previous);
   };
   const [previewing, setPreviewing] = useState(false);
-  const [referencePreview,setReferencePreview]=useState<"accepted"|"comparison"|null>(null);
   const previewClocks = useRef<AudioClock[] | undefined>(undefined);
   const [tool, setTool] = useState<Tool>("object"),
     [snap, setSnap] = useState<Snap>("beat"),
@@ -224,8 +220,6 @@ export default function App() {
     [message, setMessage] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobEvent[]>([]);
   const pendingImports = useRef(new Map<string, ImportOptions>());
-  const pendingSampleImports=useRef(new Map<string,{reference:SampleReference;comparison:boolean}>());
-  const [sampleBusy,setSampleBusy]=useState(false);
   const session = useRef(0);
   const jobSessions = useRef(new Map<string, { session: number; kind: string }>());
   const switchSession = () => {
@@ -238,7 +232,6 @@ export default function App() {
     trackSelection.current = { ids: [], active: null, anchor: null };
     setSelectedTracks([]); setActiveTrack(null);
     importRequest.current = null; setImportBusy(false);
-    setReferencePreview(null);setSampleBusy(false);
   };
   const [importPrefs] = useState(importPreferences);
   const confirmedImportPrefs = useRef(importPrefs);
@@ -411,9 +404,8 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    engine.current?.updateProject(project, previewing ? previewClocks.current : undefined,
-      referencePreview ? sampleClicks(project,referencePreview==="comparison") : undefined);
-  }, [project, previewing,referencePreview]);
+    engine.current?.updateProject(project, previewing ? previewClocks.current : undefined);
+  }, [project, previewing]);
   useEffect(() => {
     const valid=selectedMaps.filter(item=>(item.kind==="tempo"?project.tempos:project.signatures).some(event=>event.id===item.id));
     if(valid.length!==selectedMaps.length)setArrangement(previous=>({...previous,maps:valid}));
@@ -454,7 +446,6 @@ export default function App() {
       if (owner && owner.kind !== "export" && owner.session !== session.current) {
         if (["complete", "failed"].includes(event.stage)) {
           pendingImports.current.delete(event.id);
-          pendingSampleImports.current.delete(event.id);
           jobSessions.current.delete(event.id);
           if (event.kind === "decode") void api.finishImport(event.id, false).catch(() => {});
         }
@@ -468,7 +459,6 @@ export default function App() {
       });
       if (event.stage === "failed") {
         pendingImports.current.delete(event.id);
-        if(pendingSampleImports.current.delete(event.id))setSampleBusy(false);
         jobSessions.current.delete(event.id);
         tell(event.error || "Job failed");
       }
@@ -476,26 +466,6 @@ export default function App() {
       jobSessions.current.delete(event.id);
       if (event.kind === "decode") {
         const assets: Asset[] = event.result.assets;
-        const sample=pendingSampleImports.current.get(event.id);
-        if(sample){
-          pendingSampleImports.current.delete(event.id);setSampleBusy(false);
-          try{
-            const next=sampleWorkspace(sample.reference,assets[0],sample.comparison);
-            engine.current?.reset();switchSession();history.current.replace(next);
-            projectRef.current=next;setProject(next);setPath(null);setDirty(true);
-            const clip=next.clips[0];setSelection([clip.id]);selectTracks([clip.trackId]);
-            setRange(null);setSelectedClock(null);setSelectedMap(null);setPendingAnalysis(null);
-            const suppliedClock=sample.reference.availableClock!==false;
-            setPreviewing(false);setReferencePreview(suppliedClock?(sample.comparison?"comparison":"accepted"):null);setMetronome(suppliedClock);
-            setLoop({start:clip.start,end:clip.start+clip.duration,enabled:false});
-            engine.current?.reset(clip.start);setPosition(clip.start);peaks.current.clear();
-            void api.finishImport(event.id,true).catch(e=>tell(e.message));void loadPeaks(assets);
-            requestAnimationFrame(()=>timelineViewport.current?.setScale(
-              Math.max(.2,Math.min(1200,(document.querySelector(".timeline-scroll")?.clientWidth??900)/(next.projectDuration+5))),0));
-            tell("Sample workspace ready. Edit the project map and save a separate sample draft.");
-          }catch(e){tell(String(e));void api.finishImport(event.id,false).catch(()=>{});}
-          return;
-        }
         const options = pendingImports.current.get(event.id);
         if (options) {
           pendingImports.current.delete(event.id);
@@ -542,40 +512,6 @@ export default function App() {
     setPosition(value);
     if (engine.current)
       void engine.current.seek(value).catch((e) => tell(e.message));
-  };
-  const openSample=async(reference:SampleReference,comparison:boolean)=>{
-    if(!api||sampleBusy)return;
-    if(dirty&&!confirm("Open a sample workspace? Save the current project first if you want to keep it."))return;
-    setSampleBusy(true);
-    const owner=session.current,id=uid();
-    try{
-      // Read the selected catalog reference again before decode; the dialog is a
-      // viewing snapshot, not authority to use a changed reference version.
-      const current=reference.candidateDescriptorPath?
-        await api.candidateReference(reference.candidateDescriptorPath,reference.id):await api.sampleReference(reference.id);
-      if(owner!==session.current){setSampleBusy(false);return;}
-      pendingSampleImports.current.set(id,{reference:current,comparison});
-      jobSessions.current.set(id,{session:owner,kind:"decode"});
-      await api.decode([current.audioPath],false,id);
-    }catch(e){pendingSampleImports.current.delete(id);jobSessions.current.delete(id);setSampleBusy(false);tell(String(e));}
-  };
-  const auditionSample=(comparison=false)=>{
-    const p=projectRef.current,clicks=sampleClicks(p,comparison),audio=engine.current;
-    if(!clicks||!audio)return;
-    setPreviewing(false);setReferencePreview(comparison?"comparison":"accepted");
-    audio.updateProject(p,undefined,clicks);audio.setClick(true,p.clickGain);setMetronome(true);
-    const clip=p.clips.find(c=>c.id===p.sampleReview?.clipId)!;
-    if(!audio.playing)void audio.play(audio.position>=clip.start&&audio.position<clipEnd(clip)?audio.position:clip.start).catch(e=>tell(e.message));
-  };
-  const auditionSampleProject=()=>{
-    setReferencePreview(null);setPreviewing(false);
-    engine.current?.updateProject(projectRef.current);engine.current?.setClick(true,projectRef.current.clickGain);setMetronome(true);
-    startPlayback();
-  };
-  const saveSampleDraft=async()=>{
-    if(!api)return;
-    try{const filename=await api.saveSampleDraft(projectRef.current);tell(`Sample draft saved: ${filename}`);}
-    catch(e){tell(String(e));}
   };
   const startPlayback = () => {
     if (!api) { tell("Open BPMTracker as a desktop app to play local audio."); return; }
@@ -970,10 +906,6 @@ export default function App() {
     if (kind !== "custom") setImportStart(importSnapshot.current[kind]);
   };
   const closeModal = () => {
-    if(modal==="samples"){
-      for(const id of pendingSampleImports.current.keys())void api?.cancel(id);
-      pendingSampleImports.current.clear();setSampleBusy(false);
-    }
     if (modal === "import") {
       setImportMode(confirmedImportPrefs.current.mode);
       setCopyMedia(confirmedImportPrefs.current.copy);
@@ -1194,7 +1126,6 @@ export default function App() {
     } catch (e) { tell(e instanceof Error ? e.message : String(e)); }
   };
   const audition = async () => {
-    setReferencePreview(null);
     if (!pendingAnalysis?.result.period_seconds || !engine.current) return;
     const preview = applyAnalysis(projectRef.current, pendingAnalysis),
       c = preview.clips.find((c) => c.id === pendingAnalysis.clipId);
@@ -1209,7 +1140,6 @@ export default function App() {
     setMetronome(true);
   };
   const auditionClock = async (saved: Clock) => {
-    setReferencePreview(null);
     const geometry = clockGeometry(project, saved);
     if (!geometry || !engine.current) return;
     previewClocks.current = [geometry];
@@ -1815,7 +1745,6 @@ export default function App() {
             }}
             onPointerEnter={() => { if (popupRef.current?.appMenu && appMenu !== name) openAppMenu(name); }}
             onClick={() => openAppMenu(name)}>{name[0].toUpperCase() + name.slice(1)}</button>)}
-          <button onClick={() => { closeMenu(); setModal("samples"); }}>Samples</button>
           <button onClick={() => { closeMenu(); setModal("help"); }}>Help</button>
         </div>
       </div>
@@ -1883,16 +1812,6 @@ export default function App() {
                 <PanelLeftClose size={15} />
               </button>
             </div>
-            {project.sampleReview&&<SampleReviewPanel project={project}
-              onPreview={auditionSample} onProject={auditionSampleProject} onSave={()=>void saveSampleDraft()}
-              onNote={note=>change(p=>({...p,sampleReview:{...p.sampleReview!,note}}),"Edit sample draft note")}
-              onAlignment={milliseconds=>{
-                const review=projectRef.current.sampleReview!,clip=projectRef.current.clips.find(c=>c.id===review.clipId);
-                if(clip){const start=review.initialAudioOrigin+clip.sourceStart-milliseconds/1000;
-                  commit(moveClips(projectRef.current,[clip.id],start-clip.start,linked),"Adjust sample alignment");
-                  selectArrangement({clips:[clip.id],maps:[]});}
-              }}/>
-            }
             {track ? (
               <>
                 <div
@@ -2222,7 +2141,7 @@ export default function App() {
           </ResizablePane>}
         </div>
       </main>
-      {(previewing||referencePreview) && <div className="preview-status"><Headphones size={13}/><span>{referencePreview?(referencePreview==="comparison"?"Sample comparison · 102 / 110 BPM":project.sampleReview?.reference.previouslyAccepted?"Approved sample click":"Original candidate click · unaccepted"):"Analysis preview"}</span><button onClick={() => { setPreviewing(false);setReferencePreview(null); engine.current?.updateProject(project); }}>Return to project</button></div>}
+      {previewing && <div className="preview-status"><Headphones size={13}/><span>Analysis preview</span><button onClick={() => { setPreviewing(false); engine.current?.updateProject(project); }}>Return to project</button></div>}
       {activeJob && <div className="job-status"><LoaderCircle size={13} className="spin"/><span>{activeJob.stage}</span>
         {activeJob.progress !== undefined && <span>{Math.round(activeJob.progress * 100)}%</span>}
         <button onClick={() => void api?.cancel(activeJob.id)}>Cancel</button></div>}
@@ -2236,9 +2155,9 @@ export default function App() {
         onSignature={signatureFromCursor}
         onClickPreview={(clickGain) => setProject((p) => ({ ...p, clickGain }))}
         onClickCommit={(clickGain) => {
-          const referenceMode=referencePreview,analysisMode=previewing;
+          const analysisMode=previewing;
           change((p) => ({ ...p, clickGain }), "Metronome volume");
-          setReferencePreview(referenceMode);setPreviewing(analysisMode);
+          setPreviewing(analysisMode);
         }}/>
       {message && (
         <div className="toast" role="status" aria-live="polite">
@@ -2259,7 +2178,7 @@ export default function App() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className={`modal ${modal === "help" ? "help-modal" : ""} ${modal==="samples"?"sample-modal":""}`}>
+          <div className={`modal ${modal === "help" ? "help-modal" : ""}`}>
             <button
               className="modal-close icon-button"
               onClick={closeModal}
@@ -2274,7 +2193,6 @@ export default function App() {
               {projectEnd(project) > project.projectDuration && <p className="field-help">Some content is beyond the project end. Extend the project length to play it.</p>}
               <div className="modal-actions"><button className="primary-button" onClick={() => setModal(null)}>Done</button></div>
             </>}
-            {modal==="samples"&&<SampleLibraryDialog api={api} busy={sampleBusy} onOpen={(ref,comparison)=>void openSample(ref,comparison)} onClose={closeModal}/>}
             {modal === "add-track" && <AddAudioTrackDialog
               location={addBeforeTrack ? `Before ${project.tracks.find((track) => track.id === addBeforeTrack)?.name ?? "the chosen track"}` : "After the last audio track"}
               onAdd={addTracks} onCancel={() => setModal(null)}/>}
@@ -2517,8 +2435,7 @@ export default function App() {
               <>
                 <h2>Keyboard & mouse</h2>
                 <p>
-                  Cubase Pro 15 defaults for the implemented audio-editing
-                  actions.
+                  Shortcuts for audio editing, playback and project navigation.
                 </p>
                 <div className="shortcut-list">
                   {keyGuide.map(([key, action]) => (

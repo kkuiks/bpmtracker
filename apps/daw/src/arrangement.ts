@@ -95,8 +95,6 @@ export function moveArrangement(p: Project, selection: ArrangementSelection, del
     const clip=next.clips.find(clip=>clip.id===clock.clipId);
     return clip ? {...clock,projectOrigin:clip.start-clip.sourceStart} : clock;
   });
-  if (p.sampleReview && selection.maps.length && ids.has(p.sampleReview.clipId))
-    next.sampleReview={...p.sampleReview,initialAudioOrigin:p.sampleReview.initialAudioOrigin+delta};
   const movedTimes=selection.maps.map(item => item.kind==="tempo"
     ? timeAtQuarter(next,next.tempos.find(event=>event.id===item.id)!.quarter)
     : timeAtBar(next,next.signatures.find(event=>event.id===item.id)!.bar));

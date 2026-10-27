@@ -1946,33 +1946,6 @@ kbd {
   .transport-output .master-meter { width: 42px; }
   .info-line { gap: 13px; }
 }
-.modal.sample-modal { width: min(1120px,94vw); max-width:1120px; }
-.sample-library-toolbar { display:flex; gap:12px; align-items:center; margin:16px 0; }
-.sample-library-toolbar input { flex:1; min-width:100px; }
-.sample-library-toolbar span { color:var(--muted); white-space:nowrap; }
-.sample-library-body { display:grid; grid-template-columns: 1.15fr 1fr; gap:18px; min-height:240px; }
-.sample-list { overflow:auto; max-height:52vh; border:1px solid var(--line); border-radius:6px; }
-.sample-list table { width:100%; border-collapse:collapse; text-align:left; }
-.sample-list th { position:sticky; top:0; background:#262b33; font-size:11px; color:#9faaba; padding:9px; }
-.sample-list td { padding:9px; border-bottom:1px solid #323a44; font-size:12px; vertical-align:top; }
-.sample-list tr.selected { background:#28443f; }
-.sample-list td button { border:0; background:transparent; color:inherit; text-align:left; padding:0; }
-.sample-list td small { display:block; color:#95a1b0; margin-top:4px; font-size:10px; }
-.sample-detail { overflow:auto; max-height:52vh; padding:0 8px; }
-.sample-detail h3 { margin:0 0 14px; font-size:16px; }
-.sample-detail h4 { margin:18px 0 8px; font-size:12px; }
-.sample-detail dl,.sample-review-panel dl { display:grid; grid-template-columns:1fr 1fr; gap:5px 12px; font-size:11px; }
-.sample-detail dt,.sample-review-panel dt { color:#a3adba; }
-.sample-detail dd,.sample-review-panel dd { margin:0; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
-.sample-events { border-top:1px solid #39424f; }
-.sample-events > div { display:flex; justify-content:space-between; padding:5px 0; font-size:11px; font-variant-numeric:tabular-nums; }
-.sample-review-panel { padding:12px 13px 16px; border-bottom:1px solid #3b424d; }
-.sample-review-panel > h4 { margin:0 0 10px; color:#aab7c4; font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
-.sample-review-panel > strong { display:block; font-size:12px; margin-bottom:12px; }
-.sample-review-panel button { margin-top:7px; }
-.sample-note { display:block; margin-top:12px; font-size:11px; color:#aab7c4; }
-.sample-note textarea { width:100%; min-height:55px; margin-top:5px; resize:vertical; }
-@media(max-width:900px) { .sample-library-body { grid-template-columns:1fr; } .sample-list,.sample-detail {max-height:28vh;} }
 
 /* Compact Project-window chrome shared by the supported Cubase-style controls. */
 :root { background: #202325; color: #d1d5d8; --line: #44494c; --panel: #25292b; --deep: #171b1d; --muted: #90999f; }

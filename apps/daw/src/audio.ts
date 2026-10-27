@@ -1,6 +1,5 @@
 import { audioClips, type AudioClock, type Project, type DesktopApi } from "./model";
 import { projectClocks } from "./music";
-import type { ReferenceClicks } from "./samples";
 import { DEFAULT_CLICK_GAIN } from "./click-level";
 
 export class AudioEngine {
@@ -9,7 +8,6 @@ export class AudioEngine {
   private initializing?: Promise<void>;
   private project?: Project;
   private previewClocks?: AudioClock[];
-  private referenceClicks?: ReferenceClicks;
   private loaded = new Map<string, number>();
   private loading = new Map<string, Promise<void>>();
   private revision = 0;
@@ -112,17 +110,15 @@ export class AudioEngine {
     }
     await Promise.all([...requests.values()].map(([assetId, index]) => this.loadChunk(assetId, index)));
   }
-  updateProject(project: Project, previewClocks?: AudioClock[], referenceClicks?: ReferenceClicks) {
+  updateProject(project: Project, previewClocks?: AudioClock[]) {
     if (this.project && this.project.id !== project.id) this.reset();
     this.project = project;
     this.previewClocks = previewClocks;
-    this.referenceClicks = referenceClicks;
     this.sendProject();
   }
   private sendProject() {
     if (this.project && this.node) this.node.port.postMessage({
       type: "project", clips: audioClips(this.project), clocks: this.previewClocks ?? projectClocks(this.project),
-      referenceClicks: this.referenceClicks,
       masterGain: this.project.masterGain, end: this.project.projectDuration,
     });
   }

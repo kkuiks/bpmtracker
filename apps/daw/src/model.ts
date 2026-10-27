@@ -1,5 +1,4 @@
 import { musicalTime, projectClocks, snapToProject } from "./music";
-import type { SampleReview, SampleLibrary, SampleReference } from "./samples";
 import { DEFAULT_CLICK_GAIN, CLICK_GAIN_POLICY } from "./click-level";
 
 export type Asset = {
@@ -112,7 +111,6 @@ export type Project = {
   projectDuration: number;
   rulerFormat: "bars" | "seconds";
   timingPolicy?: "persistent";
-  sampleReview?: SampleReview;
 };
 export type TimeRange = { start: number; end: number; trackIds: string[] };
 export type AudioClipboard = {
@@ -174,11 +172,6 @@ export type AudioClock = ClockValues & {
 export interface DesktopApi {
   kind: "electron";
   chooseAudio(): Promise<string[]>;
-  sampleLibrary(choose?: boolean): Promise<SampleLibrary>;
-  sampleReference(id: string): Promise<SampleReference>;
-  chooseCandidateReview():Promise<SampleLibrary|null>;
-  candidateReference(filename:string,id:string):Promise<SampleReference>;
-  saveSampleDraft(project: Project): Promise<string>;
   decode(paths: string[], copy: boolean, requestId: string): Promise<string>;
   finishImport(id: string, keep: boolean): Promise<void>;
   peaks(asset: Asset): Promise<ArrayBuffer>;

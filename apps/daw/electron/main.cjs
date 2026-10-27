@@ -15,7 +15,6 @@ const { spawn } = require("node:child_process");
 const { randomUUID } = require("node:crypto");
 const readline = require("node:readline");
 const fsSync = require("node:fs");
-const sampleLibrary = require("./sample-library.cjs");
 const audioCache = require("./audio-cache.cjs");
 
 let window;
@@ -99,31 +98,6 @@ const send = (name, data) => {
   if (window && !window.isDestroyed())
     window.webContents.send(`bpmtracker:${name}`, data);
 };
-let sampleRoot = process.env.BPMTRACKER_SAMPLE_ROOT || null;
-async function sampleLibraryRoot(choose = false) {
-  if (choose) {
-    const result = await dialog.showOpenDialog(window, {
-      title: "Select the formal sample catalog", properties: ["openFile"],
-      filters: [{ name: "Sample catalog", extensions: ["json"] }],
-    });
-    if (result.canceled) return null;
-    const root = path.dirname(result.filePaths[0]);
-    if (path.basename(result.filePaths[0]) !== "catalog.json") throw new Error("Select data/samples/catalog.json");
-    await sampleLibrary.catalog(root);
-    sampleRoot = root;
-    await atomicJson(path.join(dataRoot, "sample-library.json"), { root });
-  }
-  if (!sampleRoot) {
-    try { sampleRoot = JSON.parse(await fs.readFile(path.join(dataRoot, "sample-library.json"), "utf8")).root; }
-    catch { /* First library selection. */ }
-  }
-  if (!sampleRoot && fsSync.existsSync(path.join(repository, "data/samples/catalog.json")))
-    sampleRoot = path.join(repository, "data/samples");
-  if (!sampleRoot) return null;
-  await sampleLibrary.catalog(sampleRoot);
-  return sampleRoot;
-}
-
 function validProject(value) {
   if (
     !value ||
@@ -624,35 +598,6 @@ ipcMain.handle("bpmtracker:choose-audio", async () => {
     filters: [{ name: "Audio", extensions: ["wav", "mp3", "flac"] }],
   });
   return result.canceled ? [] : result.filePaths;
-});
-ipcMain.handle("bpmtracker:sample-library", async (_event, choose) => {
-  const root = await sampleLibraryRoot(choose === true);
-  return root ? sampleLibrary.list(root) : { root: null, tracks: [] };
-});
-ipcMain.handle("bpmtracker:sample-reference", async (_event, id) => {
-  const root = await sampleLibraryRoot();
-  if (!root) throw new Error("Select the formal sample catalog first");
-  return sampleLibrary.reference(root, id);
-});
-ipcMain.handle("bpmtracker:choose-candidate-review", async () => {
-  const root=await sampleLibraryRoot();
-  if(!root)throw new Error("Select the sample catalog before opening a candidate review");
-  const result=await dialog.showOpenDialog(window,{
-    title:"Open a prepared DAW candidate review",defaultPath:path.join(root,"intakes"),
-    properties:["openFile"],filters:[{name:"DAW review descriptor",extensions:["json"]}],
-  });
-  return result.canceled?null:sampleLibrary.candidateList(root,result.filePaths[0]);
-});
-ipcMain.handle("bpmtracker:candidate-reference", async (_event, filename, id) => {
-  const root=await sampleLibraryRoot();
-  if(!root)throw new Error("Select the sample catalog first");
-  return sampleLibrary.candidateReference(root,filename,id);
-});
-ipcMain.handle("bpmtracker:save-sample-draft", async (_event, input) => {
-  const project = validProject(input), root = await sampleLibraryRoot();
-  if (!root || project.sampleReview?.reference?.libraryRoot !== root)
-    throw new Error("Select the original library for this sample before saving its draft");
-  return sampleLibrary.saveDraft(root, project);
 });
 ipcMain.handle("bpmtracker:decode", async (_event, paths, copy, requestId) => {
   if (!Array.isArray(paths) || paths.length === 0 || paths.length > 32)

@@ -63,7 +63,6 @@ if ($PrepareOnly) { Write-Output $bundle; exit 0 }
 & (Join-Path $PSScriptRoot 'register_project_files.ps1') -Executable $executable
 if ($Source -and $DevUrl) { $env:BPMTRACKER_DEV_URL = $DevUrl }
 else { Remove-Item Env:BPMTRACKER_DEV_URL -ErrorAction SilentlyContinue }
-$env:BPMTRACKER_SAMPLE_ROOT = Join-Path $repository 'data\samples'
 Write-Host 'Starting the current BPMTracker build.'
 # VS Code launches its tooling with Electron's Node mode. Do not inherit that
 # mode when starting the actual desktop application. This affects this child only.
