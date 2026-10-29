@@ -45,22 +45,10 @@ def sync_analysis(destination: Path, source_root: Path = ROOT) -> dict:
             raise ValueError("Managed analysis paths must not follow links")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(contents[row["path"]])
-    removed = []
-    for name in specification.get("legacyManagedPaths", []):
-        # This namespace was owned by previous app bundles. User documents,
-        # the interpreter and final0.ckpt are outside this cleanup boundary.
-        if name != "experiments":
-            raise ValueError("Unknown legacy analysis namespace")
-        target = destination / name
-        if target.is_symlink():
-            raise ValueError("A legacy analysis namespace must not be a link")
-        if target.is_dir():
-            shutil.rmtree(target)
-            removed.append(name)
     revision = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
     result = {"schemaVersion": 1, "revision": revision, "files": rows}
     (destination / "analysis-payload.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    return {**result, "removedLegacyPaths": removed}
+    return result
 
 
 def main() -> None:
@@ -68,7 +56,7 @@ def main() -> None:
     parser.add_argument("--target", type=Path, required=True)
     args = parser.parse_args()
     result = sync_analysis(args.target)
-    print(json.dumps({"analysisRevision": result["revision"], "files": len(result["files"]), "removedLegacyPaths": result["removedLegacyPaths"]}))
+    print(json.dumps({"analysisRevision": result["revision"], "files": len(result["files"])}))
 
 
 if __name__ == "__main__":

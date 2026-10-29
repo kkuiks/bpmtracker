@@ -1,12 +1,41 @@
-# 분석 모듈
+# 오디오 분석 모듈
 
-[fixed](fixed/)는 DAW의 **Analyze Audio**에서 사용하는 고정 BPM·박자·다운비트 분석기입니다. 지원 조건과 처리 과정은 [분석 기능](../docs/ANALYSIS.md), 설치와 실행은 [앱 가이드](../apps/daw/README.md#소스에서-실행하기)를 참고하세요.
+DAW의 `Analyze Audio`에서 사용하는 Python 패키지. 입력은 원음과 박·다운비트 관측, 출력은 초기 템포·박자와 변경 이벤트.
 
-- `infer.make_evidence`: Beat This의 박·다운비트 관측을 분석 입력으로 구성합니다.
-- `hinted.prepare_audio_family`: 오디오로 템포·박자·위치 후보와 점수를 준비합니다.
-- `hinted.select_from_family`: 선택적으로 입력한 Tap의 박 단위에 맞춰 결과를 고릅니다.
-- `config-tap-v2.json`: 분석 설정입니다.
-- `requirements-cpu.lock`: CPU 실행 의존성의 고정 버전입니다.
-- `payload.json`: 앱 실행·갱신·패키징에서 사용하는 분석 소스 목록입니다.
+## 템포·박자 맵
 
-CLI는 `python -m algorithms.fixed.hinted --help`로 확인할 수 있습니다. 음원을 처리할 때는 공식 모델을 `--checkpoint`로 지정합니다. DAW의 수동 템포·박자 맵 편집은 이 모듈과 별개로 동작합니다.
+패키지: [`tempo_map`](tempo_map/)
+
+| API·파일 | 역할 |
+| --- | --- |
+| `tempo_map.runtime.prepare_observations` | 박 관측과 오디오에서 초기 후보·박 이벤트 준비 |
+| `tempo_map.runtime.initial_unit` | Tap 또는 확인 입력에 따른 초기 박 단위 선택 |
+| `tempo_map.runtime.predict` | 준비된 이벤트와 박 단위로 전체 범위의 맵 계산 |
+| `tempo_map/parameters.json` | 맵 추정 수치 설정 |
+
+반환값: 분석 범위 길이, 초기 BPM·박자표·마디 위상, 변경 이벤트의 시간·quarter 좌표. 실행 단위는 별도 Python worker 프로세스.
+
+DAW에서는 원본 분석을 보관하고 프로젝트의 `tempos`·`signatures`에 적용. 원본 분석과 적용 후 편집한 맵은 별도 데이터.
+
+## 박 관측·초기 후보
+
+패키지: [`fixed`](fixed/)
+
+| API·파일 | 역할 |
+| --- | --- |
+| `infer.make_evidence` | 모델의 박·다운비트 관측을 분석 입력으로 변환 |
+| `hinted.prepare_audio_family` | 오디오에서 템포·박자·위치 후보 준비 |
+| `hinted.select_from_family` | 초기 박 단위에 맞는 고정 후보 선택 |
+| `fixed/config-tap-v2.json` | 관측·후보 준비 설정 |
+| `fixed/requirements-cpu.lock` | Python CPU 의존성 버전 |
+| `fixed/payload.json` | 실행·갱신·패키징 공통 분석 소스 목록 |
+
+고정 분석 CLI:
+
+```bash
+python -m algorithms.fixed.hinted --help
+```
+
+모델 경로 옵션은 `--checkpoint`. DAW의 수동 맵 편집·재생은 분석 실행과 독립.
+
+입출력 명세: [분석](../docs/ANALYSIS.md). 환경 구성: [DAW](../apps/daw/README.md#소스에서-실행하기).

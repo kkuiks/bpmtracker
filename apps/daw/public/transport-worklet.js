@@ -1,6 +1,8 @@
 /* Playback position, music and clicks advance on the same audio sample clock.
  * No requestAnimationFrame or wall-clock timer drives audible playback.
  */
+const CLICK_OUTPUT_GAIN = 10 ** (8 / 20);
+
 class BPMTrackerTransport extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -102,7 +104,7 @@ class BPMTrackerTransport extends AudioWorkletProcessor {
             const age = time - (clock.phase + beat * step);
             if (age >= 0 && age < .035) {
               const strong = ((beat % clock.numerator) + clock.numerator) % clock.numerator === 0;
-              const tone = Math.sin(2 * Math.PI * (strong ? 1600 : 1050) * age) * Math.exp(-age / .006) * (strong ? .32 : .20) * this.clickGain;
+              const tone = Math.sin(2 * Math.PI * (strong ? 1600 : 1050) * age) * Math.exp(-age / .006) * (strong ? .32 : .20) * this.clickGain * CLICK_OUTPUT_GAIN;
               l += tone; r += tone;
             }
           }

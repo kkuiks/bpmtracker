@@ -38,6 +38,7 @@ import { gridLines, musicalTime, positionAtQuarter, quarterAtTime, snapToProject
 import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
 import ResizablePane from "./ResizablePane";
 import { editableText, type ArrangementContext } from "./ContextMenu";
+import SignatureEditor, { type SignatureEdit } from "./SignatureEditor";
 
 const ROW = 88;
 const RULER = 32;
@@ -95,6 +96,10 @@ type Props = {
   onRangeMove: (range: TimeRange, delta: number, targetTrack: string | undefined, copy: boolean) => void;
   onMapSelect: (selection: MapSelection,additive?:boolean) => void;
   onMapAdd: (kind: "tempo" | "signature", time: number) => void;
+  onMapEdit: (selection: MapSelection) => void;
+  signatureEdit: SignatureEdit | null;
+  onSignatureCommit: (value: import("./model").TimeSignature, returnFocus: boolean) => string | null;
+  onSignatureCancel: (returnFocus: boolean) => void;
   onMapMove: (selection: MapSelection, time: number, bpm?: number) => void;
   onMapDelete: (selection: MapSelection) => void;
   onTimeBase: (id: string) => void;
@@ -318,7 +323,7 @@ export default function Timeline(props: Props) {
     if (editableText(event.target)) return;
     event.preventDefault(); event.stopPropagation(); cancelGestureRef.current();
     props.onContext({ domain, x: event.clientX, y: event.clientY,
-      time: snapToProject(project, timeAt(event.clientX), snap),
+      time: snapToProject(project, timeAt(event.clientX), fields.mapKind === "signature" ? "beat" : snap),
       invoker: (event.target as HTMLElement).closest<HTMLElement>(".audio-clip,.track-head,button,.arrangement"), ...fields });
   };
   const insideRange = (time: number, track: string | undefined) => props.range && track && props.range.trackIds.includes(track) && time >= props.range.start && time <= props.range.end;
@@ -756,7 +761,7 @@ export default function Timeline(props: Props) {
         const visible=new Map([...pointElements].map(element=>[`${element.dataset.mapKind}:${element.dataset.mapId}`,element]));
         const maps:MapSelection[]=[];
         const points=[...project.tempos.map(event=>({kind:"tempo" as const,id:event.id,time:timeAtQuarter(project,event.quarter),y:RULER+tempoY(event.bpm)-10,height:20})),
-          ...project.signatures.map(event=>({kind:"signature" as const,id:event.id,time:timeAtBar(project,event.bar),y:RULER+TEMPO_ROW+8,height:23}))];
+          ...project.signatures.filter(event=>!event.shortBar||event.shortBar.original).map(event=>({kind:"signature" as const,id:event.id,time:timeAtBar(project,event.bar),y:RULER+TEMPO_ROW+8,height:23}))];
         for(const point of points) {
           const element=visible.get(`${point.kind}:${point.id}`),rect=element?.getBoundingClientRect(),node=scroller.current!,viewportRect=node.getBoundingClientRect();
           const x=rect?rect.left-viewportRect.left+node.scrollLeft:point.time*scale;
@@ -936,6 +941,7 @@ export default function Timeline(props: Props) {
     const tempo = selected.kind === "tempo" ? project.tempos.find((point) => point.id === selected.id) : null;
     const signature = selected.kind === "signature" ? project.signatures.find((point) => point.id === selected.id) : null;
     if (!tempo && !signature) return;
+    if (signature?.shortBar && !signature.shortBar.original) return;
     const mapTime = tempo ? timeAtQuarter(project, tempo.quarter) : timeAtBar(project, signature!.bar);
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -1178,13 +1184,25 @@ export default function Timeline(props: Props) {
             {!signatures.some(point => point.bar === 1) && <span className="map-base-value" style={{ left: scroll.x + 9, top: 7 }}>{project.signature.numerator}/{project.signature.denominator}</span>}
             {signatures.filter((signature) => timeAtBar(displayProject, signature.bar) <= endTime && timeAtBar(displayProject, signature.bar) >= startTime - 5).map((signature) => {
               const time = timeAtBar(displayProject, signature.bar), x = drag?.mode === "signature" && drag.mapId === signature.id && drag.moved ? drag.delta ?? time : time;
-              return <button key={signature.id} data-map-kind="signature" data-map-id={signature.id} className={`signature-point ${props.selectedMaps.some(item=>item.kind==="signature"&&item.id===signature.id) ? "selected" : ""}`} style={{ left: x * scale }}
+              const next = signatures[signatures.indexOf(signature) + 1];
+              const room = next ? Math.max(3, (timeAtBar(displayProject, next.bar) - time) * scale - 2) : Infinity;
+              return <button key={signature.id} data-map-kind="signature" data-map-id={signature.id} data-short-bar={signature.shortBar ? "true" : undefined} className={`signature-point ${props.selectedMaps.some(item=>item.kind==="signature"&&item.id===signature.id) ? "selected" : ""}`}
+                style={{ left: x * scale, "--signature-room": Number.isFinite(room) ? `${room}px` : "none", "--signature-padding": `${room < 12 ? 0 : room < 32 ? 2 : 6}px` } as React.CSSProperties}
                 onContextMenu={event => openContext(event, "map", { map: { kind: "signature", id: signature.id }, selection: props.selectedMaps.some(item => item.kind === "signature" && item.id === signature.id) ? { clips: selection, maps: props.selectedMaps } : { clips: [], maps: [{ kind: "signature", id: signature.id }] } })}
-                title={`${signature.bar}.1.1.0`} onDoubleClick={(e) => e.stopPropagation()}
+                aria-label={`${signature.numerator}/${signature.denominator}${signature.shortBar ? " short bar" : " signature"} at bar ${signature.bar}`}
+                title={`${signature.numerator}/${signature.denominator} · ${signature.bar}.1.1.0${signature.shortBar
+                  ? signature.shortBar.original
+                    ? ` · Short bar (declared ${signature.shortBar.original.numerator}/${signature.shortBar.original.denominator}) · Double-click to edit`
+                    : " · Short bar · Double-click to edit following declaration"
+                  : " · Double-click to edit"}`}
+                onDoubleClick={(e) => { e.stopPropagation(); props.onMapEdit({ kind: "signature", id: signature.id }); }}
                 onPointerDown={(e) => mapPointer(e, { kind: "signature", id: signature.id })}>
                 {signature.numerator}/{signature.denominator}
               </button>;
             })}
+            {props.signatureEdit && <SignatureEditor key={props.signatureEdit.key} edit={props.signatureEdit}
+              left={Math.max(scroll.x + 3, Math.min(props.signatureEdit.time * scale, scroll.x + scroll.width - 90))}
+              onCommit={props.onSignatureCommit} onCancel={props.onSignatureCancel}/>}
           </div>
           </>}
           <div

@@ -40,9 +40,10 @@ export function NumberField({
       <div>
         <ValueField label={label} value={value} onChange={onChange} onPreview={onPreview} step={step} min={min} max={max}
           format={number => number.toFixed(precision)}
-          adjust={integerSteps ? (number, steps) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, Math.round(number) + steps * step)) : undefined}
+          adjust={integerSteps ? (number, steps, _segment, fine) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity,
+            fine ? Number((number + steps * step * .1).toPrecision(14)) : Math.round(number) + steps * step)) : undefined}
           commitEqual={commitEqual} resetValue={resetValue} contextKey={contextKey}
-          title={integerSteps ? "Drag or scroll: whole-number steps · Double-click to type a number or fraction · Escape: cancel"
+          title={integerSteps ? "Drag or scroll: whole-number steps · Shift: fine · Double-click to type a number or fraction · Escape: cancel"
             : "Drag or scroll to adjust · Double-click to type a number or fraction · Shift: fine · Escape: cancel"}/>
         {suffix && <small>{suffix}</small>}
       </div>

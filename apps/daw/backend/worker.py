@@ -1,4 +1,4 @@
-"""Local media jobs and an adapter to the fixed-tempo analyzer.
+"""Local media jobs and the tempo-map tempo/signature-map analysis adapter.
 
 No reference files are read. Source recordings are never edited. Analysis scopes
 are sample-aligned windows of a decoded original; raw hints are opened only after
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -20,6 +21,7 @@ import soundfile as sf
 import soxr
 
 DEFAULT_CLICK_GAIN = 0.7 * 10 ** (6 / 20)
+CLICK_OUTPUT_GAIN = 10 ** (8 / 20)
 
 
 def emit(stage, **fields):
@@ -128,17 +130,29 @@ def decode(job):
 def analyze(job):
     root = Path(job["analysisRoot"])
     sys.path.insert(0, str(root))
-    import torch
-    from beat_this.inference import Audio2Frames
-    from algorithms.fixed.infer import make_evidence
-    from algorithms.fixed.hinted import prepare_audio_family, select_from_family, validate_hint_row
+    from algorithms.fixed.hinted import validate_hint_row
+    from algorithms.tempo_map.runtime import initial_unit, predict, prepare_observations, unit_choices
 
-    module_file = Path(sys.modules[prepare_audio_family.__module__].__file__).resolve()
-    if module_file != (root / "algorithms/fixed/hinted.py").resolve():
+    module_file = Path(sys.modules[predict.__module__].__file__).resolve()
+    if module_file != (root / "algorithms/tempo_map/runtime.py").resolve():
         raise RuntimeError("The analyzer must load from the selected product payload")
-
     config_path = root / "algorithms/fixed/config-tap-v2.json"
     config = json.loads(config_path.read_text(encoding="utf-8"))
+    specification = json.loads((root / "algorithms/fixed/payload.json").read_text(encoding="utf-8"))
+    rows = []
+    for name in specification["files"]:
+        content = (root / name).read_bytes()
+        rows.append({"path": name, "bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()})
+    revision = hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest()
+
+    def digest(path):
+        value = hashlib.sha256()
+        with Path(path).open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                value.update(block)
+        return value.hexdigest()
+
+    checkpoint_sha = digest(job["checkpoint"])
     asset = job["asset"]
     first = max(0, round(job["sourceStart"] * asset["sampleRate"]))
     last = min(asset["frames"], round(job["sourceEnd"] * asset["sampleRate"]))
@@ -151,34 +165,80 @@ def analyze(job):
               "firstSourceFrame": first, "lastSourceFrameExclusive": last,
               "sourceStart": first / asset["sampleRate"], "sourceEnd": last / asset["sampleRate"],
               "scope": "selected_audio_only", "referenceFilesRead": False,
-              "modelContract": "fixed-metronome-tap-only26-v2"}
+              "modelContract": "tempo-map-unit-v1", "analyzerRevision": revision,
+              "checkpointSha256": checkpoint_sha}
     write_json(output / "source-input.json", inputs)
     write_json(output / "config.json", config)
-    emit("Loading the fixed-metronome model")
-    torch.set_num_threads(config["torch_threads"])
-    tracker = Audio2Frames(job["checkpoint"], device=config["device"], float16=False)
-    pcm = np.memmap(asset["pcmPath"], dtype="<f4", mode="r", shape=(asset["frames"], asset["channels"]))
-    signal = np.array(pcm[first:last], dtype=np.float32)
-    emit("Extracting beat and downbeat evidence")
-    beat, down = tracker(signal, asset["sampleRate"])
-    duration = len(signal) / asset["sampleRate"]
-    evidence = make_evidence(beat.cpu().numpy(), down.cpu().numpy(), duration, config)
-    np.savez_compressed(output / "evidence.npz", beat_logits=beat.cpu().numpy(), downbeat_logits=down.cpu().numpy(), fps=config["fps"], duration_seconds=duration)
-    del signal, beat, down, tracker
-    emit("Preparing every audio candidate before reading the tap")
-    family = prepare_audio_family(evidence, config)
-    write_json(output / "audio-family.json", family)
-    # This is the first and only read of continuous tap input.
+
+    identity = {"revision": revision, "checkpointSha256": checkpoint_sha,
+                "sourcePath": asset["sourcePath"], "originalSize": asset["originalSize"],
+                "originalModified": asset["originalModified"], "sampleRate": asset["sampleRate"],
+                "channels": asset["channels"], "frames": asset["frames"], "first": first, "last": last}
+    cache_key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    cache = output.parent / "source-cache" / cache_key
+    ready = cache / "ready.json"
+    files = ["events.npz", "prepared.json", "evidence.npz", "audio-family.json"]
+    reused = False
+    if ready.is_file():
+        try:
+            receipt = json.loads(ready.read_text(encoding="utf-8"))
+            reused = receipt["identity"] == identity and all(
+                (cache / name).is_file() and digest(cache / name) == receipt["hashes"][name]
+                for name in files)
+        except (OSError, KeyError, ValueError):
+            reused = False
+    duration = (last - first) / asset["sampleRate"]
+    if reused:
+        emit("Using prepared audio evidence")
+        prepared = json.loads((cache / "prepared.json").read_text(encoding="utf-8"))
+    else:
+        import torch
+        from beat_this.inference import Audio2Frames
+        cache.mkdir(parents=True, exist_ok=True)
+        emit("Loading the beat model")
+        torch.set_num_threads(config["torch_threads"])
+        tracker = Audio2Frames(job["checkpoint"], device=config["device"], float16=False)
+        pcm = np.memmap(asset["pcmPath"], dtype="<f4", mode="r", shape=(asset["frames"], asset["channels"]))
+        signal = np.array(pcm[first:last], dtype=np.float32)
+        emit("Extracting beat and downbeat evidence", neuralCallStarted=True)
+        beat, down = tracker(signal, asset["sampleRate"])
+        beat_values, down_values = beat.cpu().numpy(), down.cpu().numpy()
+        del tracker, beat, down, pcm
+        emit("Preparing tempo and signature candidates", neuralCallCompleted=True)
+        events, prepared, family = prepare_observations(beat_values, down_values, signal, asset["sampleRate"], config)
+        np.savez_compressed(cache / "events.npz", **events)
+        np.savez_compressed(cache / "evidence.npz", beat_logits=beat_values, downbeat_logits=down_values,
+                            fps=config["fps"], duration_seconds=duration)
+        write_json(cache / "prepared.json", prepared)
+        write_json(cache / "audio-family.json", family)
+        del signal, beat_values, down_values, events, family
+        write_json(cache / "ready.part.json", {"identity": identity,
+                   "hashes": {name: digest(cache / name) for name in files}})
+        (cache / "ready.part.json").replace(ready)
+
+    # The source candidates are complete before continuous tap input is opened.
     hint = json.loads(Path(job["hintPath"]).read_text(encoding="utf-8"))
     validate_hint_row(hint)
     tap = hint.get("initial_quarter_bpm_tap")
-    emit("Selecting the initial metrical layer")
-    prediction = select_from_family(family, tap)
+    unit = initial_unit(prepared, tap)
+    if unit["available"]:
+        emit("Building the tempo and signature map", decoderCallStarted=True)
+        prediction = predict({"unit": unit, "duration_seconds": duration,
+                              "data": {"events_path": str(cache / "events.npz"),
+                                       "prepared_source_path": str(cache / "prepared.json")}})
+    else:
+        prediction = {"status": "needs_initial_unit" if prepared.get("available") else "no_source_clock",
+                      "duration_seconds": duration, "events": [], "unit_choices": unit_choices(prepared)}
     write_json(output / "prediction.json", prediction)
     write_json(output / "raw-tap-receipt.json", hint)
+    write_json(output / "source-preparation.json", {"key": cache_key, "directory": str(cache),
+               "reused": reused, "neuralCalls": 0 if reused else 1, "initialUnit": unit})
     result = {"id": job["id"], "clipId": job["clipId"], "assetId": asset["id"],
               "sourceStart": inputs["sourceStart"], "sourceEnd": inputs["sourceEnd"],
               "initialTap": tap, "createdAt": datetime.now(timezone.utc).isoformat(),
+              "analyzer": {"id": "tempo-map", "revision": revision, "checkpointSha256": checkpoint_sha,
+                           "sourcePreparationReused": reused, "neuralCalls": 0 if reused else 1,
+                           "decoderCalls": 1 if unit["available"] else 0},
               "result": prediction, "recordPath": str(output / "analysis.json")}
     write_json(output / "analysis.json", result)
     return result
@@ -186,6 +246,7 @@ def analyze(job):
 
 def analysis_geometry(project):
     clips = {c["id"]: c for c in project["clips"]}
+    analyses = {a["id"]: a for a in project["analyses"]}
     regions = []
     for region in project["clocks"]:
         clip = clips.get(region["clipId"])
@@ -194,6 +255,35 @@ def analysis_geometry(project):
             continue
         source_start = max(region["sourceStart"], clip["sourceStart"]) if clip else region["sourceStart"]
         source_end = min(region["sourceEnd"], clip["sourceStart"] + clip["duration"]) if clip else region["sourceEnd"]
+        if region.get("kind") == "map":
+            analysis = analyses.get(region["analysisId"])
+            if not analysis or analysis["result"].get("status") != "map":
+                raise ValueError("The original analyzed map is missing")
+            prediction = analysis["result"]
+            initial = prediction["initial"]
+            bpm, numerator, denominator = initial["bpm"], initial["numerator"], initial["denominator"]
+            boundaries = [{"time": 0, "quarter": -initial["bar_zero_source_seconds"] * bpm / 60},
+                          *prediction["events"]]
+            map_origin = origin + analysis["sourceStart"]
+            first = source_start - analysis["sourceStart"]
+            last = source_end - analysis["sourceStart"]
+            bar_origin = 0.0
+            for index, boundary in enumerate(boundaries):
+                bpm = boundary.get("bpm", bpm)
+                if "numerator" in boundary:
+                    numerator, denominator = boundary["numerator"], boundary["denominator"]
+                    bar_origin = boundary["quarter"]
+                stop = boundaries[index + 1]["time"] if index + 1 < len(boundaries) else prediction["duration_seconds"]
+                start, end = max(first, boundary["time"], -map_origin), min(last, stop)
+                if end <= start:
+                    continue
+                length = numerator * 4 / denominator
+                bar = bar_origin + math.floor((boundary["quarter"] - bar_origin + 1e-8) / length) * length
+                phase = map_origin + boundary["time"] - (boundary["quarter"] - bar) * 60 / bpm
+                regions.append({"id": f"{region['id']}:{index}", "bpm": bpm, "numerator": numerator,
+                                "denominator": denominator, "offset": 0,
+                                "start": map_origin + start, "end": map_origin + end, "phase": phase})
+            continue
         start = max(0, origin + source_start)
         end = origin + source_end
         if end > start:
@@ -311,7 +401,7 @@ def click_block(regions, times):
         strong = (beat % region["numerator"]) == 0
         freq = np.where(strong, 1600.0, 1050.0)
         click[active] += np.sin(2 * math.pi * freq[active] * age[active]) * np.exp(-age[active] / .006) * np.where(strong[active], .32, .20)
-    return np.column_stack((click, click))
+    return np.column_stack((click, click)) * CLICK_OUTPUT_GAIN
 
 
 def vlq(value):
@@ -416,8 +506,9 @@ def export(job):
     rate = project["sampleRate"]
     frames = round((end - start) * rate)
     assets = {}
-    for asset in project["assets"]:
-        assets[asset["id"]] = (asset, np.memmap(asset.get('playbackPath', asset["pcmPath"]), dtype="<f4", mode="r", shape=(asset.get('playbackFrames', asset["frames"]), asset["channels"])))
+    if options["mix"] or options["stems"]:
+        for asset in project["assets"]:
+            assets[asset["id"]] = (asset, np.memmap(asset.get('playbackPath', asset["pcmPath"]), dtype="<f4", mode="r", shape=(asset.get('playbackFrames', asset["frames"]), asset["channels"])))
     regions = geometry(project, max(end, project.get('projectDuration', end)))
     outputs = []
     if options["mix"]: outputs.append(('Mixdown', None, False))

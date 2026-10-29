@@ -32,11 +32,11 @@
 .app-shell .info-name.object-title { flex-direction:row; align-items:center; justify-content:flex-start; gap:7px; }
 .app-shell .info-line .time-field,.app-shell .info-line .number-field,.app-shell .info-duration,.app-shell .info-signature { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:2px; }
 .app-shell .info-line .time-field>span,.app-shell .info-line .number-field>span,.app-shell .info-duration>span,.app-shell .info-signature>span { padding-left:4px; }
-.app-shell .info-line .time-field .value-control { width:139px; }
+.app-shell .info-line .time-field .value-control { width:148px; }
 .app-shell .info-line .number-field .value-control { width:94px; }
 .app-shell .info-line .value-control>input { height:24px; padding:2px 3px; border:1px solid transparent; text-align:left; background:transparent; }
 .app-shell .info-line .value-control:hover>input { border-color:#7c8991; background:#2c343a; }
-.app-shell .info-line .value-segments { justify-content:flex-start; inset:2px 3px; }
+.app-shell .info-line .value-segments { inset:2px 3px; }
 .app-shell .info-line.multiple-selection .value-segments,.app-shell .info-line.multiple-selection .info-name strong,.app-shell .info-line.multiple-selection .info-duration input { color:#e4ce91; }
 .app-shell .info-duration .value-control { width:82px; }
 .app-shell .info-source { min-width:106px; display:flex; flex-direction:column; gap:2px; justify-content:center; }
@@ -82,6 +82,7 @@
 .app-shell .inspector-fold { border-color:#4f5b63; }
 .app-shell .inspector-fold .inspector-section { font-size:11px; }
 .app-shell .value-control>input { background:#20272b; color:#e0e7eb; border-radius:2px; }
+.app-shell .time-field .value-control.segmented>input { text-align:center; }
 .app-shell .value-control[data-state="typing"]>input { background:#354859; color:#f1f6f9; }
 .app-shell .value-control[data-state="scrubbing"]>input,.app-shell .value-control[data-state="stepping"]>input { background:#374b5d; color:#f1f6f9; }
 .app-shell .value-control:focus-within { outline-color:#97bddb; outline-offset:0; }
@@ -138,9 +139,9 @@
 .app-shell .timeline-zoom-controls input::-webkit-slider-thumb { appearance:none; width:9px; height:9px; border-radius:50%; background:#b7c8d4; }
 
 .app-shell .transport-bar { height:52px; min-height:52px; gap:8px; padding:4px 10px; background:#303a41; border-color:#72828e; overflow:hidden; }
-.app-shell .locator-fields { flex-direction:column; align-items:stretch; gap:1px; width:143px; }
+.app-shell .locator-fields { flex-direction:column; align-items:stretch; gap:1px; width:160px; }
 .app-shell .locator-field>button { width:17px; height:20px; background:transparent; color:#c0d0dc; }
-.app-shell .locator-field .value-control { width:123px; }
+.app-shell .locator-field .value-control { width:140px; }
 .app-shell .locator-field .value-control>input { height:20px; padding:1px 4px; }
 .app-shell .locator-field .value-segments { font-size:11px; inset:1px 4px; }
 .app-shell .transport-buttons { height:34px; border-color:#8596a1; padding:0; }
@@ -148,9 +149,9 @@
 .app-shell .transport-buttons .play-button { width:36px; height:32px; background:#3a4853; }
 .app-shell .transport-buttons .stop-button.active { background:#b6c6d2; color:#2b3841; }
 .app-shell .transport-buttons .play-button.playing { background:#82bc9b; color:#1b352a; }
-.app-shell .transport-position .value-control { width:151px; }
+.app-shell .transport-position .value-control { width:172px; }
 .app-shell .transport-position .value-control>input { height:30px; background:#17242d; border-color:#8497a5; }
-.app-shell .transport-position .value-segments { font-size:16px; color:#e1edf5; }
+.app-shell .transport-position .value-segments { font-size:14px; color:#e1edf5; }
 .app-shell .transport-divider { width:1px; min-width:1px; height:32px; margin:0 1px; background:#71818b; }
 .app-shell .transport-tempo .number-field>span { display:none; }
 .app-shell .transport-tempo .number-field>div { display:flex; align-items:center; gap:6px; }
@@ -196,13 +197,14 @@
   .app-shell .info-line .info-name { width:158px; min-width:158px; }
   .app-shell .info-line .info-source { display:none; }
   .app-shell .info-line>label,.app-shell .info-line>div { padding-inline:8px; }
-  .app-shell .info-line .time-field .value-control { width:131px; }
+  .app-shell .info-line .time-field .value-control { width:140px; }
   .app-shell .edit-toolbar { gap:3px; padding-inline:8px; }
   .app-shell .toolbar-divider { margin-inline:3px; }
   .app-shell .transport-bar { gap:7px; padding-inline:7px; }
-  .app-shell .locator-fields { width:127px; }
-  .app-shell .locator-field .value-control { width:110px; }
-  .app-shell .transport-position .value-control { width:144px; }
+  .app-shell .locator-fields { width:150px; }
+  .app-shell .locator-field .value-control { width:132px; min-width:132px; }
+  .app-shell .transport-position .value-control { width:156px; }
+  .app-shell .transport-position .value-segments { font-size:13px; }
   .app-shell .transport-output>.horizontal { display:none; }
   .app-shell .transport-output .master-meter { width:53px; }
   .app-shell .track-controls { gap:3px; }

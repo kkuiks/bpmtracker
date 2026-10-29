@@ -164,6 +164,9 @@ function validProject(value) {
     )
       throw new Error("Invalid channel settings in project");
   if (value.version >= 2) {
+    if ([value.initialTempoFollowsFirst, value.initialSignatureFollowsFirst]
+        .some(flag => flag !== undefined && typeof flag !== "boolean"))
+      throw new Error("Invalid initial map following state");
     const hasWholeValues = value.bpm !== undefined || value.signature !== undefined;
     if (hasWholeValues && (!Number.isFinite(value.bpm) || value.bpm < 1 || value.bpm > 1000 ||
         !value.signature || !Number.isInteger(value.signature.numerator) ||
@@ -191,6 +194,13 @@ function validProject(value) {
       positions.add(tempo.quarter);
     }
     for (const signature of value.signatures) {
+      const shortBar = signature.shortBar;
+      if (shortBar !== undefined && (!shortBar || typeof shortBar.followingId !== "string" ||
+          shortBar.followingId === signature.id || !value.signatures.some(point => point.id === shortBar.followingId) ||
+          shortBar.original !== undefined && (!Number.isInteger(shortBar.original.numerator) ||
+            shortBar.original.numerator < 1 || shortBar.original.numerator > 32 ||
+            ![1, 2, 4, 8, 16, 32].includes(shortBar.original.denominator))))
+        throw new Error("Invalid calculated short bar in project");
       const position = value.version >= 3 ? signature.quarter : signature.bar;
       if ((value.version >= 3 ? !Number.isFinite(position) || position < 0 : !Number.isInteger(position) || position < 1) || bars.has(position) ||
           !Number.isInteger(signature.bar) || signature.bar < 1 ||
@@ -221,7 +231,31 @@ function validProject(value) {
       clock.values.numerator > 32 ||
       ![1, 2, 4, 8, 16, 32].includes(clock.values.denominator)
     )
-      throw new Error("Invalid fixed clock in project");
+      throw new Error("Invalid saved analysis clock in project");
+  for (const clock of value.clocks) {
+    if (clock.kind !== undefined && !["fixed", "map"].includes(clock.kind))
+      throw new Error("Unknown saved analysis kind");
+    if (clock.kind !== "map") continue;
+    const analysis = value.analyses.find(item => item.id === clock.analysisId);
+    const map = analysis?.result, initial = map?.initial;
+    if (!analysis || !initial || map.status !== "map" || !Array.isArray(map.events) ||
+        ![map.duration_seconds, initial.bpm, initial.numerator, initial.denominator, initial.bar_zero_source_seconds].every(Number.isFinite) ||
+        map.duration_seconds <= 0 || Math.abs(map.duration_seconds - (analysis.sourceEnd - analysis.sourceStart)) > 1e-6 ||
+        initial.bpm < 1 || initial.bpm > 1000 || !Number.isInteger(initial.numerator) || initial.numerator < 1 || initial.numerator > 32 ||
+        ![1, 2, 4, 8, 16, 32].includes(initial.denominator))
+      throw new Error("The original variable analysis map is missing or invalid");
+    let time = initial.bar_zero_source_seconds, quarter = 0, bpm = initial.bpm, previous = 0;
+    for (const event of map.events) {
+      if (![event.time, event.quarter].every(Number.isFinite) || event.time <= previous || event.time >= map.duration_seconds ||
+          Math.abs(time + (event.quarter - quarter) * 60 / bpm - event.time) > 1e-7 ||
+          (event.bpm !== undefined && (!Number.isFinite(event.bpm) || event.bpm < 1 || event.bpm > 1000)) ||
+          ((event.numerator === undefined) !== (event.denominator === undefined)) ||
+          (event.numerator !== undefined && (!Number.isInteger(event.numerator) || event.numerator < 1 || event.numerator > 32 ||
+            ![1, 2, 4, 8, 16, 32].includes(event.denominator))))
+        throw new Error("Invalid variable analysis change event");
+      time = event.time; quarter = event.quarter; bpm = event.bpm ?? bpm; previous = time;
+    }
+  }
   value.format = "bpmtracker-project";
   return value;
 }
@@ -285,6 +319,32 @@ function ensureAssetCache(asset) {
   const release = () => { if (restoringCaches.get(key) === task) restoringCaches.delete(key); };
   void task.then(id => { if (!id) release(); }, release);
   return task;
+}
+async function waitForPlaybackCache(asset) {
+  const restoration = restoringCaches.get(audioCache.cacheId(asset));
+  if (!restoration) return;
+  const id = await restoration;
+  if (!id) return;
+  const child = jobs.get(id);
+  if (child && child.exitCode === null && child.signalCode === null) {
+    await new Promise((resolve, reject) => {
+      const cleanup = () => {
+        child.removeListener("close", closed);
+        child.removeListener("error", failed);
+      };
+      const closed = (code) => {
+        cleanup();
+        if (code === 0) resolve();
+        else reject(new Error("The original audio could not be prepared for playback."));
+      };
+      const failed = (error) => { cleanup(); reject(error); };
+      child.once("close", closed);
+      child.once("error", failed);
+    });
+  }
+  // A reopened project can request its first chunk before the derived files
+  // exist. Wait for the ongoing decode and validate its complete buffers.
+  await restoreCachedAsset(asset, cacheFolderFor(asset));
 }
 function playbackCachePaths(asset, cacheFolder) {
   // Decoder playback PCM is always 48 kHz. Saved projects can contain only the
@@ -395,6 +455,10 @@ async function startJob(kind, body) {
   readline.createInterface({ input: child.stdout }).on("line", (line) => {
     try {
       const message = JSON.parse(line);
+      // The renderer can confirm or retry as soon as it receives a result.
+      // Keep tracking process cleanup, but release the analysis admission now.
+      if (message.stage === "complete" || message.stage === "failed")
+        child.bpmtrackerAnalysis = false;
       if (message.stage === "complete") {
         finished = true;
         if (kind === "decode") {
@@ -459,6 +523,7 @@ app.whenReady().then(async () => {
     autoHideMenuBar: true,
     backgroundColor: "#202426",
     title: "BPMTracker",
+    icon: path.join(appRoot, "dist", "app-icon.png"),
     titleBarStyle: "hidden",
     titleBarOverlay: { color: "#202426", symbolColor: "#cbd4da", height: 32 },
     webPreferences: {
@@ -669,10 +734,14 @@ ipcMain.handle("bpmtracker:peaks", async (_event, id) => {
     bytes.byteOffset + bytes.byteLength,
   );
 });
-ipcMain.handle("bpmtracker:chunk", async (_event, id, index) => {
+function incompletePlaybackCache() {
+  const error = new Error("The decoded audio buffers are incomplete.");
+  error.code = "BPMTRACKER_INCOMPLETE_CACHE";
+  return error;
+}
+async function readPlaybackChunk(id, index) {
+  await waitForPlaybackCache(requireAsset(id));
   const asset = requireAsset(id);
-  if (!Number.isInteger(index) || index < 0)
-    throw new Error("Invalid audio chunk");
   const chunkFrames = (asset.playbackRate || asset.sampleRate) * 2;
   const first = index * chunkFrames;
   const count = Math.max(
@@ -682,7 +751,10 @@ ipcMain.handle("bpmtracker:chunk", async (_event, id, index) => {
   const bytes = Buffer.alloc(count * asset.channels * 4);
   const handle = await fs.open(asset.playbackPath || asset.pcmPath, "r");
   try {
-    await handle.read(bytes, 0, bytes.length, first * asset.channels * 4);
+    const expectedBytes = (asset.playbackFrames || asset.frames) * asset.channels * 4;
+    if ((await handle.stat()).size !== expectedBytes) throw incompletePlaybackCache();
+    const { bytesRead } = await handle.read(bytes, 0, bytes.length, first * asset.channels * 4);
+    if (bytesRead !== bytes.length) throw incompletePlaybackCache();
   } finally {
     await handle.close();
   }
@@ -690,6 +762,18 @@ ipcMain.handle("bpmtracker:chunk", async (_event, id, index) => {
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength,
   );
+}
+ipcMain.handle("bpmtracker:chunk", async (_event, id, index) => {
+  if (!Number.isInteger(index) || index < 0)
+    throw new Error("Invalid audio chunk");
+  try { return await readPlaybackChunk(id, index); }
+  catch (error) {
+    if (!["ENOENT", "BPMTRACKER_INCOMPLETE_CACHE"].includes(error.code)) throw error;
+    // A later Play/seek after cancellation can encounter a partial cache.
+    // Reuse the existing restore job once, then require a complete real read.
+    await ensureAssetCache(requireAsset(id));
+    return readPlaybackChunk(id, index);
+  }
 });
 ipcMain.handle("bpmtracker:save", async (_event, input, previous, copy) => {
   const project = structuredClone(validProject(input));
@@ -810,8 +894,11 @@ ipcMain.handle(
     await fs.access(path.join(analysisRoot, "algorithms", "fixed", "payload.json")).catch(() => {
       throw new Error("The analysis source is missing. Refresh the app with the current launcher.");
     });
+    await fs.access(path.join(analysisRoot, "algorithms", "tempo_map", "api.py")).catch(() => {
+      throw new Error("The tempo-map analyzer is missing. Refresh the app with the current launcher.");
+    });
     await fs.access(checkpoint).catch(() => {
-      throw new Error("The official fixed-metronome checkpoint is missing");
+      throw new Error("The official beat model checkpoint is missing");
     });
     if ([...jobs.values()].some((child) => child.bpmtrackerAnalysis))
       throw new Error("One analysis can run at a time");

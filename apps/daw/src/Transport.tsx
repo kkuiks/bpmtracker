@@ -47,15 +47,13 @@ export function TimeField({ project, value, label, caption, format = "bars", dis
     segments={seconds => {
       if (format === "bars") {
         const parts = musicalTime(project, seconds).split(".");
-        if (barStartOnly) return [{ text: parts[0].padStart(3, "0"), separator: ".1.1.0", label: "Bar", digits: 4 }];
-        if (beatStartOnly) return [{ text: parts[0].padStart(3, "0"), separator: ".", label: "Bar", digits: 4 },
-          { text: parts[1], separator: ".1.0", label: "Beat", digits: 2 }];
         return parts.map((text, i) => ({ text: i === 0 ? text.padStart(3, "0") : text,
-          separator: i < 3 ? "." : "", label: ["Bar", "Beat", "Sixteenth", "Tick"][i], digits: [4, 2, 1, 3][i] }));
+          separator: i < 3 ? "." : "", label: ["Bar", "Beat", "Sixteenth", "Tick"][i],
+          readOnly: barStartOnly && i > 0 || beatStartOnly && i > 1 }));
       }
       const parts = secondsText(seconds).split(/[:.]/);
       return parts.map((text, i) => ({ text, separator: i < 2 ? ":" : i === 2 ? "." : "",
-        label: ["Hours", "Minutes", "Seconds", "Milliseconds"][i], digits: [2, 2, 2, 3][i] }));
+        label: ["Hours", "Minutes", "Seconds", "Milliseconds"][i] }));
     }}
     adjust={(seconds, steps, part, fine) => {
       if (format === "seconds") return Number(Math.max(0, seconds + steps * [3600, 60, 1, .001][part] * (fine ? .1 : 1)).toFixed(9));
@@ -72,25 +70,27 @@ export function TimeField({ project, value, label, caption, format = "bars", dis
       : "Drag a position segment · Double-click to type or paste · Shift: fine · Escape: cancel"}/></label>;
 }
 
-export function SignatureField({ value, title, onChange }: {
-  value: TimeSignature; title: string; onChange: (signature: Partial<TimeSignature>) => boolean;
+export function SignatureField({ value, title, onChange, disabled = false }: {
+  value: TimeSignature; title: string; onChange: (signature: Partial<TimeSignature>) => boolean; disabled?: boolean;
 }) {
   const owner = useRef(onChange);
   const [held, setHeld] = useState<TimeSignature | null>(null);
   const shown = held ?? value;
   const hold = () => setHeld({ numerator: value.numerator, denominator: value.denominator });
   return <div className="transport-signature" title={title}>
-    <ValueField label="Signature numerator" value={shown.numerator} min={1} max={32} step={1}
+    <ValueField label="Signature numerator" value={shown.numerator} disabled={disabled} min={1} max={32} step={1}
       onEditStart={hold} onEditEnd={() => setHeld(null)}
       parse={text => /^\d+$/.test(text.trim()) ? Number(text) : null}
       parseError="Enter a whole-number numerator from 1 to 32."
       adjust={(number, steps) => Math.max(1, Math.min(32, number + Math.trunc(steps)))}
       onChange={numerator => onChange({ numerator })}/><span aria-hidden="true">/</span>
-    <select aria-label="Signature denominator" value={shown.denominator}
+    <select aria-label="Signature denominator" value={shown.denominator} disabled={disabled}
       onFocus={() => { owner.current = onChange; hold(); }} onBlur={() => setHeld(null)}
       onChange={event => {
         const denominator = Number(event.target.value);
-        setHeld(owner.current({ denominator }) ? { ...shown, denominator } : null);
+        const focused = document.activeElement === event.currentTarget;
+        const accepted = (focused ? owner.current : onChange)({ denominator });
+        setHeld(focused && accepted ? { ...shown, denominator } : null);
       }}>
       {[1, 2, 4, 8, 16, 32].map(denominator => <option key={denominator} value={denominator}>{denominator}</option>)}
     </select>

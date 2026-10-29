@@ -46,15 +46,17 @@ import ProjectMapEditor from "./ProjectMapEditor";
 import ImportAudioDialog, { type ImportStart } from "./ImportAudioDialog";
 import { AddAudioTrackDialog, RemoveTracksDialog } from "./TrackDialogs";
 import { DEFAULT_CLICK_GAIN } from "./click-level";
+import { isVariableMap, type VariableMap } from "./analysis-map";
 import SelectionMove from "./SelectionMove";
 import ResizablePane from "./ResizablePane";
 import { arrangementBounds, arrangementDestination, moveArrangement } from "./arrangement";
-import { clockPlacement, editMapAtTimes, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, setTrackTimeBase, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
+import { clockPlacement, editMapAtTimes, placeClockOnProject, positionAtQuarter, putSignature, putTempo, quarterAtTime, refreshMusicalAnchors, removeMapEvents, setTrackTimeBase, signatureDeclarations, snapToProject, tempoAtQuarter, timeAtBar, timeAtQuarter, upgradeProject } from "./music";
+import type { SignatureEdit } from "./SignatureEditor";
 import {
   applyAnalysis,
   addAudioTracks,
   clipEnd,
-  clockGeometry,
+  clockGeometries,
   clockSourceScope,
   copyAudio,
   pasteAudio,
@@ -113,6 +115,7 @@ type EditContext = {
   projectId: string; owner: number; selection: ArrangementSelection; range: TimeRange | null;
   linked: boolean; cursor: number; trackId: string | null; point?: number;
 };
+const METRONOME_SETTING_KEY = "bpmtracker.system.metronome-enabled";
 function importPreferences(): { mode: ImportOptions["mode"]; copy: boolean } {
   try {
     const value = JSON.parse(localStorage.getItem("bpmtracker.import-preferences") ?? "null");
@@ -187,6 +190,8 @@ export default function App() {
   const [editorClipId, setEditorClipId] = useState<string | null>(null);
   const editorClip = project.clips.find((c) => c.id === editorClipId) ?? null;
   const [selectedMap,setMapFocus]=useState<MapSelection|null>(null);
+  const [signatureEdit, setSignatureEdit] = useState<SignatureEdit | null>(null);
+  useEffect(() => { setSignatureEdit(null); }, [project.id]);
   const setSelectedMap=(next:MapSelection|null)=>{
     setMapFocus(next);
     setArrangement(previous=>!next?{...previous,maps:[]}:selectedMap?
@@ -207,10 +212,14 @@ export default function App() {
   const timelineViewport = useRef<TimelineViewportControl | null>(null);
   const [follow, setFollow] = useState(true);
   const [loop, setLoop] = useState({ start: 0, end: 0, enabled: false });
-  const [metronome, setMetronome] = useState(false),
+  const [metronome, setMetronome] = useState(() => {
+      try { return localStorage.getItem(METRONOME_SETTING_KEY) === "true"; }
+      catch { return false; }
+    }),
     [mixer, setMixer] = useState(false),
     [inspector, setInspector] = useState(true);
   const [showMaps, setShowMaps] = useState(() => localStorage.getItem("bpmtracker.ui.maps") !== "hidden");
+  useEffect(() => { if (!showMaps) setSignatureEdit(null); }, [showMaps]);
   const [layoutRevision, setLayoutRevision] = useState(0);
   const toggleMaps = () => setShowMaps(value => { const next = !value; localStorage.setItem("bpmtracker.ui.maps", next ? "shown" : "hidden"); return next; });
   const [meter, setMeter] = useState([0, 0]);
@@ -222,6 +231,12 @@ export default function App() {
   const pendingImports = useRef(new Map<string, ImportOptions>());
   const session = useRef(0);
   const jobSessions = useRef(new Map<string, { session: number; kind: string }>());
+  const cancelledJobs = useRef(new Set<string>());
+  const cancelJob = (id: string) => {
+    cancelledJobs.current.add(id);
+    setJobs((list) => list.map((job) => job.id === id ? { ...job, stage: "cancelled" } : job));
+    void api?.cancel(id).catch(() => {});
+  };
   const switchSession = () => {
     session.current++;
     for (const [id, owner] of jobSessions.current)
@@ -263,7 +278,6 @@ export default function App() {
     projectRef.current = value;
     setProject(value);
     setPreviewing(false);
-    setReferencePreview(null);
     setDirty(true);
   };
   const change = (modify: (p: Project) => Project, label: string) =>
@@ -303,6 +317,18 @@ export default function App() {
   const clock =
     project.clocks.find((c) => c.id === selectedClock && clockSourceScope(project, c)) ??
     [...project.clocks].reverse().find((c) => c.clipId === selectedClip?.id && clockSourceScope(project, c));
+  const originalResult = clock && project.analyses.find(item => item.id === clock.analysisId)?.result;
+  const originalMap = isVariableMap(originalResult) ? originalResult : null;
+  const pendingMap = isVariableMap(pendingAnalysis?.result) ? pendingAnalysis.result : null;
+  const needsUnit = pendingAnalysis?.result.status === "needs_initial_unit";
+  const pendingSupported = !!pendingMap || !!pendingAnalysis?.result.period_seconds;
+  const confirmingUnit = needsUnit && !!scope && pendingAnalysis?.clipId === scope.clipId
+    && pendingAnalysis.sourceStart === scope.sourceStart && pendingAnalysis.sourceEnd === scope.sourceEnd;
+  const mapSummary = (map: VariableMap) => {
+    const tempos = map.events.filter(event => event.bpm !== undefined).length;
+    const signatures = map.events.filter(event => event.numerator !== undefined).length;
+    return `Starts at ${Number(map.initial.bpm.toFixed(3))} BPM · ${map.initial.numerator}/${map.initial.denominator} · ${tempos} tempo change${tempos === 1 ? "" : "s"} · ${signatures} signature change${signatures === 1 ? "" : "s"}`;
+  };
   const mapTempo = selectedMap?.kind === "tempo" ? project.tempos.find((t) => t.id === selectedMap.id) : null;
   const mapSignature = selectedMap?.kind === "signature" ? project.signatures.find((s) => s.id === selectedMap.id) : null;
   const arrangementInfo=arrangementBounds(project,arrangement,linked);
@@ -312,21 +338,20 @@ export default function App() {
     (j) => !["complete", "failed", "cancelled"].includes(j.stage),
   );
   let placementLabel: string | null = null;
+  let placementReady = false;
   const alignmentLabel = (saved: Clock) => {
     try {
       const aligned = clockPlacement(project, saved);
       return `First downbeat → bar ${aligned.bar}. Song and linked stems: ${aligned.delta >= 0 ? "+" : ""}${aligned.delta.toFixed(4)} s.`;
     } catch (e) { return e instanceof Error ? e.message : String(e); }
   };
-  if (pendingAnalysis?.result.period_seconds) {
-    const result = pendingAnalysis.result;
-    const proposal: Clock = { id: pendingAnalysis.id, clipId: pendingAnalysis.clipId, name: "Analysis proposal", sourceStart: pendingAnalysis.sourceStart, sourceEnd: pendingAnalysis.sourceEnd,
-      values: { bpm: result.quarter_bpm, numerator: result.time_signature.numerator, denominator: result.time_signature.denominator, offset: result.offset_seconds },
-      original: { bpm: result.quarter_bpm, numerator: result.time_signature.numerator, denominator: result.time_signature.denominator, offset: result.offset_seconds }, analysisId: pendingAnalysis.id };
+  if (pendingAnalysis && pendingSupported) {
     try {
-      const aligned = clockPlacement(project, proposal);
+      const proposed = applyAnalysis(project, pendingAnalysis);
+      const aligned = clockPlacement(proposed, proposed.clocks.at(-1)!);
       placementLabel = `First downbeat → bar ${aligned.bar}. Song and linked stems: ${aligned.delta >= 0 ? "+" : ""}${aligned.delta.toFixed(4)} s.`;
-    } catch { /* A removed source event cannot be applied. */ }
+      placementReady = true;
+    } catch (error) { placementLabel = error instanceof Error ? error.message : String(error); }
   }
 
   const loadPeaks = async (assets: Asset[]) => {
@@ -425,6 +450,10 @@ export default function App() {
     engine.current?.setLoop(loop);
   }, [loop]);
   useEffect(() => {
+    try { localStorage.setItem(METRONOME_SETTING_KEY, String(metronome)); }
+    catch { /* Playback remains available when preference storage is unavailable. */ }
+  }, [metronome]);
+  useEffect(() => {
     engine.current?.setClick(metronome, project.clickGain ?? DEFAULT_CLICK_GAIN);
   }, [metronome, project.clickGain]);
   useEffect(() => {
@@ -442,6 +471,15 @@ export default function App() {
   useEffect(() => {
     if (!api) return;
     return api.onJob((event) => {
+      if (cancelledJobs.current.has(event.id)) {
+        if (["complete", "failed"].includes(event.stage)) {
+          cancelledJobs.current.delete(event.id);
+          pendingImports.current.delete(event.id);
+          jobSessions.current.delete(event.id);
+          if (event.kind === "decode") void api.finishImport(event.id, false).catch(() => {});
+        }
+        return;
+      }
       const owner = jobSessions.current.get(event.id);
       if (owner && owner.kind !== "export" && owner.session !== session.current) {
         if (["complete", "failed"].includes(event.stage)) {
@@ -494,9 +532,11 @@ export default function App() {
         setDirty(true);
         setPendingAnalysis(event.result);
         tell(
-          event.result.result.period_seconds
-            ? "Clock proposal ready. Audition or apply it to the analyzed scope."
-            : "No supported clock. The tap could not create one without audio evidence.",
+          isVariableMap(event.result.result) || event.result.result.period_seconds
+            ? "Tempo map ready. Audition it, then apply it to the project."
+            : event.result.result.status === "needs_initial_unit"
+              ? "Audio is ready. Tap or confirm the beat unit to finish the map."
+              : "No supported clock was found. You can still edit the project map manually.",
         );
       } else if (event.kind === "export") {
         tell(
@@ -620,11 +660,7 @@ export default function App() {
   };
   const remove = (ids = selection) => {
     if (selectedMaps.length && ids === selection) {
-      const tempoIds=new Set(selectedMaps.filter(item=>item.kind==="tempo").map(item=>item.id));
-      const signatureIds=new Set(selectedMaps.filter(item=>item.kind==="signature").map(item=>item.id));
-      change(p=>editMapAtTimes(removeClips(p,selection,linked),
-        p.tempos.filter(event=>!tempoIds.has(event.id)),
-        p.signatures.filter(event=>!signatureIds.has(event.id))),"Delete selected arrangement items");
+      change(p=>removeMapEvents(removeClips(p,selection,linked),selectedMaps),"Delete selected arrangement items");
       setArrangement({clips:[],maps:[]});setMapFocus(null);setSelectedClock(null);return;
     }
     if (range && range.end > range.start && ids === selection) {
@@ -675,6 +711,43 @@ export default function App() {
     commit(next, "Edit project signature");
     if (selectedMap?.id === event.id) setSelectedMap({ kind: "signature", id: next.signatures.find((s) => s.id === event.id)?.id ?? next.signatures.find((s) => s.quarter === event.quarter)!.id });
   };
+  const focusMap = (id?: string) => requestAnimationFrame(() => {
+    const point = [...document.querySelectorAll<HTMLButtonElement>('[data-map-kind="signature"]')].find(node => node.dataset.mapId === id);
+    (point ?? document.querySelector<HTMLElement>(".arrangement"))?.focus({ preventScroll: true });
+  });
+  const editMap = (selection: MapSelection) => {
+    if (selection.kind !== "signature") { document.querySelector<HTMLInputElement>(".info-line input")?.focus(); return; }
+    const current = projectRef.current, point = current.signatures.find(event => event.id === selection.id);
+    if (!point) return;
+    const sourceId = point.shortBar && !point.shortBar.original ? point.shortBar.followingId : point.id;
+    const declaration = signatureDeclarations(current).find(event => event.id === sourceId);
+    if (!declaration) return;
+    chooseMap({ kind: "signature", id: declaration.id });
+    setSignatureEdit({ key: uid(), projectId: current.id, id: declaration.id,
+      time: timeAtQuarter(current, declaration.quarter!), value: declaration });
+  };
+  const commitSignatureEdit = (value: TimeSignature, returnFocus: boolean): string | null => {
+    const current = projectRef.current, edit = signatureEdit;
+    if (!edit || edit.projectId !== current.id) return "The project changed. Add the signature again.";
+    const existing = edit.id ? signatureDeclarations(current).find(point => point.id === edit.id) : undefined;
+    if (edit.id && !existing) return "This signature was removed. Add it again.";
+    const quarter = existing?.quarter ?? quarterAtTime(current, edit.time);
+    const event: SignatureEvent = { ...existing, id: existing?.id ?? uid(), quarter,
+      bar: positionAtQuarter(current, quarter).bar, ...value, origin: "manual" };
+    try {
+      const next = putSignature(current, event);
+      const point = next.signatures.find(point => point.id === event.id)
+        ?? next.signatures.find(point => Math.abs(point.quarter! - quarter) < 1e-8);
+      commit(next, existing ? "Edit project signature" : "Add project signature");
+      setSignatureEdit(null);
+      if (point) chooseMap({ kind: "signature", id: point.id });
+      if (returnFocus) focusMap(point?.id);
+      return null;
+    } catch (error) { return error instanceof Error ? error.message : String(error); }
+  };
+  const cancelSignatureEdit = (returnFocus: boolean) => {
+    const id = signatureEdit?.id; setSignatureEdit(null); if (returnFocus) focusMap(id);
+  };
   const addMap = (kind: "tempo" | "signature", time: number) => {
     if (kind === "tempo") {
       const quarter = quarterAtTime(project, Math.max(0, time));
@@ -682,17 +755,16 @@ export default function App() {
       const event: TempoEvent = { id: current?.id ?? uid(), quarter, bpm: tempoAtQuarter(project, quarter).bpm, origin: "manual" };
       updateTempo(event); chooseMap({ kind, id: event.id });
     } else {
-      const quarter = quarterAtTime(project, snapToProject(project, time, "beat"));
-      const position = positionAtQuarter(project, quarter);
-      const current = project.signatures.find((s) => Math.abs((s.quarter ?? 0)-quarter)<1e-8);
-      const event: SignatureEvent = { id: current?.id ?? uid(), quarter, bar: Math.max(1, position.bar), numerator: position.signature.numerator, denominator: position.signature.denominator, origin: "manual" };
-      updateSignature(event); chooseMap({ kind, id: event.id });
+      const current = projectRef.current, snapped = snapToProject(current, time, "beat"), quarter = quarterAtTime(current, snapped);
+      const existing = signatureDeclarations(current).find(point => Math.abs(point.quarter! - quarter) < 1e-8);
+      if (existing) { editMap({ kind, id: existing.id }); return; }
+      setSignatureEdit({ key: uid(), projectId: current.id, time: snapped, value: positionAtQuarter(current, quarter).signature });
     }
   };
   const removeMap = (selected: MapSelection) => {
     const event = selected.kind === "tempo" ? project.tempos.find((t) => t.id === selected.id) : project.signatures.find((s) => s.id === selected.id);
     if (!event) return;
-    change((p) => selected.kind === "tempo" ? editMapAtTimes(p, p.tempos.filter((t) => t.id !== selected.id)) : editMapAtTimes(p, undefined, p.signatures.filter((s) => s.id !== selected.id)), "Remove project map event");
+    change((p) => removeMapEvents(p, [selected]), "Remove project map event");
     setSelectedMap(null);
   };
   const moveMap = (selected: MapSelection, time: number, bpm?: number) => {
@@ -1083,9 +1155,19 @@ export default function App() {
         (60000 / differences[Math.floor(differences.length / 2)]).toFixed(1),
       );
   };
-  const analyze = async () => {
+  const confirmAnalysisUnit = (analysis: Analysis) => {
+    const clip = projectRef.current.clips.find(item => item.id === analysis.clipId);
+    if (!clip) { tell("The analyzed event was removed."); return; }
+    const start = Math.max(clip.start, clip.start + analysis.sourceStart - clip.sourceStart);
+    const end = Math.min(clipEnd(clip), clip.start + analysis.sourceEnd - clip.sourceStart);
+    setScope({ clipId: clip.id, asset: getAsset(projectRef.current, clip), start, end,
+      sourceStart: analysis.sourceStart, sourceEnd: analysis.sourceEnd,
+      whole: analysis.sourceStart === clip.sourceStart && analysis.sourceEnd === clip.sourceStart + clip.duration, name: clip.name });
+    setTap(""); setTapCount(0); tapTimes.current = []; setModal("analyze"); closeMenu();
+  };
+  const analyze = async (tapOverride?: number) => {
     if (!api || !scope) return;
-    const value = tap.trim() ? Number(tap) : null;
+    const value = tapOverride ?? (tap.trim() ? Number(tap) : null);
     if (value !== null && (!Number.isFinite(value) || value <= 0)) {
       tell("Enter a positive approximate BPM, or leave it empty.");
       return;
@@ -1122,32 +1204,33 @@ export default function App() {
       const selectedTrack = saved.clips.find((c) => c.id === pendingAnalysis.clipId)?.trackId;
       selectTracks(selectedTrack ? [selectedTrack] : []);
       setPendingAnalysis(null);
-      tell(`Clock applied at bar ${placement.bar}. Song and linked stems moved ${placement.delta >= 0 ? "+" : ""}${placement.delta.toFixed(4)} s.`);
+      tell(`Tempo map applied at bar ${placement.bar}. Song and linked stems moved ${placement.delta >= 0 ? "+" : ""}${placement.delta.toFixed(4)} s.`);
     } catch (e) { tell(e instanceof Error ? e.message : String(e)); }
   };
   const audition = async () => {
-    if (!pendingAnalysis?.result.period_seconds || !engine.current) return;
+    if (!pendingAnalysis || !pendingSupported || !engine.current) return;
     const preview = applyAnalysis(projectRef.current, pendingAnalysis),
       c = preview.clips.find((c) => c.id === pendingAnalysis.clipId);
     if (!c) return;
-    const geometry = clockGeometry(preview, preview.clocks.at(-1)!);
-    previewClocks.current = geometry ? [geometry] : [];
+    const geometry = clockGeometries(preview, preview.clocks.at(-1)!);
+    if (!geometry.length) { tell("No part of the analyzed source remains in this event."); return; }
+    previewClocks.current = geometry;
     engine.current.updateProject(projectRef.current, previewClocks.current);
     setPreviewing(true);
     engine.current.setClick(true, project.clickGain ?? DEFAULT_CLICK_GAIN);
-    const start = c.start + pendingAnalysis.sourceStart - c.sourceStart;
+    const start = geometry[0].start;
     await engine.current.play(start).catch((e) => tell(e.message));
     setMetronome(true);
   };
   const auditionClock = async (saved: Clock) => {
-    const geometry = clockGeometry(project, saved);
-    if (!geometry || !engine.current) return;
-    previewClocks.current = [geometry];
+    const geometry = clockGeometries(project, saved);
+    if (!geometry.length || !engine.current) return;
+    previewClocks.current = geometry;
     setPreviewing(true);
     engine.current.updateProject(project, previewClocks.current);
     engine.current.setClick(true, project.clickGain);
     setMetronome(true);
-    await engine.current.play(geometry.start).catch((e) => tell(e.message));
+    await engine.current.play(geometry[0].start).catch((e) => tell(e.message));
   };
   const clipboard = useRef<AudioClipboard | null>(null);
   const groupSelection = (group: boolean, selected = selection, useLinked = linked) => {
@@ -1186,9 +1269,7 @@ export default function App() {
     if (["copy", "cut", "paste", "duplicate", "split", "split-here", "split-range", "group", "ungroup", "front", "back"].includes(command) && !audioOnly) return;
     const erase = () => {
       let next = context.range ? removeRange(current, context.range, context.linked) : removeClips(current, ids, context.linked);
-      if (maps.length) next = editMapAtTimes(next,
-        next.tempos.filter(point => !maps.some(item => item.kind === "tempo" && item.id === point.id)),
-        next.signatures.filter(point => !maps.some(item => item.kind === "signature" && item.id === point.id)));
+      if (maps.length) next = removeMapEvents(next, maps);
       commit(next, context.range ? "Delete selected audio range" : maps.length ? "Delete arrangement selection" : "Delete events");
       setArrangement({ clips: [], maps: [] }); setMapFocus(null); setSelectedClock(null);
     };
@@ -1344,9 +1425,13 @@ export default function App() {
         ] }, { label: "Tempo / Signature", checked: showMaps, action: toggleMaps }];
     } else if (target.domain === "map") {
       title = mixed ? "Selection" : target.map?.kind === "tempo" ? "Tempo" : "Signature";
-      entries = [{ label: "Edit Properties", action: () => document.querySelector<HTMLInputElement>(".info-line input")?.focus() },
+      const point = target.map?.kind === "signature" ? current.signatures.find(point => point.id === target.map?.id) : null;
+      const calculated = !!point?.shortBar && !point.shortBar.original;
+      entries = [{ label: calculated ? "Edit Following Signature…" : point ? "Edit Time Signature…" : "Edit Properties",
+        action: () => target.map && editMap(target.map) },
         ...(mixed ? [action("copy", "Copy", "Ctrl C", mapClipboard), action("cut", "Cut", "Ctrl X", mapClipboard)] : []), separator,
-        { ...action("delete", mixed || selection.maps.length > 1 ? "Delete Selection" : target.map?.kind === "tempo" ? "Delete Tempo Point" : "Delete Signature Point", "Del"), danger: true }];
+        { ...action("delete", mixed || selection.maps.length > 1 ? "Delete Selection" : target.map?.kind === "tempo" ? "Delete Tempo Point" : "Delete Signature Point", "Del",
+          calculated && !mixed ? "Calculated short bar: edit or move the following signature" : undefined), danger: true }];
     } else if (target.domain === "map-lane") {
       entries = [{ label: target.mapKind === "tempo" ? "Add Tempo Here…" : "Add Signature at Beat…", action: () => addMap(target.mapKind!, target.time) },
         separator, { label: "Hide Tempo / Signature", action: toggleMaps }];
@@ -1448,12 +1533,14 @@ export default function App() {
     else if (command === "play") togglePlay();
     else if (command === "rewind") seek(0);
     else if (command === "undo") {
-      if (!history.current.undoLabel) return;
+      if (modal || !history.current.undoLabel) return;
+      if (document.activeElement instanceof HTMLSelectElement) document.activeElement.blur();
       setPreviewing(false);
       projectRef.current = history.current.undo(); setProject(projectRef.current);
       setDirty(true);
     } else if (command === "redo") {
-      if (!history.current.redoLabel) return;
+      if (modal || !history.current.redoLabel) return;
+      if (document.activeElement instanceof HTMLSelectElement) document.activeElement.blur();
       setPreviewing(false);
       projectRef.current = history.current.redo(); setProject(projectRef.current);
       setDirty(true);
@@ -1529,7 +1616,9 @@ export default function App() {
         if (!e.repeat) tapNow();
         return;
       }
-      if (editing) return;
+      const selectHistoryShortcut = node instanceof HTMLSelectElement && (e.ctrlKey || e.metaKey)
+        && !e.altKey && e.code === "KeyZ";
+      if (editing && !selectHistoryShortcut) return;
       if (modal) {
         if (e.code === "Space") {
           e.preventDefault();
@@ -1538,6 +1627,9 @@ export default function App() {
         return;
       }
       const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl && !e.altKey && ["Enter", "F2"].includes(e.key) && selectedMap?.kind === "signature" && !mixedInfo) {
+        e.preventDefault(); editMap(selectedMap); return;
+      }
       if (ctrl && e.code === "KeyZ" && cancelValueGesture(node)) { e.preventDefault(); return; }
       if (e.shiftKey && !ctrl && !e.altKey && ["KeyP", "KeyL", "KeyR"].includes(e.code)) {
         e.preventDefault();
@@ -1794,8 +1886,18 @@ export default function App() {
           <NumberField label="Tempo BPM" caption="BPM" commitEqual value={mapTempo.bpm} min={1} max={1000} step={1} integerSteps onChange={bpm => updateTempo({ ...mapTempo, bpm, origin: "manual" })}/>
         </> : mapSignature ? <>
           <div className="info-name object-title"><Music2 size={15}/><strong>Signature</strong></div>
-          <TimeField project={mapPositionGrid} label="Signature position" caption="Position" beatStartOnly value={timeAtBar(project, mapSignature.bar)} onChange={seconds => moveMap({ kind: "signature", id: mapSignature.id }, seconds)}/>
-          <div className="info-signature"><span>Signature</span><SignatureField value={mapSignature} title="Time signature" onChange={fields => { updateSignature({ ...mapSignature, ...fields, origin: "manual" }); return true; }}/></div>
+          {mapSignature.shortBar && !mapSignature.shortBar.original ? <>
+            <TimeField project={project} label="Signature position" caption="Position" value={timeAtBar(project, mapSignature.bar)} disabled onChange={() => {}}/>
+            <div className="info-signature"><span>Signature</span><SignatureField value={mapSignature} title="Calculated from the following declaration" disabled onChange={() => false}/></div>
+            <button className="icon-button" aria-label="Edit following signature…" title="Short bar — edit the following signature"
+              onClick={() => editMap({ kind: "signature", id: mapSignature.id })}><Link2 size={15}/></button>
+          </> : <>
+            <TimeField project={mapPositionGrid} label="Signature position" caption="Position in previous meter" beatStartOnly value={timeAtBar(project, mapSignature.bar)} onChange={seconds => moveMap({ kind: "signature", id: mapSignature.id }, seconds)}/>
+            <div className="info-signature"><span>Signature</span><SignatureField value={mapSignature.shortBar?.original ?? mapSignature} title="Declared time signature" onChange={fields => {
+              updateSignature({ ...mapSignature, ...mapSignature.shortBar?.original, ...fields, origin: "manual" }); return true;
+            }}/></div>
+            {mapSignature.shortBar && <span className="info-short-bar-note">Short bar: {mapSignature.numerator}/{mapSignature.denominator}</span>}
+          </>}
         </> : <span className="info-empty">No selection</span>}
       </section>
       <main className="workspace">
@@ -1876,14 +1978,17 @@ export default function App() {
               <button className="secondary-button full" onClick={() => beginAnalysis(selectedClip)}><Waves size={14}/>Analyze Audio…</button>
             </InspectorSection>}
             {clock && (
-              <InspectorSection title="Analysis" key={clock.id} initiallyOpen={selectedClock === clock.id} badge={JSON.stringify(clock.values) === JSON.stringify(clock.original) ? "ANALYZED" : "EDITED"}>
+              <InspectorSection title="Analysis" key={clock.id} initiallyOpen={selectedClock === clock.id} badge={clock.kind === "map" ? "ORIGINAL" : JSON.stringify(clock.values) === JSON.stringify(clock.original) ? "ANALYZED" : "EDITED"}>
                 <select className="saved-clock-select" aria-label="Saved analysis scope" value={clock.id} onChange={(e) => setSelectedClock(e.target.value)}>
                   {project.clocks.filter((saved) => saved.clipId === clock.clipId && clockSourceScope(project, saved)).map((saved) => <option key={saved.id} value={saved.id}>{formatTime(saved.sourceStart)}–{formatTime(saved.sourceEnd)} · {saved.values.bpm.toFixed(2)} BPM</option>)}
                 </select>
                 <p className="field-help">Original analyzed source: {formatTime(clock.sourceStart)}–{formatTime(clock.sourceEnd)}.
                   {(() => { const scope = clockSourceScope(project, clock)!; return scope.start !== clock.sourceStart || scope.end !== clock.sourceEnd
                     ? ` This fragment covers ${formatTime(scope.start)}–${formatTime(scope.end)}; no new analysis was run.` : ""; })()}</p>
-                <NumberField
+                {clock.kind === "map" ? <>
+                  <p className="field-help">{originalMap ? mapSummary(originalMap) : "Original tempo map"}.</p>
+                  <p className="field-help">Correct the applied map in the Tempo and Signature tracks. This original analysis stays unchanged.</p>
+                </> : <><NumberField
                   label="Quarter BPM"
                   value={clock.values.bpm}
                   step={1}
@@ -1930,23 +2035,23 @@ export default function App() {
                 <p className="field-help">
                   Edit or restore the saved values, then Apply &amp; Align to update the project grid and move this song with its linked stems.
                   The offset is measured from the original analyzed source start.
-                </p>
+                </p></>}
                 <p className="field-help alignment-preview">{alignmentLabel(clock)}</p>
                 <button className="primary-button full" onClick={() => alignClock(clock.id)}>Apply &amp; Align</button>
-                <button className="secondary-button full" onClick={() => void auditionClock(clock)}>Audition saved clock</button>
-                <button
+                <button className="secondary-button full" onClick={() => void auditionClock(clock)}>{clock.kind === "map" ? "Audition original map" : "Audition saved clock"}</button>
+                {clock.kind !== "map" && <button
                   className="secondary-button full"
                   title="Restore the original prediction values. Apply & Align separately to update the grid and song position."
                   onClick={() => restoreClockValues(clock.id)}
                 >
                   <Undo2 size={13} />
                   Restore Original Prediction
-                </button>
+                </button>}
                 <button className="secondary-button full" title="Remove this saved clock draft; retain the original prediction and project map."
                   onClick={() => removeSavedClock(clock.id)}>Remove Saved Clock</button>
               </InspectorSection>
             )}
-            {selectedMap && <ProjectMapEditor key={selectedMap.id} project={project} selection={selectedMap} selectedMaps={selectedMaps} selectedClips={selection} onSelect={chooseMap} onTempo={updateTempo} onSignature={updateSignature} onMove={moveMap} onRemove={() => removeMap(selectedMap)} listOnly onContext={arrangementContext}/>}
+            {selectedMap && <ProjectMapEditor key={selectedMap.id} project={project} selection={selectedMap} selectedMaps={selectedMaps} selectedClips={selection} onSelect={chooseMap} onTempo={updateTempo} onSignature={updateSignature} onMove={moveMap} onRemove={() => removeMap(selectedMap)} onEdit={editMap} listOnly onContext={arrangementContext}/>}
 
           </aside>
           </ResizablePane>
@@ -2010,7 +2115,9 @@ export default function App() {
             onRangeMove={editRange}
             onTrack={updateTrack}
             onAnalyze={beginAnalysis}
-            onMapSelect={chooseMap} onMapAdd={addMap} onMapMove={moveMap} onMapDelete={removeMap} onTimeBase={timeBase}
+            onMapSelect={chooseMap} onMapAdd={addMap} onMapEdit={editMap}
+            signatureEdit={signatureEdit} onSignatureCommit={commitSignatureEdit} onSignatureCancel={cancelSignatureEdit}
+            onMapMove={moveMap} onMapDelete={removeMap} onTimeBase={timeBase}
             onImport={beginImport}
           />
           {pendingAnalysis && (
@@ -2019,35 +2126,36 @@ export default function App() {
                 <Waves size={23} />
               </div>
               <div className="analysis-result-copy">
-                <small>CLOCK PROPOSAL · ANALYZED SCOPE ONLY</small>
+                <small>{needsUnit ? "AUDIO READY · BEAT UNIT NEEDED" : "TEMPO MAP PROPOSAL · ANALYZED SCOPE ONLY"}</small>
                 <strong>
-                  {pendingAnalysis.result.period_seconds
+                  {pendingMap ? mapSummary(pendingMap) : needsUnit ? "Tap or confirm the beat you would count" : pendingAnalysis.result.period_seconds
                     ? `${pendingAnalysis.result.quarter_bpm.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")} BPM   ·   ${pendingAnalysis.result.time_signature.numerator}/${pendingAnalysis.result.time_signature.denominator}   ·   offset ${pendingAnalysis.result.offset_seconds.toFixed(4)} s`
                     : "No supported clock"}
                 </strong>
                 <span>
-                  {placementLabel ?? "Listen with the click, then keep the original prediction or apply it."}
+                  {placementLabel ?? (needsUnit ? "The audio evidence is saved. Choose a pulse to finish the map without repeating the beat extraction."
+                    : pendingSupported ? "Listen with the click, then apply the map." : "You can still enter or edit the project tempo and signature manually.")}
                 </span>
                 {pendingAnalysis.result.confidence_flags?.length > 0 && <span>Audition first: some musical evidence is ambiguous.</span>}
               </div>
-              <button
+              {!needsUnit && <button
                 className="secondary-button"
-                disabled={!pendingAnalysis.result.period_seconds}
+                disabled={!pendingSupported}
                 onClick={() => void audition()}
               >
                 <Headphones size={15} />
                 Audition
-              </button>
+              </button>}
               <button
                 className="primary-button"
                 disabled={
-                  !pendingAnalysis.result.period_seconds ||
-                  !placementLabel ||
+                  (!pendingSupported && !needsUnit) ||
+                  (!needsUnit && !placementReady) ||
                   !project.clips.some((c) => c.id === pendingAnalysis.clipId)
                 }
-                onClick={apply}
+                onClick={() => needsUnit ? confirmAnalysisUnit(pendingAnalysis) : apply()}
               >
-                Apply & Align
+                {needsUnit ? "Tap / Confirm" : "Apply & Align"}
               </button>
               <button
                 className="icon-button"
@@ -2144,7 +2252,7 @@ export default function App() {
       {previewing && <div className="preview-status"><Headphones size={13}/><span>Analysis preview</span><button onClick={() => { setPreviewing(false); engine.current?.updateProject(project); }}>Return to project</button></div>}
       {activeJob && <div className="job-status"><LoaderCircle size={13} className="spin"/><span>{activeJob.stage}</span>
         {activeJob.progress !== undefined && <span>{Math.round(activeJob.progress * 100)}%</span>}
-        <button onClick={() => void api?.cancel(activeJob.id)}>Cancel</button></div>}
+        <button onClick={() => cancelJob(activeJob.id)}>Cancel</button></div>}
       <Transport key={session.current} project={project} position={position} playing={playing} buffering={buffering} loop={loop} metronome={metronome} levels={meter}
         onStart={startPlayback} onStop={() => engine.current?.stop()} onSeek={seek} onLoop={setLoop}
         onClick={() => setMetronome((value) => !value)}
@@ -2212,8 +2320,8 @@ export default function App() {
                 <div className="modal-symbol">
                   <Waves size={27} />
                 </div>
-                <h2>Find the musical clock</h2>
-                <p>One fixed quarter BPM, meter and downbeat offset.</p>
+                <h2>{confirmingUnit ? "Confirm the beat unit" : "Create a tempo map"}</h2>
+                <p>{confirmingUnit ? "The audio is ready. Tap or choose the pulse you would count." : "Analyze the song's tempo, signature and their changes."}</p>
                 <div className="analysis-source">
                   <FileAudio size={20} />
                   <div>
@@ -2229,7 +2337,7 @@ export default function App() {
                     <span className="section-label">
                       INITIAL QUARTER-BPM TAP
                     </span>
-                    <small>Optional · chooses the beat unit only</small>
+                    <small>{confirmingUnit ? "Choose the pulse · precise timing comes from audio" : "Tap if you know the pulse · chooses the beat unit only"}</small>
                   </div>
                   <div className="tap-control">
                     <button
@@ -2244,6 +2352,7 @@ export default function App() {
                       <input
                         autoFocus
                         type="number"
+                        aria-label="Approximate quarter BPM"
                         value={tap}
                         placeholder="—"
                         min={1}
@@ -2257,18 +2366,22 @@ export default function App() {
                     Precise BPM, meter and phase still come from audio.
                   </p>
                 </div>
+                {confirmingUnit && <div className="analysis-unit-options" aria-label="Available beat units">
+                  {pendingAnalysis?.result.unit_choices?.map((choice: { unit_id: number; approximate_bpm: number }) =>
+                    <button key={choice.unit_id} className="secondary-button" aria-label={`Confirm pulse near ${Number(choice.approximate_bpm.toFixed(1))} BPM`}
+                      onClick={() => void analyze(choice.approximate_bpm)}>~{Number(choice.approximate_bpm.toFixed(1))} BPM</button>)}
+                </div>}
                 <button
                   className="secondary-button full"
                   onClick={() => {
                     seek(scope.start);
-                    if (!playing)
-                      void engine.current
-                        ?.play(scope.start)
-                        .catch((e) => tell(e.message));
+                    setMetronome(false);
+                    engine.current?.setClick(false, project.clickGain);
+                    void engine.current?.play(scope.start).catch((e) => tell(e.message));
                   }}
                 >
                   <Headphones size={15} />
-                  Play from scope start
+                  Listen without click
                 </button>
                 <p className="scope-note">
                   <Clock3 size={14} />
@@ -2287,12 +2400,12 @@ export default function App() {
                     disabled={jobs.some(
                       (j) =>
                         j.kind === "analyze" &&
-                        !["complete", "failed"].includes(j.stage),
+                        !["complete", "failed", "cancelled"].includes(j.stage),
                     )}
                     onClick={() => void analyze()}
                   >
                     <Waves size={16} />
-                    Analyze Audio
+                    {confirmingUnit ? "Continue" : "Analyze Audio"}
                   </button>
                 </div>
               </>

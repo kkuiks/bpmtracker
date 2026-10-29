@@ -1,5 +1,6 @@
 import { musicalTime, projectClocks, snapToProject } from "./music";
 import { DEFAULT_CLICK_GAIN, CLICK_GAIN_POLICY } from "./click-level";
+import { firstMapDownbeat, isVariableMap, sourceMapSections, validateVariableMap } from "./analysis-map";
 
 export type Asset = {
   id: string;
@@ -48,6 +49,7 @@ export type ClockValues = {
   offset: number;
 };
 export type Clock = {
+  kind?: "fixed" | "map";
   projectOrigin?: number;
   id: string;
   clipId: string;
@@ -68,6 +70,8 @@ export type Analysis = {
   createdAt: string;
   result: Record<string, any>;
   recordPath: string;
+  analyzer?: { id: string; revision: string; checkpointSha256: string;
+    sourcePreparationReused: boolean; neuralCalls: number; decoderCalls?: number };
 };
 export type TempoEvent = {
   id: string;
@@ -86,6 +90,8 @@ export type SignatureEvent = {
   denominator: number;
   origin: "manual" | "analysis";
   analysisId?: string;
+  /** The preceding short bar is derived from this following declaration. */
+  shortBar?: { followingId: string; original?: TimeSignature };
 };
 export type MapSelection = { kind: "tempo" | "signature"; id: string };
 export type ArrangementSelection = { clips: string[]; maps: MapSelection[] };
@@ -106,6 +112,9 @@ export type Project = {
   notes: string;
   bpm: number;
   signature: TimeSignature;
+  /** After deleting a first declaration, its successor also supplies the initial value. */
+  initialTempoFollowsFirst?: boolean;
+  initialSignatureFollowsFirst?: boolean;
   tempos: TempoEvent[];
   signatures: SignatureEvent[];
   projectDuration: number;
@@ -247,6 +256,8 @@ export const createProject = (): Project => ({
   notes: "",
   bpm: 120,
   signature: { numerator: 4, denominator: 4 },
+  initialTempoFollowsFirst: false,
+  initialSignatureFollowsFirst: false,
   tempos: [],
   signatures: [],
   projectDuration: 1800,
@@ -293,8 +304,26 @@ export function clockGeometry(p: Project, clock: Clock): AudioClock | null {
     phase: origin + clock.sourceStart + clock.values.offset,
   };
 }
+export function clockGeometries(p: Project, clock: Clock): AudioClock[] {
+  if (clock.kind !== "map") {
+    const single = clockGeometry(p, clock);
+    return single ? [single] : [];
+  }
+  const analysis = p.analyses.find(item => item.id === clock.analysisId);
+  const clip = p.clips.find(item => item.id === clock.clipId);
+  const scope = clockSourceScope(p, clock);
+  if (!analysis || !isVariableMap(analysis.result) || !clip || !scope) return [];
+  const origin = clip.start - clip.sourceStart + analysis.sourceStart;
+  const from = scope.start - analysis.sourceStart, to = scope.end - analysis.sourceStart;
+  return sourceMapSections(analysis.result).flatMap((section, index) => {
+    const start = Math.max(from, section.start), end = Math.min(to, section.end);
+    return end > start ? [{ id: `${clock.id}:${index}`, bpm: section.bpm, numerator: section.numerator,
+      denominator: section.denominator, offset: 0, start: origin + start, end: origin + end,
+      phase: origin + section.phase }] : [];
+  });
+}
 export const audibleClocks = (p: Project): AudioClock[] =>
-  p.clocks.map((c) => clockGeometry(p, c)).filter((c): c is AudioClock => !!c);
+  p.clocks.flatMap((c) => clockGeometries(p, c));
 export const clockAt = (p: Project, t: number) =>
   projectClocks(p, Math.max(p.projectDuration, t + 1)).find((c) => t >= c.start && t < c.end);
 export function snapTime(
@@ -531,9 +560,14 @@ export function orderClips(p: Project, ids: string[], front: boolean, linked: bo
 }
 export function applyAnalysis(p: Project, analysis: Analysis): Project {
   const result = analysis.result;
-  if (!result.period_seconds || !result.time_signature)
+  const variable = isVariableMap(result);
+  if (variable) validateVariableMap(result);
+  if (!variable && (!result.period_seconds || !result.time_signature))
     return { ...p, analyses: [...p.analyses, analysis] };
-  const values = {
+  const values = variable ? {
+    bpm: result.initial.bpm, numerator: result.initial.numerator, denominator: result.initial.denominator,
+    offset: firstMapDownbeat(result, 0, result.duration_seconds) ?? 0,
+  } : {
     bpm: result.quarter_bpm,
     numerator: result.time_signature.numerator,
     denominator: result.time_signature.denominator,
@@ -547,7 +581,8 @@ export function applyAnalysis(p: Project, analysis: Analysis): Project {
   clocks.push({
     id: uid(),
     clipId: analysis.clipId,
-    name: "Fixed clock",
+    name: variable ? "Tempo map" : "Fixed clock",
+    kind: variable ? "map" : "fixed",
     sourceStart: analysis.sourceStart,
     sourceEnd: analysis.sourceEnd,
     projectOrigin: reference.start - reference.sourceStart,

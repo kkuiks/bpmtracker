@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { registerValueGesture } from "./valueGesture";
 import { registerControlContext, type ControlActions } from "./controlContext";
 
-export type ValueSegment = { text: string; separator: string; label: string; digits: number };
+export type ValueSegment = { text: string; separator: string; label: string; readOnly?: boolean };
 type Props = {
   label: string;
   value: number;
@@ -158,6 +158,7 @@ export default function ValueField(props: Props) {
     finish(false, number!, true);
   };
   const step = (direction: number, fine: boolean) => {
+    if (current.current.segments?.(current.current.value)[segmentRef.current]?.readOnly) return;
     const transaction = begin();
     const typing = modeRef.current === "typing";
     const original = typing ? transaction.parse(textRef.current) : draftRef.current;
@@ -181,6 +182,7 @@ export default function ValueField(props: Props) {
       if (disabled || event.ctrlKey || !event.deltaY || drag.current) return;
       event.preventDefault(); event.stopPropagation();
       const part = (event.target as Element).closest<HTMLElement>("[data-value-segment]");
+      if (part?.dataset.readonly === "true") return;
       if (part) { segmentRef.current = Number(part.dataset.valueSegment); setSegment(segmentRef.current); }
       wheelStep.current(event.deltaY < 0 ? 1 : -1, event.shiftKey);
     };
@@ -305,8 +307,11 @@ export default function ValueField(props: Props) {
         }
         if (modeRef.current !== "typing" && parts && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
           event.preventDefault(); event.stopPropagation();
-          segmentRef.current = Math.max(0, Math.min(parts.length - 1, segmentRef.current + (event.key === "ArrowRight" ? 1 : -1)));
-          setSegment(segmentRef.current); return;
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          let next = segmentRef.current + direction;
+          while (next >= 0 && next < parts.length && parts[next].readOnly) next += direction;
+          if (next >= 0 && next < parts.length) { segmentRef.current = next; setSegment(next); }
+          return;
         }
         if (modeRef.current !== "typing" && !event.ctrlKey && !event.metaKey && !event.altKey && /^[\d.+\-/]$/.test(event.key)) {
           event.preventDefault(); event.stopPropagation(); enterText(event.key);
@@ -317,13 +322,14 @@ export default function ValueField(props: Props) {
         if (modeRef.current === "typing") event.stopPropagation();
       }}/>
     {parts && !typing && <div className="value-segments" aria-hidden="true">
-      {parts.map((part, index) => <span key={index} className={segment === index ? "current-segment" : ""}
-        data-value-segment={index} style={{ width: `${part.digits + part.separator.length}ch` }}
-        title={`${part.label} · Drag up/down · Double-click to type`}
+      {parts.map((part, index) => <span key={index} className={segment === index && !part.readOnly ? "current-segment" : ""}
+        data-value-segment={index} data-readonly={part.readOnly || undefined}
+        title={part.readOnly ? `${part.label} · Fixed by the position boundary` : `${part.label} · Drag up/down · Double-click to type`}
         onPointerDown={event => {
+          if (part.readOnly) { event.preventDefault(); return; }
           segmentRef.current = index; setSegment(index);
           startPointer(event);
-        }}><span className="value-segment-number">{part.text}</span><i style={{ width: `${part.separator.length}ch` }}>{part.separator}</i></span>)}
+        }}><span className="value-segment-number">{part.text}</span>{part.separator && <i>{part.separator}</i>}</span>)}
     </div>}
     {error && <ValueError input={input.current} id={errorId} message={error}/>}
   </div>;

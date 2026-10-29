@@ -8,9 +8,28 @@
     "algorithms/fixed/hinted.py",
     "algorithms/fixed/config-tap-v2.json",
     "algorithms/fixed/requirements-cpu.lock",
-    "algorithms/fixed/payload.json"
-  ],
-  "legacyManagedPaths": [
-    "experiments"
+    "algorithms/fixed/payload.json",
+    "algorithms/tempo_map/__init__.py",
+    "algorithms/tempo_map/api.py",
+    "algorithms/tempo_map/base_scoring.py",
+    "algorithms/tempo_map/common.py",
+    "algorithms/tempo_map/continuous_common.py",
+    "algorithms/tempo_map/continuous_map.py",
+    "algorithms/tempo_map/continuous_score.py",
+    "algorithms/tempo_map/core.py",
+    "algorithms/tempo_map/emissions.py",
+    "algorithms/tempo_map/initial_source.py",
+    "algorithms/tempo_map/dense_config.py",
+    "algorithms/tempo_map/dense_search.py",
+    "algorithms/tempo_map/dense_scoring.py",
+    "algorithms/tempo_map/search_config.py",
+    "algorithms/tempo_map/event_search.py",
+    "algorithms/tempo_map/path_scoring.py",
+    "algorithms/tempo_map/observations.py",
+    "algorithms/tempo_map/parameters.json",
+    "algorithms/tempo_map/runtime.py",
+    "algorithms/tempo_map/scoring.py",
+    "algorithms/tempo_map/source.py",
+    "algorithms/tempo_map/unit_policy.py"
   ]
 }
